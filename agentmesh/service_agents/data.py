@@ -13,7 +13,7 @@ class MockDataAgent:
 
     def query(self, task: Task, request_post: BlackboardPost, content: str, user: User) -> BlackboardPost:
         result = self.registry.query_first_available(
-            connector_names=["o2_cli", "local_metrics"],
+            connector_names=["http_data_api", "o2_cli", "local_metrics"],
             operation="query",
             parameters={"metric": self._metric_from_content(content), "query": content, "limit": 5},
             workspace_id=WORKSPACE.id,

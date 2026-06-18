@@ -251,8 +251,25 @@ Data source integration is reserved as a generic connector contract:
 - `DataSourceQuery` carries connector name, operation, free-form parameters, workspace, project, and requester.
 - `DataSourceResult` returns generic records plus a `data_source` Source.
 - `DataSourceRegistry` routes queries to registered connectors.
+- `http_data_api` is a production-facing read-only HTTP connector enabled by `AGENTMESH_DATA_API_URL`.
+- `data_agent` tries configured production data connectors before falling back to O2 and `local_metrics`.
 - `local_metrics` is a working local connector used by `POST /api/data-agent/query`.
 - `ExternalDataSourceConnector` is a placeholder until a concrete external project provides the real data shape and access method.
+
+Enable a real read-only data API:
+
+```bash
+export AGENTMESH_DATA_API_URL=https://your-company-data-api.example/api/data
+export AGENTMESH_DATA_API_KEY=your-server-side-token
+```
+
+For a query operation such as `query`, AgentMesh POSTs to:
+
+```text
+{AGENTMESH_DATA_API_URL}/query
+```
+
+with JSON containing `operation`, `parameters`, `workspace_id`, `project_id`, and `requested_by`. The response may be an array, or an object with `records`, `items`, `results`, `data`, or `rows`. API keys stay server-side and are not returned by health or connector list endpoints.
 
 ## Workspace And Blackboard
 

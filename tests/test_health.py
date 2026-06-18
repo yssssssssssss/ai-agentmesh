@@ -152,6 +152,15 @@ class TestProviderHealthCheck:
         assert dc["count"] >= 1
         assert "local_metrics" in dc["connectors"]
 
+    def test_data_connectors_include_http_api_when_configured(self, auth_client: TestClient):
+        """配置真实数据 API 后暴露 http_data_api connector。"""
+        with patch.dict("os.environ", {"AGENTMESH_DATA_API_URL": "https://bi.example/api/data"}):
+            response = auth_client.get("/api/health/providers")
+        data = response.json()
+        dc = next(p for p in data["providers"] if p["provider"] == "data_connectors")
+        assert "http_data_api" in dc["connectors"]
+        assert "local_metrics" in dc["connectors"]
+
     def test_document_parser_always_ready(self, auth_client: TestClient):
         """文档解析器始终返回 ready 状态。"""
         response = auth_client.get("/api/health/providers")

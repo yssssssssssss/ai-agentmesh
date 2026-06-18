@@ -1,3 +1,4 @@
+import httpx
 import pytest
 
 from agentmesh.datasources import (
@@ -5,7 +6,9 @@ from agentmesh.datasources import (
     DataSourceRegistry,
     DataSourceResult,
     ExternalDataSourceConnector,
+    HTTPDataAPIConnector,
     LocalMetricsConnector,
+    default_data_source_registry,
 )
 from agentmesh.models import Source
 from agentmesh.seed import PROJECT, USER, WORKSPACE
@@ -98,3 +101,55 @@ def test_data_source_registry_falls_back_to_next_connector() -> None:
 
     assert result.connector_name == "local_metrics"
     assert result.metadata["fallback_diagnostics"] == "o2_cli: auth_required"
+
+
+def test_http_data_api_connector_posts_query_and_normalizes_records() -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["authorization"] = request.headers.get("authorization")
+        captured["payload"] = request.read()
+        return httpx.Response(
+            200,
+            json={
+                "title": "真实 BI 查询结果",
+                "source_title": "business_metrics_api",
+                "source_reference": "https://bi.example/query/123",
+                "records": [{"metric": "ctr", "value": 0.42, "nested": {"date": "2026-06-18"}}],
+            },
+        )
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    connector = HTTPDataAPIConnector(
+        base_url="https://bi.example/api/data",
+        api_key="secret-token",
+        http_client=http_client,
+    )
+
+    result = connector.query(
+        DataSourceQuery(
+            connector_name="http_data_api",
+            operation="query ctr",
+            parameters={"metric": "ctr"},
+            workspace_id=WORKSPACE.id,
+            project_id=PROJECT.id,
+            requested_by=USER.id,
+        )
+    )
+
+    assert result.connector_name == "http_data_api"
+    assert result.title == "真实 BI 查询结果"
+    assert result.records == [{"metric": "ctr", "value": 0.42, "nested": "{'date': '2026-06-18'}"}]
+    assert result.source.title == "business_metrics_api"
+    assert captured["url"] == "https://bi.example/api/data/query_ctr"
+    assert captured["authorization"] == "Bearer secret-token"
+    assert f'"workspace_id":"{WORKSPACE.id}"'.encode() in captured["payload"]
+
+
+def test_default_registry_registers_http_data_api_when_configured(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AGENTMESH_DATA_API_URL", "https://bi.example/api/data")
+
+    registry = default_data_source_registry()
+
+    assert registry.list_connectors() == ["http_data_api", "local_metrics"]

@@ -280,7 +280,7 @@ Build this first, end to end:
 - [x] Replace static workspace/project API responses with persisted records in the current SQLite store.
 - [x] Add a migration path from the current records store to dedicated relational tables if production schema stabilizes.
 - [ ] Move `PersonalAgent` workflow helpers into a dedicated workflow module if orchestration keeps growing.
-- [ ] Add a production data connector implementation for the first real business data source.
+- [x] Add a production-facing read-only HTTP data connector; first real business data source still needs company API URL, auth, and response contract.
 - [x] Add production Oxygen CLI contracts for the first approved internal research/data CLIs.
 - [x] Add admin-facing setup checks for missing `JD_METASEARCH_ACCESS_TOKEN`, `o2-kb init`, Browser Bridge extension state, and `bdp-copilot` auth/runtime readiness.
 - [x] Add a real Web provider adapter once the exact `agent-browser` or `opencli` command contract is fixed.
