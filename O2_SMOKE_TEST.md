@@ -15,6 +15,7 @@ Verify whether AgentMesh can use Oxygen-CLI as a real internal data provider for
   - `metasearch`
   - `o2-kb`
   - `oxygen-comment`
+  - `bdp-copilot`
 
 Do not expose raw O2 login payloads in frontend APIs. The O2 status adapter redacts cookie, token, password, secret, credential, and key fields.
 
@@ -27,9 +28,9 @@ Do not expose raw O2 login payloads in frontend APIs. The O2 status adapter reda
 .venv/bin/o2 launch metasearch --json schema
 .venv/bin/o2 launch metasearch --json smoke
 .venv/bin/o2 launch metasearch --json doctor
-o2-kb recall list "618 家电会场" --json
-oxygen-comment --json --dry-run comment list --page-size 2
-oxygen-comment doctor --json
+.venv/bin/o2 launch o2-kb config list --json
+.venv/bin/o2 launch oxygen-comment --json doctor
+.venv/bin/o2 launch bdp-copilot --help
 ```
 
 ## Results
@@ -43,6 +44,7 @@ oxygen-comment doctor --json
 - `o2-kb` real recall: blocked by missing initialization. It requires `o2-kb init`.
 - `oxygen-comment` doctor: pass for environment/permissions, blocked for credentials.
 - `oxygen-comment` real query readiness: blocked by missing credentials/cookie.
+- `bdp-copilot` runtime: pass for command availability and help output; real JSON query still needs a `find-tables --json-output` smoke test after Oxygen login reuse is confirmed.
 
 ## Blocking Items
 
@@ -76,6 +78,7 @@ After login, validate with:
 - `.venv/bin/o2 launch metasearch --json doctor` still reports no local token file and no `JD_METASEARCH_ACCESS_TOKEN`.
 - `.venv/bin/o2 launch o2-kb config list --json` still reports uninitialized config.
 - `.venv/bin/o2 launch oxygen-comment --json doctor` still reports missing credentials.
+- `.venv/bin/o2 launch bdp-copilot --help` shows the runtime and commands are installed: `find-tables`, `code-generate`, `code-rewrite`, and `diagnosis`.
 - The project O2 status adapter reports `ready` only for registry login and `needs_config` for the remaining setup checks.
 
 ### o2-kb
@@ -102,6 +105,16 @@ oxygen-comment config set credentials.cookie '<cookie>'
 ```
 
 Prefer a supported corporate login reuse flow if available. Do not commit cookies into project files.
+
+### bdp-copilot
+
+`bdp-copilot --help` confirms that the runtime is installed. It still needs a real JSON smoke test:
+
+```bash
+.venv/bin/o2 launch bdp-copilot --json-output find-tables "618 会场入口点击率"
+```
+
+If it cannot reuse the Oxygen login state, follow its help output and configure only local environment variables such as `BDP_TOKEN`, `BDP_APP_ID`, or `BDP_ERP`. Do not commit those values.
 
 ## AgentMesh Configuration For Retest
 
