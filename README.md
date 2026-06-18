@@ -93,6 +93,9 @@ AGENTMESH_DB_PATH=/path/to/agentmesh.sqlite3 .venv/bin/uvicorn agentmesh.app:app
 AgentMesh uses a minimal local auth and user-management layer for the current MVP slice:
 
 - `POST /api/auth/login` creates an HttpOnly cookie session.
+- `GET /api/auth/oauth/status` reports whether OAuth is configured without exposing secrets.
+- `GET /api/auth/oauth/start` redirects to the configured corporate OAuth provider.
+- `GET /api/auth/oauth/callback` exchanges an OAuth code, maps userinfo to a local user, and reuses the same HttpOnly cookie session.
 - `POST /api/auth/logout` revokes the session.
 - `GET /api/auth/me` returns the current user.
 - `POST /api/auth/password` lets the current user rotate their password and revokes existing sessions.
@@ -111,7 +114,21 @@ AgentMesh uses a minimal local auth and user-management layer for the current MV
   - `PATCH /api/users/permission-policies/{rule_id}` admin only
 - The MVP policy table currently controls role-level allow/deny overrides for sensitive actions such as `accept_team_memory` and `manage_public_agent`.
 
-This is intentionally not an enterprise identity implementation yet. OAuth, SSO, and organization provisioning are reserved for later slices.
+OAuth is implemented as an adapter framework. A real enterprise SSO rollout still needs provider URLs, client ID, client secret, redirect URI registration, and user/role mapping confirmation.
+
+Enable OAuth:
+
+```bash
+export AGENTMESH_OAUTH_ENABLED=true
+export AGENTMESH_OAUTH_AUTHORIZE_URL=https://sso.example.com/oauth/authorize
+export AGENTMESH_OAUTH_TOKEN_URL=https://sso.example.com/oauth/token
+export AGENTMESH_OAUTH_USERINFO_URL=https://sso.example.com/oauth/userinfo
+export AGENTMESH_OAUTH_CLIENT_ID=agentmesh
+export AGENTMESH_OAUTH_CLIENT_SECRET=your-server-side-secret
+export AGENTMESH_OAUTH_REDIRECT_URI=http://127.0.0.1:8010/api/auth/oauth/callback
+```
+
+Do not commit `AGENTMESH_OAUTH_CLIENT_SECRET`. Users created through OAuth receive a personal Agent automatically and default to `AGENTMESH_OAUTH_DEFAULT_ROLE`.
 
 ## Agents and Tools
 

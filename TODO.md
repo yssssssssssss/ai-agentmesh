@@ -270,7 +270,7 @@ Build this first, end to end:
 - [x] Workspace/project records are persisted in SQLite, with seed records only used as startup defaults.
 - [x] File parsing supports UTF-8 plain text, Markdown, PDF, Word `.docx`, slide `.pptx`, and image OCR connector paths, with uploaded document search, background parsing for large files, and short-term document-summary memory. OCR requires a configured `tesseract` command.
 - [x] User system supports local seeded users plus admin-created local users.
-- [ ] User system is not SSO/OAuth/organization provisioning yet.
+- [x] User system has an OAuth adapter framework; real SSO provider configuration and organization provisioning still need enterprise inputs.
 - [x] Permission model has role checks, scopes, team membership, core user/team/admin visibility filtering, and persisted role-action policy overrides for MVP-sensitive actions.
 - [x] Public Agents are backend-registered and managed by admin APIs; there is no user-facing public-Agent builder.
 - [x] Agent-initiated background posting is prepared through a queued BBS auto-post API, manual drain endpoint, and env-gated worker.
