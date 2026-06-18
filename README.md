@@ -105,6 +105,11 @@ AgentMesh uses a minimal local auth and user-management layer for the current MV
 - Team leads and admins can accept candidate memories into team scope.
 - Admins can manage public Agents.
 - Admins can create workspaces and projects.
+- Permission policy rules are persisted and admin-managed through:
+  - `GET /api/users/permission-policies`
+  - `POST /api/users/permission-policies` admin only
+  - `PATCH /api/users/permission-policies/{rule_id}` admin only
+- The MVP policy table currently controls role-level allow/deny overrides for sensitive actions such as `accept_team_memory` and `manage_public_agent`.
 
 This is intentionally not an enterprise identity implementation yet. OAuth, SSO, and organization provisioning are reserved for later slices.
 

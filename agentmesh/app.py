@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from agentmesh.model_registry import ensure_model_seed_data
+from agentmesh.permissions import ensure_permission_policy_seed_data
 from agentmesh.risk import ensure_risk_policy_seed_data
 from agentmesh.routes.agents import router as agents_router
 from agentmesh.routes.auth import router as auth_router
@@ -50,6 +51,7 @@ ensure_demo_data(store)
 ensure_tool_seed_data(store, granted_by="system")
 ensure_model_seed_data(store)
 ensure_risk_policy_seed_data(store)
+ensure_permission_policy_seed_data(store)
 
 # 注册路由模块
 app.include_router(auth_router)

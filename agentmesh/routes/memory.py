@@ -248,7 +248,7 @@ def update_memory_item(
     item = store.get_memory_item(item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Memory item not found")
-    ensure_can_update_memory(user, request.status, request.scope)
+    ensure_can_update_memory(user, request.status, request.scope, store.permission_policy_rules)
     if request.status is not None:
         item.status = request.status
         if request.status == MemoryStatus.ACCEPTED and request.scope is None:

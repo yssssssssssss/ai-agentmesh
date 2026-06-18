@@ -219,6 +219,81 @@ class TestRolePermissions:
         assert response.status_code == 200
         assert response.json()["item"]["rule_id"] == "admin_rule"
 
+    def test_admin_can_manage_permission_policy_rules(self):
+        clear_store()
+        admin_client = authenticated_client(ADMIN.id)
+        user_client = authenticated_client()
+
+        create_response = admin_client.post(
+            "/api/users/permission-policies",
+            json={
+                "role": "team_lead",
+                "action": "accept_team_memory",
+                "effect": "deny",
+                "enabled": True,
+                "description": "临时关闭团队记忆接受权限。",
+            },
+        )
+        update_response = admin_client.patch(
+            f"/api/users/permission-policies/{create_response.json()['item']['id']}",
+            json={"enabled": False},
+        )
+        list_response = user_client.get("/api/users/permission-policies")
+
+        assert create_response.status_code == 200
+        assert create_response.json()["item"]["effect"] == "deny"
+        assert update_response.status_code == 200
+        assert update_response.json()["item"]["enabled"] is False
+        assert list_response.status_code == 200
+        assert any(item["action"] == "accept_team_memory" for item in list_response.json()["items"])
+
+    def test_regular_user_cannot_create_permission_policy(self):
+        clear_store()
+        client = authenticated_client()
+
+        response = client.post(
+            "/api/users/permission-policies",
+            json={"role": "team_lead", "action": "accept_team_memory", "effect": "deny"},
+        )
+
+        assert response.status_code == 403
+
+    def test_permission_policy_can_deny_team_lead_team_memory_acceptance(self):
+        clear_store()
+        admin_client = authenticated_client(ADMIN.id)
+        user_client = authenticated_client()
+        lead_client = authenticated_client(TEAM_LEAD.id)
+        admin_client.post(
+            "/api/users/permission-policies",
+            json={"role": "team_lead", "action": "accept_team_memory", "effect": "deny"},
+        )
+        create_response = user_client.post(
+            "/api/memory",
+            json={
+                "title": "被策略拦截的团队记忆",
+                "summary": "组长暂时不能接受。",
+                "memory_type": "experience",
+                "scope": "team_candidate",
+            },
+        )
+
+        response = lead_client.patch(f"/api/memory/{create_response.json()['item']['id']}", json={"status": "accepted"})
+
+        assert response.status_code == 403
+
+    def test_permission_policy_can_deny_team_lead_public_agent_management(self):
+        clear_store()
+        admin_client = authenticated_client(ADMIN.id)
+        lead_client = authenticated_client(TEAM_LEAD.id)
+        admin_client.post(
+            "/api/users/permission-policies",
+            json={"role": "team_lead", "action": "manage_public_agent", "effect": "deny"},
+        )
+
+        response = lead_client.patch("/api/agents/agent_research", json={"description": "blocked"})
+
+        assert response.status_code == 403
+
     def test_seed_team_membership_is_visible(self):
         clear_store()
         client = authenticated_client()

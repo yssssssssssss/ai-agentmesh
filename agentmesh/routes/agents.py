@@ -140,7 +140,7 @@ def update_agent(agent_id: str, request: AgentUpdateRequest, user: User = Depend
     found = store.get_agent(agent_id) or next((item for item in AGENTS if item.id == agent_id), None)
     if found is None:
         raise HTTPException(status_code=404, detail="Agent not found")
-    ensure_can_manage_agent(user, found)
+    ensure_can_manage_agent(user, found, store.permission_policy_rules)
     updated = found.model_copy(deep=True)
     if request.name is not None:
         updated.name = request.name
@@ -172,7 +172,7 @@ def update_agent_model(
     found = store.get_agent(agent_id) or next((item for item in AGENTS if item.id == agent_id), None)
     if found is None:
         raise HTTPException(status_code=404, detail="Agent not found")
-    ensure_can_manage_agent(user, found)
+    ensure_can_manage_agent(user, found, store.permission_policy_rules)
     try:
         return set_agent_model(store, found, request.model_id)
     except ValueError as error:
@@ -196,7 +196,7 @@ def update_agent_tools(
     found = store.get_agent(agent_id) or next((item for item in AGENTS if item.id == agent_id), None)
     if found is None:
         raise HTTPException(status_code=404, detail="Agent not found")
-    ensure_can_manage_agent_tools(user, found)
+    ensure_can_manage_agent_tools(user, found, store.permission_policy_rules)
     try:
         result = set_agent_tools(store, agent_id, request.tool_ids, user)
     except ValueError as error:

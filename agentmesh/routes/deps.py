@@ -7,6 +7,7 @@ from fastapi import Request
 from agentmesh.auth import require_current_user
 from agentmesh.model_registry import ensure_model_seed_data
 from agentmesh.models import AuditEvent, User
+from agentmesh.permissions import ensure_permission_policy_seed_data
 from agentmesh.risk import RiskDecision, ensure_risk_policy_seed_data
 from agentmesh.seed import ensure_seed_data
 from agentmesh.store import store
@@ -18,6 +19,7 @@ def current_user(request: Request) -> User:
     ensure_tool_seed_data(store, granted_by="system")
     ensure_model_seed_data(store)
     ensure_risk_policy_seed_data(store)
+    ensure_permission_policy_seed_data(store)
     return require_current_user(store, request)
 
 

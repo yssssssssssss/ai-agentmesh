@@ -271,7 +271,7 @@ Build this first, end to end:
 - [x] File parsing supports UTF-8 plain text, Markdown, PDF, Word `.docx`, slide `.pptx`, and image OCR connector paths, with uploaded document search, background parsing for large files, and short-term document-summary memory. OCR requires a configured `tesseract` command.
 - [x] User system supports local seeded users plus admin-created local users.
 - [ ] User system is not SSO/OAuth/organization provisioning yet.
-- [x] Permission model has role checks, scopes, team membership, and core user/team/admin visibility filtering; full RBAC/ABAC policy tables remain out of MVP scope.
+- [x] Permission model has role checks, scopes, team membership, core user/team/admin visibility filtering, and persisted role-action policy overrides for MVP-sensitive actions.
 - [x] Public Agents are backend-registered and managed by admin APIs; there is no user-facing public-Agent builder.
 - [x] Agent-initiated background posting is prepared through a queued BBS auto-post API, manual drain endpoint, and env-gated worker.
 
@@ -293,4 +293,4 @@ Build this first, end to end:
 - [x] Add local user creation and disable flow.
 - [x] Add password rotation/reset APIs and Members page controls.
 - [x] Add organization/team membership management.
-- [ ] Add policy tables for permission rules after user/role scope is confirmed.
+- [x] Add persisted permission policy rules for role-level allow/deny overrides on MVP-sensitive actions.

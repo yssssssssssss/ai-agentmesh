@@ -245,6 +245,17 @@ class RiskPolicyRule(BaseModel):
     updated_at: datetime = Field(default_factory=now_utc)
 
 
+class PermissionPolicyRule(BaseModel):
+    id: str = Field(default_factory=lambda: new_id("perm_rule"))
+    role: UserRole
+    action: str = Field(min_length=1, max_length=120)
+    effect: str = Field(default="allow", pattern="^(allow|deny)$")
+    enabled: bool = True
+    description: str = Field(default="", max_length=300)
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
+
+
 class ChatThread(BaseModel):
     id: str = Field(default_factory=lambda: new_id("thread"))
     workspace_id: str
@@ -642,6 +653,22 @@ class RiskPolicyRuleUpdateRequest(BaseModel):
     message: str | None = Field(default=None, min_length=1, max_length=300)
     decision: str | None = Field(default=None, min_length=1, max_length=40)
     enabled: bool | None = None
+
+
+class PermissionPolicyRuleCreateRequest(BaseModel):
+    role: UserRole
+    action: str = Field(min_length=1, max_length=120)
+    effect: str = Field(default="allow", pattern="^(allow|deny)$")
+    enabled: bool = True
+    description: str = Field(default="", max_length=300)
+
+
+class PermissionPolicyRuleUpdateRequest(BaseModel):
+    role: UserRole | None = None
+    action: str | None = Field(default=None, min_length=1, max_length=120)
+    effect: str | None = Field(default=None, pattern="^(allow|deny)$")
+    enabled: bool | None = None
+    description: str | None = Field(default=None, max_length=300)
 
 
 class SearchResult(BaseModel):

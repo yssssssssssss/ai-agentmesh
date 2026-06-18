@@ -11,6 +11,9 @@ from agentmesh.models import (
     ItemResponse,
     ItemsResponse,
     PasswordResetRequest,
+    PermissionPolicyRule,
+    PermissionPolicyRuleCreateRequest,
+    PermissionPolicyRuleUpdateRequest,
     StatusResponse,
     Team,
     TeamCreateRequest,
@@ -127,6 +130,67 @@ def reset_user_password(
     revoked = revoke_user_sessions(user_id)
     store.add_audit_event(create_audit_event(user.id, "reset_password", "user", user_id, {"revoked_sessions": revoked}))
     return StatusResponse(status="ok")
+
+
+@router.get("/permission-policies", response_model=ItemsResponse)
+def permission_policies(_: User = Depends(current_user)) -> ItemsResponse:
+    return ItemsResponse(items=store.permission_policy_rules)
+
+
+@router.post("/permission-policies", response_model=ItemResponse)
+def create_permission_policy(
+    request: PermissionPolicyRuleCreateRequest,
+    user: User = Depends(current_user),
+) -> ItemResponse:
+    ensure_admin(user)
+    rule = store.save_permission_policy_rule(
+        PermissionPolicyRule(
+            role=request.role,
+            action=request.action,
+            effect=request.effect,
+            enabled=request.enabled,
+            description=request.description,
+        )
+    )
+    store.add_audit_event(
+        create_audit_event(user.id, "create_permission_policy", "permission_policy_rule", rule.id, {})
+    )
+    return ItemResponse(item=rule)
+
+
+@router.patch("/permission-policies/{rule_id}", response_model=ItemResponse)
+def update_permission_policy(
+    rule_id: str,
+    request: PermissionPolicyRuleUpdateRequest,
+    user: User = Depends(current_user),
+) -> ItemResponse:
+    ensure_admin(user)
+    rule = store.get_permission_policy_rule(rule_id)
+    if rule is None:
+        raise HTTPException(status_code=404, detail="Permission policy rule not found")
+    updated = rule.model_copy(deep=True)
+    if request.role is not None:
+        updated.role = request.role
+    if request.action is not None:
+        updated.action = request.action
+    if request.effect is not None:
+        updated.effect = request.effect
+    if request.enabled is not None:
+        updated.enabled = request.enabled
+    if request.description is not None:
+        updated.description = request.description
+    updated.updated_at = now_utc()
+    saved = store.save_permission_policy_rule(updated)
+    store.add_audit_event(
+        create_audit_event(
+            user.id,
+            "update_permission_policy",
+            "permission_policy_rule",
+            saved.id,
+            {"enabled": saved.enabled, "effect": saved.effect},
+        )
+    )
+    return ItemResponse(item=saved)
 
 
 @router.get("/teams", response_model=ItemsResponse)

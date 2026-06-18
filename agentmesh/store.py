@@ -25,6 +25,7 @@ from agentmesh.models import (
     InboxItem,
     MemoryItem,
     ModelDefinition,
+    PermissionPolicyRule,
     Project,
     RiskPolicyRule,
     ScheduledAgentTaskDefinition,
@@ -191,6 +192,10 @@ class SQLiteStore:
         return self._list("risk_policy_rules", RiskPolicyRule)
 
     @property
+    def permission_policy_rules(self) -> list[PermissionPolicyRule]:
+        return self._list("permission_policy_rules", PermissionPolicyRule)
+
+    @property
     def scheduled_agent_task_definitions(self) -> list[ScheduledAgentTaskDefinition]:
         return self._list("scheduled_agent_task_definitions", ScheduledAgentTaskDefinition)
 
@@ -279,6 +284,10 @@ class SQLiteStore:
 
     def save_risk_policy_rule(self, rule: RiskPolicyRule) -> RiskPolicyRule:
         self._upsert("risk_policy_rules", rule)
+        return rule
+
+    def save_permission_policy_rule(self, rule: PermissionPolicyRule) -> PermissionPolicyRule:
+        self._upsert("permission_policy_rules", rule)
         return rule
 
     def save_scheduled_agent_task_definition(
@@ -396,6 +405,9 @@ class SQLiteStore:
 
     def get_risk_policy_rule(self, rule_id: str) -> RiskPolicyRule | None:
         return self._get("risk_policy_rules", rule_id, RiskPolicyRule)
+
+    def get_permission_policy_rule(self, rule_id: str) -> PermissionPolicyRule | None:
+        return self._get("permission_policy_rules", rule_id, PermissionPolicyRule)
 
     def get_scheduled_agent_task_definition(self, definition_id: str) -> ScheduledAgentTaskDefinition | None:
         return self._get("scheduled_agent_task_definitions", definition_id, ScheduledAgentTaskDefinition)
