@@ -1,0 +1,98 @@
+from __future__ import annotations
+
+from agentmesh.models import AgentToolGrant, ToolDefinition, User
+from agentmesh.o2 import O2RegistryAdapter
+from agentmesh.store import SQLiteStore
+
+SYSTEM_TOOLS = [
+    ToolDefinition(
+        id="tool_memory_search",
+        name="memory_search",
+        description="检索个人、项目和团队记忆中的可引用内容。",
+        category="memory",
+        risk_level="low",
+    ),
+    ToolDefinition(
+        id="tool_web_research",
+        name="web_research",
+        description="通过后续接入的 Web provider 检索外部网页内容。",
+        category="research",
+        risk_level="medium",
+    ),
+    ToolDefinition(
+        id="tool_document_upload",
+        name="document_upload",
+        description="上传并解析用户提供的项目文档。",
+        category="document",
+        risk_level="medium",
+    ),
+    ToolDefinition(
+        id="tool_risk_review",
+        name="risk_review",
+        description="检查外部来源、素材授权和高风险动作。",
+        category="risk",
+        risk_level="high",
+    ),
+]
+
+DEFAULT_TOOL_GRANTS = {
+    "agent_personal_current": ["tool_memory_search"],
+    "agent_personal_lead": ["tool_memory_search", "tool_risk_review"],
+    "agent_personal_admin": ["tool_memory_search", "tool_risk_review"],
+    "agent_research": ["tool_memory_search", "tool_web_research"],
+    "agent_data": ["tool_memory_search"],
+    "agent_risk": ["tool_risk_review"],
+}
+
+
+def ensure_tool_seed_data(repository: SQLiteStore, granted_by: str) -> None:
+    for tool in SYSTEM_TOOLS:
+        if repository.get_tool_definition(tool.id) is None:
+            repository.save_tool_definition(tool)
+
+    for agent_id, tool_ids in DEFAULT_TOOL_GRANTS.items():
+        existing_tool_ids = {grant.tool_id for grant in repository.list_agent_tool_grants(agent_id)}
+        for tool_id in tool_ids:
+            if tool_id not in existing_tool_ids:
+                repository.save_agent_tool_grant(
+                    AgentToolGrant(agent_id=agent_id, tool_id=tool_id, granted_by=granted_by)
+                )
+
+
+def list_enabled_tools(repository: SQLiteStore) -> list[ToolDefinition]:
+    return [tool for tool in repository.tool_definitions if tool.enabled]
+
+
+def list_agent_tools(repository: SQLiteStore, agent_id: str) -> list[ToolDefinition]:
+    tools_by_id = {tool.id: tool for tool in repository.tool_definitions}
+    result = []
+    for grant in repository.list_agent_tool_grants(agent_id):
+        tool = tools_by_id.get(grant.tool_id)
+        if grant.enabled and tool is not None and tool.enabled:
+            result.append(tool)
+    return result
+
+
+def set_agent_tools(repository: SQLiteStore, agent_id: str, tool_ids: list[str], user: User) -> list[ToolDefinition]:
+    requested = {tool_id for tool_id in tool_ids if tool_id}
+    existing_tools = {tool.id for tool in repository.tool_definitions if tool.enabled}
+    unknown = sorted(requested - existing_tools)
+    if unknown:
+        raise ValueError(f"Unknown or disabled tools: {', '.join(unknown)}")
+
+    existing_grants = {grant.tool_id: grant for grant in repository.list_agent_tool_grants(agent_id)}
+    for tool_id in existing_tools:
+        grant = existing_grants.get(tool_id)
+        should_enable = tool_id in requested
+        if grant is None and should_enable:
+            repository.save_agent_tool_grant(AgentToolGrant(agent_id=agent_id, tool_id=tool_id, granted_by=user.id))
+            continue
+        if grant is not None and grant.enabled != should_enable:
+            grant.enabled = should_enable
+            grant.granted_by = user.id
+            repository.save_agent_tool_grant(grant)
+    return list_agent_tools(repository, agent_id)
+
+
+def sync_o2_tools(repository: SQLiteStore, user: User, limit: int = 50) -> list[ToolDefinition]:
+    return O2RegistryAdapter().sync_tools(repository, granted_by=user.id, limit=limit)

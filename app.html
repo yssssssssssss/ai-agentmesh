@@ -1,0 +1,5316 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgentMesh Chat Workspace</title>
+    <style>
+      :root {
+        --bg: #09090d;
+        --surface: #17141f;
+        --surface-elevated: #221d2d;
+        --soft: #24202f;
+        --line: #34303f;
+        --line-strong: #514a62;
+        --text: #f4f0ff;
+        --muted: #b8b0c7;
+        --quiet: #8e879d;
+        --green: #9d7cff;
+        --green-soft: #2b2144;
+        --amber: #d8b05f;
+        --amber-soft: #372b19;
+        --blue: #b99cff;
+        --blue-soft: #2f254b;
+        --red: #ff8f9f;
+        --red-soft: #3a2029;
+        --ink: #7c5cff;
+        --shadow: 0 22px 70px rgba(0, 0, 0, 0.36);
+        --radius: 8px;
+        --sidebar: 248px;
+        --right: 380px;
+        --topbar: 64px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+        overflow-x: hidden;
+        overscroll-behavior-y: none;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: #ffffff;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "PingFang SC", "Microsoft YaHei", sans-serif;
+        letter-spacing: 0;
+      }
+
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+      }
+
+      .icon-defs {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: var(--sidebar) minmax(620px, 1fr) var(--right);
+        max-width: 100vw;
+        overflow-x: clip;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 18px 14px;
+        border-right: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.74);
+        backdrop-filter: blur(18px);
+      }
+
+      .brand {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 8px;
+        margin-bottom: 22px;
+      }
+
+      .brand-mark {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--ink);
+        color: #fff;
+      }
+
+      .brand-name {
+        font-size: 15px;
+        font-weight: 760;
+      }
+
+      .section-label {
+        margin: 20px 10px 8px;
+        color: var(--quiet);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .nav,
+      .space-list {
+        display: grid;
+        gap: 2px;
+      }
+
+      .nav button,
+      .space-row {
+        width: 100%;
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 10px;
+        border-radius: 7px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .nav button:hover,
+      .space-row:hover {
+        background: var(--soft);
+        color: var(--text);
+      }
+
+      .nav button.active,
+      .space-row.active {
+        background: #e8eeeb;
+        color: var(--text);
+      }
+
+      .nav-count {
+        margin-left: auto;
+        color: var(--quiet);
+        font-size: 12px;
+      }
+
+      .space-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 99px;
+        background: var(--green);
+      }
+
+      .space-dot.amber {
+        background: #c17817;
+      }
+
+      .space-dot.blue {
+        background: var(--blue);
+      }
+
+      .account-panel {
+        margin-top: auto;
+        padding-top: 16px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .account-card {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--soft);
+      }
+
+      .account-card span {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .account-card .plain-button {
+        width: 100%;
+        height: 32px;
+      }
+
+      .icon {
+        width: 17px;
+        height: 17px;
+        flex: 0 0 auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .main {
+        min-width: 0;
+        height: 100vh;
+        overflow-y: auto;
+        border-right: 1px solid var(--line);
+        background: #ffffff;
+        overscroll-behavior: contain;
+      }
+
+      .topbar {
+        display: none;
+        height: var(--topbar);
+        align-items: center;
+        gap: 12px;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.86);
+        backdrop-filter: blur(18px);
+      }
+
+      .search {
+        flex: 1;
+        min-width: 220px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--quiet);
+      }
+
+      .search input {
+        width: 100%;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--text);
+      }
+
+      .icon-button,
+      .primary-button,
+      .plain-button {
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: 7px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .icon-button {
+        width: 36px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--muted);
+      }
+
+      .primary-button {
+        padding: 0 14px;
+        background: var(--green);
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(18, 107, 77, 0.22);
+      }
+
+      .plain-button {
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--text);
+      }
+
+      .auth-pill {
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .workspace {
+        min-height: 100vh;
+        padding: 0;
+      }
+
+      .workspace:not(#workspaceView) {
+        min-height: 100vh;
+        padding-bottom: 48px;
+      }
+
+      #workspaceView > .hero {
+        display: none;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: center;
+        margin-bottom: 16px;
+        padding: 4px 0 2px;
+      }
+
+      .breadcrumb {
+        margin-bottom: 6px;
+        color: var(--quiet);
+        font-size: 13px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(30px, 3.4vw, 42px);
+        line-height: 1.08;
+      }
+
+      .head-meta {
+        margin-top: 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .value-strip {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .metric {
+        min-width: 98px;
+        padding-left: 16px;
+        border-left: 1px solid var(--line);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 21px;
+        line-height: 1.15;
+      }
+
+      .metric span {
+        color: var(--quiet);
+        font-size: 12px;
+      }
+
+      .chat-shell {
+        height: 100vh;
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        border: 0;
+        border-radius: 0;
+        background: #ffffff;
+        box-shadow: none;
+        overflow: hidden;
+      }
+
+      .chat-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 56px;
+        padding: 0 24px;
+        border-bottom: 1px solid #ececf1;
+        background: rgba(255, 255, 255, 0.94);
+        color: #202123;
+        backdrop-filter: blur(14px);
+      }
+
+      .chat-head h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .agent-state {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .badge.green {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .badge.amber {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+
+      .badge.blue {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .badge.red {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .messages {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        max-height: none;
+        min-height: 0;
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 30px 24px 164px;
+        background: #ffffff;
+      }
+
+      .message {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 14px;
+        width: min(760px, 100%);
+        max-width: 760px;
+        margin: 0 auto;
+      }
+
+      .message.user {
+        grid-template-columns: minmax(0, 1fr) 32px;
+      }
+
+      .avatar {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #7c5cff;
+        color: #ffffff;
+      }
+
+      .message.user .avatar {
+        background: #202123;
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      .bubble {
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: #202123;
+      }
+
+      .message.user .bubble {
+        grid-column: 1;
+        justify-self: end;
+        max-width: min(560px, 100%);
+        padding: 11px 14px;
+        border-radius: 18px;
+        background: #f4f4f4;
+      }
+
+      .bubble strong {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 14px;
+      }
+
+      .bubble p,
+      .bubble li {
+        color: #333333;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .bubble p {
+        margin: 0;
+      }
+
+      .bubble ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .cite {
+        display: inline-flex;
+        align-items: center;
+        height: 20px;
+        padding: 0 7px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 11px;
+        cursor: pointer;
+        vertical-align: 1px;
+      }
+
+      .cite:hover {
+        text-decoration: underline;
+      }
+
+      .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        width: min(760px, 100%);
+        max-width: 760px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 4px;
+      }
+
+      .quick-action {
+        min-height: 74px;
+        display: grid;
+        align-content: start;
+        gap: 6px;
+        padding: 12px;
+        border: 1px solid #e5e5e5;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #202123;
+        cursor: pointer;
+        text-align: left;
+        transition:
+          border-color 160ms ease,
+          box-shadow 160ms ease,
+          transform 160ms ease;
+      }
+
+      .quick-action:hover {
+        border-color: #cfcfcf;
+        background: #ffffff;
+        box-shadow: 0 10px 28px rgba(32, 33, 35, 0.08);
+        transform: translateY(-1px);
+      }
+
+      .quick-action:active,
+      .quick-action.is-pressed {
+        border-color: #7c5cff;
+        box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.16);
+        transform: translateY(0);
+      }
+
+      .quick-action strong {
+        font-size: 13px;
+      }
+
+      .quick-action span {
+        color: #6f6f6f;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .composer {
+        position: fixed;
+        right: var(--right);
+        bottom: 0;
+        left: var(--sidebar);
+        z-index: 20;
+        padding: 18px 24px 22px;
+        border: 0;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0), #ffffff 28%);
+        pointer-events: none;
+      }
+
+      .composer-box {
+        display: grid;
+        grid-template-columns: 1fr 42px;
+        gap: 10px;
+        align-items: end;
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 10px 10px 10px 16px;
+        border: 1px solid #d9d9e3;
+        border-radius: 24px;
+        background: #ffffff;
+        box-shadow:
+          0 12px 36px rgba(0, 0, 0, 0.09),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+        pointer-events: auto;
+      }
+
+      .composer textarea {
+        min-height: 48px;
+        max-height: 132px;
+        resize: vertical;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: #202123;
+        line-height: 1.55;
+      }
+
+      .composer textarea::placeholder {
+        color: #8e8ea0;
+      }
+
+      .send-button {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #202123;
+        color: #fff;
+        cursor: pointer;
+        box-shadow: none;
+      }
+
+      .composer-meta {
+        display: none;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.82);
+      }
+
+      .panel-pad {
+        padding: 16px;
+      }
+
+      .panel h2 {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .value-row,
+      .inbox-row,
+      .source-row,
+      .log-row {
+        display: grid;
+        gap: 5px;
+        padding: 11px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .value-row:first-of-type,
+      .inbox-row:first-of-type,
+      .source-row:first-of-type,
+      .log-row:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .value-row strong,
+      .inbox-row strong,
+      .source-row strong,
+      .log-row strong {
+        font-size: 13px;
+      }
+
+      .value-row span,
+      .inbox-row span,
+      .source-row span,
+      .log-row span {
+        color: var(--quiet);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .view-hidden {
+        display: none;
+      }
+
+      .review-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .section-title-xl {
+        margin: 0 0 16px;
+        color: var(--text);
+        font-size: 18px;
+        line-height: 1.35;
+        font-weight: 760;
+      }
+
+      .review-item {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .review-item-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .review-item strong {
+        font-size: 14px;
+      }
+
+      .review-item p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .review-item.review-button {
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .review-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .segmented-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0 14px;
+      }
+
+      .segment-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 34px;
+        padding: 0 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+      }
+
+      .segment-tab.active {
+        border-color: rgba(255, 255, 255, 0.35);
+        color: var(--text);
+        background: rgba(124, 92, 255, 0.2);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        transform: translateY(-1px);
+      }
+
+      .segment-tab span {
+        color: inherit;
+      }
+
+      .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 12px;
+      }
+
+      .filter-bar input,
+      .filter-bar select {
+        height: 32px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 0 10px;
+        font: inherit;
+        font-size: 13px;
+      }
+
+      .memory-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .inline-input {
+        width: min(220px, 100%);
+        height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 0 10px;
+        outline: 0;
+      }
+
+      .search-results {
+        margin-bottom: 16px;
+      }
+
+      .search-row {
+        display: grid;
+        gap: 8px;
+        padding: 12px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .search-row:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .search-row-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .search-row strong {
+        font-size: 14px;
+      }
+
+      .search-row p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .source-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .source-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        font-size: 12px;
+      }
+
+      .intent-trace {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .intent-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 8px;
+        border: 1px solid rgba(168, 85, 247, 0.2);
+        border-radius: 999px;
+        background: rgba(168, 85, 247, 0.1);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .tool-list {
+        display: grid;
+        gap: 6px;
+      }
+
+      .tool-option {
+        display: grid;
+        grid-template-columns: 16px minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 7px 9px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .tool-option input {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+        accent-color: var(--blue);
+      }
+
+      .tool-option strong {
+        display: block;
+        color: var(--text);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .tool-copy {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .tool-copy small {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .small-action {
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .small-action.primary {
+        border-color: var(--green);
+        background: var(--green);
+        color: #fff;
+      }
+
+      .right {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: grid;
+        grid-template-rows: var(--topbar) 1fr;
+        background: rgba(255, 255, 255, 0.76);
+        backdrop-filter: blur(18px);
+      }
+
+      .right-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .right-title {
+        font-size: 14px;
+        font-weight: 730;
+      }
+
+      .right-scroll {
+        overflow: auto;
+        padding: 18px;
+      }
+
+      .right-panel {
+        padding-bottom: 18px;
+        margin-bottom: 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .right-panel:last-child {
+        border-bottom: 0;
+      }
+
+      .right-panel h2 {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .log-row {
+        grid-template-columns: 4px 1fr;
+        gap: 10px;
+      }
+
+      .log-bar {
+        border-radius: 99px;
+        background: var(--green);
+      }
+
+      .log-row[data-type="external"] .log-bar {
+        background: var(--blue);
+      }
+
+      .log-row[data-type="risk"] .log-bar {
+        background: var(--amber);
+      }
+
+      .toast {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        min-width: 260px;
+        max-width: 380px;
+        padding: 14px 16px;
+        border-radius: 8px;
+        background: #171b19;
+        color: #fff;
+        box-shadow: 0 22px 70px rgba(23, 27, 25, 0.22);
+        opacity: 0;
+        transform: translateY(12px);
+        pointer-events: none;
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @media (max-width: 1240px) {
+        .app {
+          grid-template-columns: 76px minmax(0, 1fr) 340px;
+        }
+
+        .brand-name,
+        .nav span.label,
+        .space-row .label,
+        .section-label,
+        .nav-count {
+          display: none;
+        }
+
+        .sidebar {
+          padding: 18px 10px;
+        }
+
+        .composer {
+          right: 340px;
+          left: 76px;
+        }
+
+        .nav button,
+        .space-row {
+          justify-content: center;
+          padding: 0;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar,
+        .right {
+          position: static;
+          height: auto;
+        }
+
+        .sidebar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          overflow-x: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .brand {
+          flex: 0 0 auto;
+          margin: 0;
+          padding: 0;
+        }
+
+        .nav,
+        .space-list {
+          display: flex;
+          gap: 4px;
+        }
+
+        .space-list {
+          margin-left: auto;
+        }
+
+        .nav button,
+        .space-row {
+          width: 38px;
+          min-width: 38px;
+        }
+
+        .main {
+          border-right: 0;
+        }
+
+        .right {
+          border-top: 1px solid var(--line);
+        }
+
+        .hero {
+          grid-template-columns: 1fr;
+        }
+
+        .value-strip {
+          justify-content: flex-start;
+        }
+
+        .composer {
+          right: 0;
+          left: 0;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .topbar {
+          padding: 0 14px;
+        }
+
+        .workspace {
+          padding: 0;
+        }
+
+        .plain-button.hide-mobile {
+          display: none;
+        }
+
+        .value-strip {
+          width: 100%;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .metric {
+          min-width: 0;
+          padding-left: 12px;
+        }
+
+        .quick-actions {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .messages {
+          height: calc(100vh - 134px);
+          padding: 24px 14px 156px;
+        }
+
+        .chat-head {
+          align-items: flex-start;
+          flex-direction: column;
+          min-height: 72px;
+          padding: 14px;
+        }
+
+        .composer-box {
+          grid-template-columns: 1fr 42px;
+        }
+
+        .send-button {
+          width: 42px;
+        }
+      }
+
+      body {
+        background: var(--bg);
+      }
+
+      .app {
+        background: var(--bg);
+      }
+
+      .sidebar,
+      .main,
+      .right,
+      .chat-shell,
+      .messages {
+        background: var(--bg);
+      }
+
+      .sidebar {
+        border-right-color: var(--line);
+      }
+
+      .brand-mark,
+      .send-button,
+      .primary-button,
+      .small-action.primary {
+        background: var(--ink);
+        color: #ffffff;
+        box-shadow: 0 12px 30px rgba(124, 92, 255, 0.24);
+      }
+
+      .nav button:hover,
+      .space-row:hover,
+      .nav button.active,
+      .space-row.active {
+        background: var(--soft);
+        color: var(--text);
+      }
+
+      .space-dot,
+      .log-bar {
+        background: var(--ink);
+      }
+
+      .main {
+        border-right-color: var(--line);
+      }
+
+      .topbar,
+      .chat-head {
+        background: rgba(9, 9, 13, 0.86);
+        border-color: var(--line);
+        color: var(--text);
+      }
+
+      .chat-shell {
+        min-height: 100vh;
+      }
+
+      .chat-head h2,
+      .bubble,
+      .bubble strong,
+      .bubble p,
+      .bubble li,
+      .quick-action,
+      .review-item,
+      .search-row strong,
+      .right-title {
+        color: var(--text);
+      }
+
+      .messages {
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+        scrollbar-color: var(--line-strong) transparent;
+      }
+
+      .message.user .bubble,
+      .quick-action,
+      .composer-box,
+      .panel,
+      .review-item,
+      .search,
+      .icon-button,
+      .plain-button,
+      .auth-pill,
+      .small-action {
+        border-color: var(--line);
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      .avatar {
+        background: var(--ink);
+      }
+
+      .message.user .avatar {
+        background: var(--surface-elevated);
+      }
+
+      .quick-action:hover {
+        border-color: var(--line-strong);
+        background: var(--surface-elevated);
+        box-shadow: 0 16px 42px rgba(0, 0, 0, 0.32);
+      }
+
+      .quick-action:active,
+      .quick-action.is-pressed {
+        border-color: var(--ink);
+        box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.2);
+      }
+
+      .quick-action span,
+      .review-item p,
+      .search-row p {
+        color: var(--muted);
+      }
+
+      .composer {
+        background: linear-gradient(180deg, rgba(9, 9, 13, 0), var(--bg) 30%);
+      }
+
+      .composer textarea {
+        color: var(--text);
+      }
+
+      .right {
+        padding: 12px;
+        background: #0f0f14;
+      }
+
+      .right-top {
+        height: auto;
+        min-height: 46px;
+        padding: 0 10px;
+        border-bottom: 0;
+      }
+
+      .right-scroll {
+        display: grid;
+        align-content: start;
+        gap: 14px;
+        overflow: auto;
+        padding: 4px 4px 18px;
+      }
+
+      .right-panel {
+        padding: 16px;
+        margin: 0;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: #242424;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      }
+
+      .right-panel h2 {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field {
+        display: grid;
+        gap: 7px;
+      }
+
+      .field label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .field input,
+      .field textarea,
+      .field select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        outline: 0;
+      }
+
+      .field input,
+      .field select {
+        height: 38px;
+        padding: 0 11px;
+      }
+
+      .field textarea {
+        min-height: 92px;
+        resize: vertical;
+        padding: 10px 11px;
+        line-height: 1.5;
+      }
+
+      .two-column {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 14px;
+      }
+
+      .agent-list,
+      .bbs-list,
+      .task-list,
+      .user-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .bbs-post {
+        display: block;
+      }
+
+      .bbs-post.is-selected {
+        border-color: rgba(168, 85, 247, 0.46);
+        background: rgba(88, 28, 135, 0.18);
+      }
+
+      .bbs-tabs {
+        display: inline-flex;
+        gap: 6px;
+        padding: 4px;
+        margin-bottom: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .bbs-tabs button {
+        height: 32px;
+        padding: 0 12px;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .bbs-tabs button.active {
+        background: rgba(124, 92, 255, 0.26);
+        color: var(--text);
+      }
+
+      .module-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .module-tabs .segment-tab {
+        min-width: 0;
+      }
+
+      .split-panels {
+        display: grid;
+        gap: 14px;
+      }
+
+      .split-pane {
+        display: grid;
+        gap: 12px;
+      }
+
+      .split-pane.hidden {
+        display: none;
+      }
+
+      .list-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .list-header strong {
+        font-size: 16px;
+        line-height: 1.35;
+      }
+
+      .detail-panel {
+        display: grid;
+        gap: 14px;
+      }
+
+      .bbs-panel-hidden {
+        display: none;
+      }
+
+      .task-summary-card {
+        border-style: dashed;
+        background: rgba(124, 92, 255, 0.08);
+      }
+
+      .bbs-thread {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .agent-avatar {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(124, 92, 255, 0.92), rgba(180, 131, 255, 0.62));
+        color: #fff;
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .agent-avatar.service {
+        background: linear-gradient(135deg, rgba(60, 60, 68, 0.96), rgba(124, 92, 255, 0.72));
+      }
+
+      .bbs-thread-main {
+        min-width: 0;
+        display: grid;
+        gap: 9px;
+      }
+
+      .bbs-thread-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .bbs-thread-author {
+        margin-bottom: 4px;
+        color: var(--quiet);
+        font-size: 12px;
+      }
+
+      .bbs-thread-title {
+        display: block;
+        color: var(--text);
+        font-size: 17px;
+        line-height: 1.45;
+      }
+
+      #bbsView .hero h1 {
+        font-size: 42px;
+      }
+
+      .bbs-thread-summary {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.62;
+      }
+
+      .bbs-post-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .reader-receipt {
+        width: fit-content;
+        max-width: 100%;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.56);
+        font-size: 13px;
+      }
+
+      .reader-receipt strong {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 0 5px;
+        border-radius: 6px;
+        background: #ff5a2f;
+        color: #fff;
+        font-size: 12px;
+        line-height: 1;
+      }
+
+      .reader-name {
+        color: rgba(255, 255, 255, 0.62);
+        font-weight: 650;
+      }
+
+      .bbs-task-card {
+        border: 1px solid rgba(168, 85, 247, 0.24);
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: rgba(15, 23, 42, 0.42);
+        color: var(--text);
+      }
+
+      .bbs-task-card strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+      }
+
+      .bbs-task-card p {
+        margin: 0;
+        color: var(--quiet);
+      }
+
+      .task-board-card {
+        display: grid;
+        gap: 12px;
+      }
+
+      .task-section {
+        display: grid;
+        gap: 10px;
+      }
+
+      .task-section + .task-section {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .task-flow {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+      }
+
+      .task-flow-node {
+        min-width: 0;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .task-flow-node span {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--quiet);
+        font-size: 11px;
+      }
+
+      .task-flow-node strong {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 13px;
+      }
+
+      .task-flow-arrow {
+        color: rgba(255, 255, 255, 0.34);
+        text-align: center;
+      }
+
+      @media (max-width: 720px) {
+        .bbs-thread {
+          grid-template-columns: 1fr;
+        }
+
+        .bbs-thread-head,
+        .task-flow {
+          grid-template-columns: 1fr;
+        }
+
+        .task-flow-arrow {
+          display: none;
+        }
+      }
+
+      .handoff-form {
+        display: grid;
+        gap: 10px;
+        border: 1px solid rgba(168, 85, 247, 0.28);
+        border-radius: 8px;
+        padding: 12px;
+        background: rgba(88, 28, 135, 0.16);
+      }
+
+      .handoff-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .handoff-form label {
+        display: grid;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .handoff-form input,
+      .handoff-form select,
+      .handoff-form textarea {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: rgba(12, 12, 13, 0.74);
+        color: var(--text);
+        font: inherit;
+        padding: 9px 10px;
+        outline: none;
+      }
+
+      .handoff-form textarea {
+        min-height: 76px;
+        resize: vertical;
+      }
+
+      .handoff-form input:focus,
+      .handoff-form select:focus,
+      .handoff-form textarea:focus {
+        border-color: rgba(196, 181, 253, 0.72);
+        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22);
+      }
+
+      .bbs-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 14px;
+        color: var(--quiet);
+        font-size: 13px;
+      }
+
+      .bbs-pagination .small-action:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
+      }
+
+      @media (max-width: 980px) {
+        .right {
+          padding: 12px;
+        }
+
+        .two-column {
+          grid-template-columns: 1fr;
+        }
+
+        .handoff-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Screenshot-inspired shell: wine sidebar, black workbench, floating inspector. */
+      :root {
+        --bg: #0c0c0d;
+        --surface: #19191a;
+        --surface-elevated: #242424;
+        --soft: rgba(255, 255, 255, 0.08);
+        --line: rgba(255, 255, 255, 0.1);
+        --line-strong: rgba(255, 255, 255, 0.18);
+        --text: #ededed;
+        --muted: #b9b7bb;
+        --quiet: #8d8991;
+        --green: #c7a2b7;
+        --green-soft: rgba(199, 162, 183, 0.16);
+        --blue: #d7c4ff;
+        --blue-soft: rgba(215, 196, 255, 0.14);
+        --ink: #d9b7ca;
+        --sidebar: 318px;
+        --right: 430px;
+      }
+
+      body {
+        background: #0c0c0d;
+        color: var(--text);
+      }
+
+      .app {
+        grid-template-columns: var(--sidebar) minmax(640px, 1fr) var(--right);
+        background: #0c0c0d;
+      }
+
+      .sidebar {
+        padding: 18px 12px 20px;
+        border-right: 1px solid rgba(255, 255, 255, 0.09);
+        background: #563546;
+        color: rgba(255, 255, 255, 0.86);
+      }
+
+      .sidebar::before {
+        content: "";
+        display: block;
+        width: 58px;
+        height: 14px;
+        margin: 5px 0 18px 10px;
+        border-radius: 999px;
+        background:
+          radial-gradient(circle at 7px 7px, #ff6258 0 6px, transparent 7px),
+          radial-gradient(circle at 29px 7px, #ffbd2e 0 6px, transparent 7px),
+          radial-gradient(circle at 51px 7px, #28c840 0 6px, transparent 7px);
+      }
+
+      .brand {
+        height: 42px;
+        margin: 0 0 12px;
+        padding: 0 10px;
+      }
+
+      .brand-mark {
+        width: 0;
+        height: 0;
+        overflow: hidden;
+      }
+
+      .brand-name {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      .section-label {
+        margin: 22px 10px 9px;
+        color: rgba(255, 255, 255, 0.42);
+        font-size: 13px;
+        font-weight: 680;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+
+      .nav,
+      .space-list {
+        gap: 4px;
+      }
+
+      .nav button,
+      .space-row {
+        min-height: 42px;
+        padding: 0 12px;
+        border-radius: 11px;
+        color: rgba(255, 255, 255, 0.74);
+        font-size: 15px;
+      }
+
+      .nav button:hover,
+      .space-row:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .nav button.active,
+      .space-row.active {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+
+      .nav-count {
+        color: rgba(255, 255, 255, 0.42);
+        font-size: 13px;
+      }
+
+      .space-dot {
+        width: 18px;
+        height: 18px;
+        background: transparent;
+      }
+
+      .space-dot::before {
+        content: "✿";
+        color: #fff;
+        font-size: 14px;
+        line-height: 18px;
+      }
+
+      .space-dot.amber::before {
+        content: "🏀";
+      }
+
+      .space-dot.blue::before {
+        content: "✈";
+        color: #8fb7ff;
+      }
+
+      .main {
+        position: relative;
+        min-width: 0;
+        height: 100vh;
+        min-height: 100vh;
+        overflow-y: auto;
+        overflow-x: clip;
+        border-right: 0;
+        background: #0c0c0d;
+      }
+
+      .main::before {
+        content: "AgentMesh Chat Workspace";
+        position: sticky;
+        top: 0;
+        z-index: 18;
+        height: 62px;
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 0 clamp(14px, 3vw, 26px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(12, 12, 13, 0.92);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 16px;
+        font-weight: 680;
+        backdrop-filter: blur(18px);
+        pointer-events: none;
+      }
+
+      .workspace {
+        min-height: 100vh;
+        padding-top: 62px;
+      }
+
+      #workspaceView {
+        padding-top: 0;
+        overflow: hidden;
+      }
+
+      .chat-shell {
+        height: 100vh;
+        min-height: 100vh;
+        background: #0c0c0d;
+      }
+
+      .chat-head {
+        min-height: 62px;
+        padding: 0 8vw;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(12, 12, 13, 0.92);
+        backdrop-filter: blur(18px);
+      }
+
+      .chat-head h2 {
+        font-size: 15px;
+        font-weight: 650;
+      }
+
+      .chat-head .head-meta {
+        display: none;
+      }
+
+      .badge {
+        height: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.64);
+      }
+
+      .messages {
+        height: calc(100vh - 62px);
+        gap: 18px;
+        padding: 30px max(72px, 10vw) 210px;
+        background: #0c0c0d;
+      }
+
+      .message {
+        display: flex;
+        width: min(980px, 100%);
+        max-width: 980px;
+        gap: 0;
+      }
+
+      .avatar {
+        display: none;
+      }
+
+      .message.user {
+        justify-content: flex-end;
+      }
+
+      .message .bubble {
+        max-width: min(760px, 100%);
+      }
+
+      .bubble {
+        color: #eeeeef;
+      }
+
+      .message.user .bubble {
+        padding: 12px 15px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        background: #252526;
+      }
+
+      .bubble strong {
+        margin-bottom: 10px;
+        font-size: 15px;
+      }
+
+      .bubble p,
+      .bubble li {
+        color: #e7e5e8;
+        font-size: 15px;
+        line-height: 1.72;
+      }
+
+      .cite,
+      .source-pill {
+        background: rgba(215, 196, 255, 0.13);
+        color: #d9c8ff;
+      }
+
+      .quick-actions {
+        width: min(980px, 100%);
+        max-width: 980px;
+        gap: 12px;
+      }
+
+      .quick-action {
+        min-height: 86px;
+        padding: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 13px;
+        background: #171718;
+      }
+
+      .quick-action:hover {
+        background: #212123;
+        border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: none;
+      }
+
+      .quick-action strong {
+        font-size: 14px;
+      }
+
+      .quick-action span {
+        color: rgba(255, 255, 255, 0.56);
+      }
+
+      .composer {
+        right: var(--right);
+        left: var(--sidebar);
+        padding: 24px max(64px, 10vw) 28px;
+        background: linear-gradient(180deg, rgba(12, 12, 13, 0), #0c0c0d 38%);
+      }
+
+      .composer-box {
+        grid-template-columns: 42px minmax(0, 1fr) 42px;
+        max-width: 980px;
+        min-height: 76px;
+        align-items: center;
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        background: #242424;
+        box-shadow: 0 18px 72px rgba(0, 0, 0, 0.45);
+      }
+
+      .composer-box::before {
+        content: none;
+      }
+
+      .composer-box::after {
+        content: none;
+      }
+
+      .composer textarea {
+        min-height: 44px;
+        max-height: 150px;
+        align-self: center;
+        padding: 10px 0;
+        color: #f0eeee;
+        font-size: 15px;
+        resize: none;
+      }
+
+      .composer textarea::placeholder {
+        color: rgba(255, 255, 255, 0.34);
+      }
+
+      .send-button {
+        width: 42px;
+        height: 42px;
+        align-self: center;
+        background: #bdbdbd;
+        color: #222;
+        box-shadow: none;
+      }
+
+      .upload-button {
+        width: 42px;
+        height: 42px;
+        border: 0;
+        border-radius: 999px;
+        background: #303033;
+        color: rgba(255, 255, 255, 0.78);
+        cursor: pointer;
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .right {
+        display: block;
+        padding: 78px 20px 20px 10px;
+        background: #0c0c0d;
+        transition:
+          opacity 220ms ease,
+          transform 220ms ease;
+      }
+
+      .right-top {
+        display: none;
+      }
+
+      .right-scroll {
+        max-height: calc(100vh - 96px);
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 26px;
+        background: #242424;
+        box-shadow: 0 22px 80px rgba(0, 0, 0, 0.42);
+      }
+
+      .right-panel {
+        padding: 18px 22px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      .right-panel + .right-panel {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .right-panel h2 {
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 15px;
+        font-weight: 680;
+      }
+
+      .right-panel-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.48);
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 680;
+        text-align: left;
+      }
+
+      .collapse-mark {
+        color: rgba(255, 255, 255, 0.34);
+        transition: transform 160ms ease;
+      }
+
+      .right-panel.is-collapsed .collapse-mark {
+        transform: rotate(-90deg);
+      }
+
+      .right-panel-body {
+        display: grid;
+        margin-top: 12px;
+        max-height: 520px;
+        overflow: hidden;
+        opacity: 1;
+        transition:
+          max-height 240ms ease,
+          margin-top 240ms ease,
+          opacity 180ms ease;
+      }
+
+      .right-panel.is-collapsed .right-panel-body {
+        margin-top: 0;
+        max-height: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .log-row,
+      .source-row,
+      .inbox-row,
+      .value-row {
+        padding: 10px 0;
+        border-color: rgba(255, 255, 255, 0.07);
+      }
+
+      .log-bar {
+        width: 6px;
+        height: 6px;
+        margin-top: 8px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.52);
+      }
+
+      .log-row {
+        grid-template-columns: 12px 1fr;
+      }
+
+      .log-row strong,
+      .source-row strong {
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 14px;
+      }
+
+      .log-row span,
+      .source-row span {
+        color: rgba(255, 255, 255, 0.46);
+        font-size: 13px;
+      }
+
+      .panel {
+        width: min(980px, calc(100% - 64px));
+        margin: 28px auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 13px;
+        background: #171718;
+      }
+
+      .hero {
+        width: min(980px, calc(100% - 64px));
+        margin: 28px auto 0;
+      }
+
+      .review-item {
+        border-color: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        background: #1d1d1f;
+      }
+
+      .field input,
+      .field textarea,
+      .field select,
+      .small-action,
+      .plain-button,
+      .icon-button,
+      .search {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: #242424;
+      }
+
+      .toast {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        background: #242424;
+        box-shadow: 0 22px 80px rgba(0, 0, 0, 0.42);
+      }
+
+      .right-dock-toggle {
+        position: fixed;
+        top: 14px;
+        right: 18px;
+        z-index: 60;
+        height: 34px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        background: #242424;
+        color: rgba(255, 255, 255, 0.8);
+        cursor: pointer;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+      }
+
+      .login-gate {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: grid;
+        place-items: center;
+        background: rgba(7, 7, 8, 0.88);
+        backdrop-filter: blur(18px);
+      }
+
+      .login-gate.hidden {
+        display: none;
+      }
+
+      .login-card {
+        width: min(460px, calc(100vw - 32px));
+        padding: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        background: #171718;
+        box-shadow: 0 30px 120px rgba(0, 0, 0, 0.48);
+      }
+
+      .login-card h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+
+      .login-card p {
+        margin: 0 0 18px;
+        color: rgba(255, 255, 255, 0.68);
+        line-height: 1.55;
+      }
+
+      .login-presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+
+      .login-presets button {
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        background: #242424;
+        color: rgba(255, 255, 255, 0.82);
+        cursor: pointer;
+      }
+
+      .login-form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .login-form label {
+        display: grid;
+        gap: 6px;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 13px;
+      }
+
+      .login-form input,
+      .login-form select {
+        height: 38px;
+        padding: 0 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        background: #242424;
+        color: #fff;
+      }
+
+      .login-form .review-actions {
+        margin-top: 4px;
+        justify-content: flex-end;
+      }
+
+      .app.right-collapsed {
+        --right: 0px;
+      }
+
+      .app.right-collapsed .right {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(32px);
+      }
+
+      @media (max-width: 1240px) {
+        :root {
+          --sidebar: 86px;
+          --right: 360px;
+        }
+
+        .composer {
+          left: var(--sidebar);
+          right: var(--right);
+        }
+
+        .sidebar::before {
+          display: none;
+        }
+
+        .brand {
+          justify-content: center;
+        }
+      }
+
+      @media (min-width: 1241px) and (max-width: 1500px) {
+        :root {
+          --sidebar: 280px;
+          --right: 350px;
+        }
+
+        .messages {
+          padding-right: 64px;
+          padding-left: 64px;
+        }
+
+        .composer {
+          padding-right: 64px;
+          padding-left: 64px;
+        }
+
+        .right {
+          padding-right: 12px;
+        }
+      }
+
+      @media (max-width: 980px) {
+        :root {
+          --sidebar: 0px;
+          --right: 0px;
+        }
+
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .right {
+          padding: 14px;
+        }
+
+        .right-scroll {
+          max-height: none;
+        }
+      }
+    </style>
+  </head>
+      <body>
+    <div class="login-gate hidden" id="loginGate" aria-hidden="true">
+      <div class="login-card">
+        <h1>登录 AgentMesh</h1>
+        <p>请选择账号并输入密码。登录后可以切换用户、管理公共 Agent、同步 Oxygen 工具。</p>
+        <div class="login-presets" id="loginPresets">
+          <button type="button" data-login-user="usr_current_designer" data-login-password="designer123">设计师</button>
+          <button type="button" data-login-user="usr_team_lead" data-login-password="lead123">组长</button>
+          <button type="button" data-login-user="usr_admin" data-login-password="admin123">管理员</button>
+        </div>
+        <form class="login-form" id="loginForm">
+          <label>
+            账号
+            <input id="loginUserId" autocomplete="username" placeholder="usr_admin" />
+          </label>
+          <label>
+            密码
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="请输入密码" />
+          </label>
+          <div class="review-actions">
+            <button class="small-action primary" type="submit">登录</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <svg class="icon-defs" width="0" height="0" aria-hidden="true">
+      <symbol id="i-grid" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></symbol>
+      <symbol id="i-room" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5" /></symbol>
+      <symbol id="i-memory" viewBox="0 0 24 24"><path d="M7 7h10v10H7zM9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" /></symbol>
+      <symbol id="i-agent" viewBox="0 0 24 24"><path d="M12 3v3M6.5 8.5 4.5 6.5M17.5 8.5l2-2M6 14a6 6 0 0 1 12 0v5H6zM9 14h.01M15 14h.01" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4z" /></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" /></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13" /></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+    </svg>
+
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark"><svg class="icon"><use href="#i-agent" /></svg></div>
+          <div class="brand-name">AgentMesh</div>
+        </div>
+
+        <div class="section-label">Workspace</div>
+        <nav class="nav" aria-label="主导航">
+          <button class="active" type="button" title="作战室" data-view="workspace">
+            <svg class="icon"><use href="#i-room" /></svg><span class="label">作战室</span>
+          </button>
+          <button type="button" title="收件箱" data-view="inbox">
+            <svg class="icon"><use href="#i-grid" /></svg><span class="label">收件箱</span><span class="nav-count" id="inboxNavCount">0</span>
+          </button>
+          <button type="button" title="记忆库" data-view="memory">
+            <svg class="icon"><use href="#i-memory" /></svg><span class="label">记忆库</span><span class="nav-count" id="memoryNavCount">0</span>
+          </button>
+          <button type="button" title="Agent" data-view="agent">
+            <svg class="icon"><use href="#i-agent" /></svg><span class="label">Agent</span><span class="nav-count" id="agentNavCount">0</span>
+          </button>
+          <button type="button" title="任务" data-view="tasks">
+            <svg class="icon"><use href="#i-room" /></svg><span class="label">任务</span><span class="nav-count" id="taskNavCount">0</span>
+          </button>
+          <button type="button" title="BBS" data-view="bbs">
+            <svg class="icon"><use href="#i-grid" /></svg><span class="label">BBS</span><span class="nav-count" id="bbsCount">0</span>
+          </button>
+          <button type="button" title="审计" data-view="audit">
+            <svg class="icon"><use href="#i-bell" /></svg><span class="label">审计</span>
+          </button>
+          <button type="button" title="成员" data-view="users">
+            <svg class="icon"><use href="#i-room" /></svg><span class="label">成员</span><span class="nav-count" id="userCount">0</span>
+          </button>
+        </nav>
+
+        <div class="section-label">Spaces</div>
+        <div class="space-list">
+          <button class="space-row active" type="button" title="家电设计组">
+            <span class="space-dot"></span><span class="label workspace-name">家电设计组</span>
+          </button>
+          <button class="space-row" type="button" title="PLUS 会员">
+            <span class="space-dot amber"></span><span class="label">PLUS 会员</span>
+          </button>
+          <button class="space-row" type="button" title="内容导购">
+            <span class="space-dot blue"></span><span class="label">内容导购</span>
+          </button>
+        </div>
+        <div class="account-panel">
+          <div class="account-card">
+            <span id="sideAuthUser">未登录</span>
+            <button class="plain-button" id="switchAccountButton" type="button">切换账号</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <label class="search">
+            <svg class="icon"><use href="#i-search" /></svg>
+            <input id="topSearch" placeholder="搜索项目、历史经验、团队记忆" />
+          </label>
+          <button class="icon-button" type="button" title="通知">
+            <svg class="icon"><use href="#i-bell" /></svg>
+          </button>
+          <div class="auth-pill" id="authUser">未登录</div>
+          <button class="plain-button" id="logoutButton" type="button">退出</button>
+          <button class="plain-button hide-mobile action-button" type="button" data-open-view="inbox">查看收件箱</button>
+        </header>
+
+        <section class="workspace" id="workspaceView">
+          <div class="hero">
+            <div>
+              <div class="breadcrumb"><span class="workspace-name">家电设计组</span> / <span id="projectName">团队大脑</span></div>
+              <div class="head-meta">直接问问题、让它查资料、生成 Brief，或让你的 Agent 记录今天的工作。</div>
+            </div>
+            <div class="value-strip" aria-label="今日价值">
+              <div class="metric"><strong id="sourceMetric">0</strong><span>来源已登记</span></div>
+              <div class="metric"><strong id="activityMetric">0</strong><span>今日记录</span></div>
+              <div class="metric"><strong id="memoryMetric">0</strong><span>候选记忆</span></div>
+            </div>
+          </div>
+
+          <section class="panel search-results view-hidden" id="searchResultsPanel">
+            <div class="panel-pad">
+              <h2>搜索结果</h2>
+              <div id="searchResults"></div>
+            </div>
+          </section>
+
+          <section class="chat-shell">
+            <div class="chat-head">
+              <div>
+                <h2>和团队大脑对话</h2>
+                <div class="head-meta">你的输入默认进入个人 Agent 私有上下文，必要时再共享到项目或团队记忆。</div>
+              </div>
+              <div class="agent-state">
+                <span class="badge green" id="personalAgentBadge">个人 Agent 在线</span>
+                <span class="badge blue" id="serviceAgentBadge">可调用外接 Agent</span>
+                <span class="badge amber" id="modelStateBadge">模型：检查中</span>
+              </div>
+            </div>
+
+            <div class="messages" id="messages">
+              <div class="message">
+                <div class="bubble">
+                  <strong>今天我可以帮你做这些事</strong>
+                  <ul>
+                    <li>查找团队过去做过的相似项目，并整理成可引用结论。</li>
+                    <li>调用 research_agent / data_agent 补足缺失资料。</li>
+                    <li>把你今天的搜索、讨论、文档整理成私有工作记录。</li>
+                    <li>在你确认后，把高价值经验沉淀为团队记忆。</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="message user">
+                <div class="bubble">
+                  <p>帮我看看 618 家电会场首页改版，过去有没有类似项目经验？</p>
+                </div>
+              </div>
+
+              <div class="message">
+                <div class="bubble">
+                  <strong>找到 3 个相似项目</strong>
+                  <p>
+                    最相关的是 2025 618 家电会场复盘：沉浸式头图曾降低核心入口点击，后续改为效率型楼层结构。
+                    <button class="cite" data-source-reference="review://home-appliance-618-2025" type="button">复盘 2025</button>
+                  </p>
+                </div>
+              </div>
+
+              <div class="quick-actions">
+                <button class="quick-action action-button" type="button" data-prompt="帮我基于现有资料生成 618 家电会场项目 Brief">
+                  <strong>生成项目 Brief</strong>
+                  <span>把现有资料整理成启动文档</span>
+                </button>
+                <button class="quick-action action-button" type="button" data-prompt="帮我查 618 家电会场的竞品资料和相似项目经验">
+                  <strong>让 Agent 补资料</strong>
+                  <span>调用外接 Agent 查竞品和数据</span>
+                </button>
+                <button class="quick-action action-button" type="button" data-prompt="把今天的讨论总结成我的私有记录">
+                  <strong>记录今天工作</strong>
+                  <span>生成我的私有日结</span>
+                </button>
+                <button class="quick-action action-button" type="button" data-prompt="把首屏效率优先这条经验沉淀为候选团队记忆">
+                  <strong>沉淀团队经验</strong>
+                  <span>提取候选记忆，放入记忆库审核</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="composer">
+              <div class="composer-box">
+                <button class="upload-button" id="uploadButton" type="button" title="上传文档">
+                  <svg class="icon"><use href="#i-plus" /></svg>
+                </button>
+                <textarea
+                  id="chatInput"
+                  placeholder="输入你想让平台做的事，例如：帮我查相似项目 / 把今天的讨论整理成项目背景 / 调用爬虫 Agent 补竞品资料..."
+                ></textarea>
+                <button class="send-button" id="sendButton" type="button" title="发送">
+                  <svg class="icon"><use href="#i-send" /></svg>
+                </button>
+                <input class="file-input" id="fileInput" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" />
+              </div>
+              <div class="composer-meta">
+                <span class="badge blue">默认私有</span>
+                <span>可切换到项目可见或团队记忆候选</span>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="workspace view-hidden" id="inboxView">
+          <div class="hero">
+            <div>
+              <div class="breadcrumb"><span class="workspace-name">家电设计组</span> / 收件箱</div>
+              <h1>需要你处理的确认事项</h1>
+              <div class="head-meta">个人 Agent 从 BBS 和项目动态里整理与你相关的报告，等待你确认、稍后处理或完成。</div>
+            </div>
+          </div>
+
+          <section class="panel">
+            <div class="panel-pad">
+              <div class="section-title-xl">确认 Brief 中的设计原则</div>
+              <div class="review-list" id="inboxList">
+                <div class="review-item">
+                  <div class="review-item-head">
+                    <strong>暂无待处理报告</strong>
+                    <span class="badge green">clear</span>
+                  </div>
+                  <p>当个人 Agent 在 BBS 中发现与你相关的线索、风险或行动项时，会整理到这里。</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="workspace view-hidden" id="memoryView">
+          <div class="hero">
+            <div>
+              <div class="breadcrumb"><span class="workspace-name">家电设计组</span> / 记忆库</div>
+              <h1>分层记忆库</h1>
+              <div class="head-meta">这里按个人短期、项目中期、项目归档和团队候选组织记忆，方便检查哪些信息值得晋升。</div>
+            </div>
+          </div>
+          <div class="segmented-tabs" id="memoryTabs">
+            <button class="segment-tab active" data-memory-view="short" type="button">我的短期 <span data-memory-count="short">0</span></button>
+            <button class="segment-tab" data-memory-view="project" type="button">项目记忆 <span data-memory-count="project">0</span></button>
+            <button class="segment-tab" data-memory-view="archive" type="button">项目归档 <span data-memory-count="archive">0</span></button>
+            <button class="segment-tab" data-memory-view="team" type="button">团队候选 <span data-memory-count="team">0</span></button>
+          </div>
+
+          <section class="panel">
+            <div class="panel-pad">
+              <div class="filter-bar">
+                <input id="memoryDateFilter" type="date" />
+                <select id="memoryTypeFilter">
+                  <option value="">全部类型</option>
+                  <option value="project_background">项目背景</option>
+                  <option value="data">数据</option>
+                  <option value="competitor">竞品</option>
+                  <option value="risk">风险</option>
+                  <option value="decision">决策</option>
+                  <option value="daily_summary">每日摘要</option>
+                  <option value="project_summary">项目摘要</option>
+                  <option value="project_archive">项目归档</option>
+                  <option value="note">笔记</option>
+                  <option value="manual">手动</option>
+                </select>
+                <button class="small-action" id="memoryClearFilters" type="button">清除筛选</button>
+                <button class="small-action primary" id="memoryPromoteButton" type="button">生成每日摘要</button>
+              </div>
+              <div class="review-list" id="memoryList">
+                <div class="review-item">
+                  <div class="review-item-head">
+                    <strong>暂无记忆</strong>
+                    <span class="badge green">clear</span>
+                  </div>
+                  <p>有效的 Agent 工作结果会进入短期记忆，项目摘要和归档会在晋升后显示。</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="workspace view-hidden" id="agentView">
+          <div class="hero">
+            <div>
+              <div class="breadcrumb"><span class="workspace-name">家电设计组</span> / Agent</div>
+              <h1>Agent 管理</h1>
+              <div class="head-meta">个人 Agent 可编辑，公共 Agent 仅组长和管理员可维护。</div>
+            </div>
+          </div>
+
+          <div class="module-tabs" id="agentTabs">
+            <button class="segment-tab active" data-agent-view="personal" type="button">个人 Agent</button>
+            <button class="segment-tab" data-agent-view="public" type="button">公共 Agent</button>
+          </div>
+
+          <section class="panel">
+            <div class="panel-pad">
+              <div class="split-panels">
+                <section class="split-pane" id="agentPersonalPanel">
+                  <div class="list-header">
+                    <div>
+                      <strong>我的 Agent</strong>
+                      <p class="head-meta">点击新建后展开配置，点击列表项进入详情编辑。</p>
+                    </div>
+                    <button class="small-action primary" id="createAgentButton" type="button">新建 Agent</button>
+                  </div>
+                  <div class="agent-list" id="personalAgentList"></div>
+                  <div class="detail-panel view-hidden" id="personalAgentDetail">
+                    <div class="form-grid">
+                      <div class="two-column">
+                        <div class="field">
+                          <label for="agentName">名称</label>
+                          <input id="agentName" />
+                        </div>
+                        <div class="field">
+                          <label for="agentStatus">状态</label>
+                          <select id="agentStatus">
+                            <option value="online">online</option>
+                            <option value="paused">paused</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label for="agentDescription">描述</label>
+                        <textarea id="agentDescription"></textarea>
+                      </div>
+                      <div class="field">
+                        <label for="agentCapabilities">能力，使用逗号分隔</label>
+                        <input id="agentCapabilities" />
+                      </div>
+                      <div class="field">
+                        <label for="agentModel">模型</label>
+                        <select id="agentModel"></select>
+                      </div>
+                      <div class="field">
+                        <label>可用工具</label>
+                        <div class="tool-list" id="agentToolList"></div>
+                      </div>
+                      <div class="review-actions">
+                        <button class="small-action primary" id="saveAgentButton" type="button">保存配置</button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="split-pane hidden" id="agentPublicPanel">
+                  <div class="list-header">
+                    <div>
+                      <strong>公共 Agent</strong>
+                      <p class="head-meta">点击查看详情，普通用户只读，组长可编辑。</p>
+                    </div>
+                  </div>
+                  <div class="agent-list" id="agentList"></div>
+                  <div class="detail-panel view-hidden" id="publicAgentDetail">
+                    <div class="review-item">
+                      <div class="review-item-head">
+                        <strong id="publicAgentName">公共 Agent</strong>
+                        <span class="badge blue" id="publicAgentBadge">只读</span>
+                      </div>
+                      <p id="publicAgentDescription">点击列表中的公共 Agent 查看详情。</p>
+                      <div class="bbs-post-meta">
+                        <span class="source-pill" id="publicAgentType">类型：公共</span>
+                        <span class="source-pill" id="publicAgentStatus">状态：-</span>
+                      </div>
+                      <div class="source-list" id="publicAgentCapabilities"></div>
+                      <div class="review-actions" id="publicAgentActions"></div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-pad">
+              <h2>Oxygen-CLI 内部能力</h2>
+              <div class="review-list" id="o2StatusCard">
+                <div class="review-item">
+                  <div class="review-item-head">
+                    <strong>正在检查 Oxygen-CLI</strong>
+                    <span class="badge amber">checking</span>
+                  </div>
+                  <p>Oxygen-CLI 会作为内部资料和业务 CLI 的接入层，外部 Web provider 会继续保留。</p>
+                </div>
+              </div>
+              <div class="review-actions">
+                <button class="small-action primary" id="syncO2Button" type="button">同步 Oxygen 工具</button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="workspace view-hidden" id="bbsView">
+          <div class="hero">
+            <div>
+              <div class="breadcrumb"><span class="workspace-name">家电设计组</span> / BBS</div>
+              <h1>找到相似项目经验</h1>
+              <div class="head-meta">这里展示个人 Agent、research_agent、data_agent、risk_agent 围绕任务发布的请求、证据、风险和交接记录。</div>
+            </div>
+          </div>
+
+          <section class="panel">
+            <div class="panel-pad">
+              <div class="bbs-tabs" role="tablist" aria-label="BBS 视图">
+                <button class="active" type="button" data-bbs-panel-tab="posts">帖子流</button>
+                <button type="button" data-bbs-panel-tab="tasks">任务聚合</button>
+              </div>
+              <div id="bbsPostsPanel">
+                <div class="bbs-list" id="bbsList"></div>
+                <div class="bbs-pagination">
+                  <button class="small-action" id="bbsPrevButton" type="button">上一页</button>
+                  <span id="bbsPageInfo">第 1 页</span>
+                  <button class="small-action" id="bbsNextButton" type="button">下一页</button>
+                </div>
+              </div>
+              <div class="bbs-panel-hidden" id="bbsTasksPanel">
+                <div class="bbs-list" id="taskCardList"></div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="workspace view-hidden" id="tasksView">
+          <div class="hero">
+            <div>
+              <div class="breadcrumb"><span class="workspace-name">家电设计组</span> / 任务</div>
+              <h1>我的任务流</h1>
+              <div class="head-meta">这里汇总当前用户发起的任务，以及个人 Agent 从 BBS 中认领的任务，展示状态、上游和下游。</div>
+            </div>
+          </div>
+
+          <div class="module-tabs" id="taskTabs">
+            <button class="segment-tab active" data-task-view="initiated" type="button">已发起任务</button>
+            <button class="segment-tab" data-task-view="claimed" type="button">已认领任务</button>
+          </div>
+
+          <section class="panel">
+            <div class="panel-pad">
+              <div class="task-list" id="taskList"></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="workspace view-hidden" id="usersView">
+          <div class="hero">
+            <div>
+              <div class="breadcrumb"><span class="workspace-name">家电设计组</span> / 成员</div>
+              <h1>用户与角色</h1>
+              <div class="head-meta">当前原型已区分用户、组长、管理员；权限规则留给后续配置。</div>
+            </div>
+          </div>
+
+          <section class="panel">
+            <div class="panel-pad">
+              <div class="form-grid">
+                <div class="two-column">
+                  <div class="field">
+                    <label for="currentPassword">当前密码</label>
+                    <input id="currentPassword" type="password" autocomplete="current-password" />
+                  </div>
+                  <div class="field">
+                    <label for="newPassword">新密码</label>
+                    <input id="newPassword" type="password" autocomplete="new-password" />
+                  </div>
+                </div>
+                <div class="review-actions">
+                  <button class="small-action primary" id="changePasswordButton" type="button">修改我的密码</button>
+                </div>
+              </div>
+              <div class="section-title-xl">成员管理</div>
+              <div class="detail-panel" id="createUserPanel">
+                <div class="form-grid">
+                  <div class="two-column">
+                    <div class="field">
+                      <label for="createUserName">姓名</label>
+                      <input id="createUserName" />
+                    </div>
+                    <div class="field">
+                      <label for="createUserRole">角色</label>
+                      <select id="createUserRole">
+                        <option value="user">user</option>
+                        <option value="team_lead">team_lead</option>
+                        <option value="admin">admin</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="two-column">
+                    <div class="field">
+                      <label for="createUserPassword">密码</label>
+                      <input id="createUserPassword" type="password" autocomplete="new-password" />
+                    </div>
+                    <div class="field">
+                      <label for="createUserProject">默认项目</label>
+                      <input id="createUserProject" />
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="createUserWorkspace">工作空间</label>
+                    <input id="createUserWorkspace" />
+                  </div>
+                  <div class="review-actions">
+                    <button class="small-action primary" id="createUserButton" type="button">新建用户</button>
+                  </div>
+                </div>
+              </div>
+              <div class="user-list" id="userList"></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-pad">
+              <h2>风险策略</h2>
+              <div class="form-grid" id="riskPolicyForm">
+                <div class="two-column">
+                  <div class="field">
+                    <label for="riskPolicyRuleId">规则 ID</label>
+                    <input id="riskPolicyRuleId" placeholder="asset_policy_signal" />
+                  </div>
+                  <div class="field">
+                    <label for="riskPolicyCategory">分类</label>
+                    <input id="riskPolicyCategory" placeholder="source_policy" />
+                  </div>
+                </div>
+                <div class="two-column">
+                  <div class="field">
+                    <label for="riskPolicySignal">命中信号</label>
+                    <input id="riskPolicySignal" placeholder="竞品截图" />
+                  </div>
+                  <div class="field">
+                    <label for="riskPolicyDecision">决策</label>
+                    <select id="riskPolicyDecision">
+                      <option value="needs_review">needs_review</option>
+                      <option value="allow">allow</option>
+                      <option value="block">block</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="riskPolicyMessage">提示文案</label>
+                  <input id="riskPolicyMessage" placeholder="素材或来源策略需要确认授权和使用边界。" />
+                </div>
+                <label class="tool-option">
+                  <input id="riskPolicyEnabled" type="checkbox" checked />
+                  <span class="tool-copy"><strong>启用规则</strong><small>保存后立即参与 risk_agent 评审。</small></span>
+                </label>
+                <div class="review-actions">
+                  <button class="small-action primary" id="saveRiskPolicyButton" type="button">新增策略</button>
+                </div>
+              </div>
+              <div class="user-list" id="riskPolicyList"></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="workspace view-hidden" id="auditView">
+          <div class="hero">
+            <div>
+              <div class="breadcrumb"><span class="workspace-name">家电设计组</span> / 审计</div>
+              <h1>操作审计时间线</h1>
+              <div class="head-meta">这里汇总用户、Agent、BBS、收件箱等关键动作，便于追踪系统真实行为。</div>
+            </div>
+          </div>
+
+          <section class="panel">
+            <div class="panel-pad">
+              <h2>最近事件</h2>
+              <div class="bbs-list" id="auditList"></div>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <aside class="right">
+        <div class="right-top">
+          <div class="right-title" id="rightAgentTitle">我的 Agent 今日记录</div>
+          <button class="icon-button" type="button" title="追溯">
+            <svg class="icon"><use href="#i-link" /></svg>
+          </button>
+        </div>
+
+        <div class="right-scroll">
+          <section class="right-panel" data-collapsible-panel>
+            <button class="right-panel-toggle" type="button" aria-expanded="true">
+              <span>它替我做了什么</span><span class="collapse-mark">⌄</span>
+            </button>
+            <div class="right-panel-body" id="personalActivityList"></div>
+          </section>
+
+          <section class="right-panel" data-collapsible-panel>
+            <button class="right-panel-toggle" type="button" aria-expanded="true">
+              <span>它和外接 Agent 做了什么</span><span class="collapse-mark">⌄</span>
+            </button>
+            <div class="right-panel-body" id="externalActivityList"></div>
+          </section>
+
+          <section class="right-panel" data-collapsible-panel>
+            <button class="right-panel-toggle" type="button" aria-expanded="true">
+              <span>关键来源</span><span class="collapse-mark">⌄</span>
+            </button>
+            <div class="right-panel-body" id="keySourcesList"></div>
+          </section>
+        </div>
+      </aside>
+    </div>
+
+    <button class="right-dock-toggle" id="rightDockToggle" type="button" aria-pressed="false">收起</button>
+    <div class="toast" id="toast">已更新</div>
+
+    <script>
+      const appShell = document.querySelector(".app");
+      const rightDockToggle = document.getElementById("rightDockToggle");
+      const toast = document.getElementById("toast");
+      const loginGate = document.getElementById("loginGate");
+      const loginForm = document.getElementById("loginForm");
+      const loginUserId = document.getElementById("loginUserId");
+      const loginPassword = document.getElementById("loginPassword");
+      const logoutButton = document.getElementById("logoutButton");
+      const switchAccountButton = document.getElementById("switchAccountButton");
+      const chatInput = document.getElementById("chatInput");
+      const uploadButton = document.getElementById("uploadButton");
+      const fileInput = document.getElementById("fileInput");
+      const topSearch = document.getElementById("topSearch");
+      const messages = document.getElementById("messages");
+      const reviewItems = document.getElementById("reviewItems");
+      const inboxList = document.getElementById("inboxList");
+      const memoryList = document.getElementById("memoryList");
+      const memoryTabs = document.getElementById("memoryTabs");
+      const memoryDateFilter = document.getElementById("memoryDateFilter");
+      const memoryTypeFilter = document.getElementById("memoryTypeFilter");
+      const memoryClearFilters = document.getElementById("memoryClearFilters");
+      const memoryPromoteButton = document.getElementById("memoryPromoteButton");
+      const searchResultsPanel = document.getElementById("searchResultsPanel");
+      const searchResults = document.getElementById("searchResults");
+      const sourceMetric = document.getElementById("sourceMetric");
+      const activityMetric = document.getElementById("activityMetric");
+      const memoryMetric = document.getElementById("memoryMetric");
+      const personalAgentBadge = document.getElementById("personalAgentBadge");
+      const serviceAgentBadge = document.getElementById("serviceAgentBadge");
+      const modelStateBadge = document.getElementById("modelStateBadge");
+      const rightAgentTitle = document.getElementById("rightAgentTitle");
+      const personalActivityList = document.getElementById("personalActivityList");
+      const externalActivityList = document.getElementById("externalActivityList");
+      const keySourcesList = document.getElementById("keySourcesList");
+      const projectName = document.getElementById("projectName");
+      const inboxNavCount = document.getElementById("inboxNavCount");
+      const memoryNavCount = document.getElementById("memoryNavCount");
+      const agentNavCount = document.getElementById("agentNavCount");
+      const taskNavCount = document.getElementById("taskNavCount");
+      const bbsCount = document.getElementById("bbsCount");
+      const userCount = document.getElementById("userCount");
+      const authUser = document.getElementById("authUser");
+      const sideAuthUser = document.getElementById("sideAuthUser");
+      const agentName = document.getElementById("agentName");
+      const agentStatus = document.getElementById("agentStatus");
+      const agentDescription = document.getElementById("agentDescription");
+      const agentCapabilities = document.getElementById("agentCapabilities");
+      const agentModel = document.getElementById("agentModel");
+      const agentToolList = document.getElementById("agentToolList");
+      const saveAgentButton = document.getElementById("saveAgentButton");
+      const createAgentButton = document.getElementById("createAgentButton");
+      const agentTabs = document.getElementById("agentTabs");
+      const agentPersonalPanel = document.getElementById("agentPersonalPanel");
+      const agentPublicPanel = document.getElementById("agentPublicPanel");
+      const personalAgentList = document.getElementById("personalAgentList");
+      const personalAgentDetail = document.getElementById("personalAgentDetail");
+      const agentList = document.getElementById("agentList");
+      const publicAgentDetail = document.getElementById("publicAgentDetail");
+      const publicAgentName = document.getElementById("publicAgentName");
+      const publicAgentBadge = document.getElementById("publicAgentBadge");
+      const publicAgentDescription = document.getElementById("publicAgentDescription");
+      const publicAgentType = document.getElementById("publicAgentType");
+      const publicAgentStatus = document.getElementById("publicAgentStatus");
+      const publicAgentCapabilities = document.getElementById("publicAgentCapabilities");
+      const publicAgentActions = document.getElementById("publicAgentActions");
+      const o2StatusCard = document.getElementById("o2StatusCard");
+      const syncO2Button = document.getElementById("syncO2Button");
+      const taskCardList = document.getElementById("taskCardList");
+      const taskList = document.getElementById("taskList");
+      const taskTabs = document.getElementById("taskTabs");
+      const bbsList = document.getElementById("bbsList");
+      const bbsPostsPanel = document.getElementById("bbsPostsPanel");
+      const bbsTasksPanel = document.getElementById("bbsTasksPanel");
+      const bbsPrevButton = document.getElementById("bbsPrevButton");
+      const bbsNextButton = document.getElementById("bbsNextButton");
+      const bbsPageInfo = document.getElementById("bbsPageInfo");
+      const userList = document.getElementById("userList");
+      const currentPassword = document.getElementById("currentPassword");
+      const newPassword = document.getElementById("newPassword");
+      const changePasswordButton = document.getElementById("changePasswordButton");
+      const createUserPanel = document.getElementById("createUserPanel");
+      const createUserName = document.getElementById("createUserName");
+      const createUserRole = document.getElementById("createUserRole");
+      const createUserPassword = document.getElementById("createUserPassword");
+      const createUserProject = document.getElementById("createUserProject");
+      const createUserWorkspace = document.getElementById("createUserWorkspace");
+      const createUserButton = document.getElementById("createUserButton");
+      const riskPolicyForm = document.getElementById("riskPolicyForm");
+      const riskPolicyList = document.getElementById("riskPolicyList");
+      const riskPolicyRuleId = document.getElementById("riskPolicyRuleId");
+      const riskPolicyCategory = document.getElementById("riskPolicyCategory");
+      const riskPolicySignal = document.getElementById("riskPolicySignal");
+      const riskPolicyDecision = document.getElementById("riskPolicyDecision");
+      const riskPolicyMessage = document.getElementById("riskPolicyMessage");
+      const riskPolicyEnabled = document.getElementById("riskPolicyEnabled");
+      const saveRiskPolicyButton = document.getElementById("saveRiskPolicyButton");
+      const auditList = document.getElementById("auditList");
+      const views = {
+        workspace: document.getElementById("workspaceView"),
+        inbox: document.getElementById("inboxView"),
+        memory: document.getElementById("memoryView"),
+        agent: document.getElementById("agentView"),
+        tasks: document.getElementById("tasksView"),
+        bbs: document.getElementById("bbsView"),
+        audit: document.getElementById("auditView"),
+        users: document.getElementById("usersView"),
+      };
+      let currentThreadId = null;
+      let currentUser = null;
+      let currentWorkspaceId = null;
+      let currentProjectId = null;
+      let currentPersonalAgentId = null;
+      let availableTools = [];
+      let currentAgentToolIds = new Set();
+      let publicAgentToolIdsByAgent = new Map();
+      let availableModels = [];
+      let knownAgents = [];
+      let bbsPage = 1;
+      let activeAgentView = "personal";
+      let activeTaskView = "initiated";
+      let creatingPersonalAgent = false;
+      let activeMemoryView = "short";
+      let activeBbsPanel = "posts";
+      let selectedBbsTaskId = null;
+      let activeHandoffPostId = null;
+      const expandedTaskCardIds = new Set();
+      const bbsPageSize = 5;
+      let touchStartY = 0;
+
+      function isPageAtTop() {
+        return window.scrollY <= 0 && document.documentElement.scrollTop <= 0;
+      }
+
+      // 获取主滚动容器
+      function getMainScrollEl() {
+        return document.querySelector(".main");
+      }
+
+      // 判断当前是否在作战室（chat）视图
+      function isChatViewActive() {
+        const wv = document.getElementById("workspaceView");
+        return wv && !wv.classList.contains("view-hidden");
+      }
+
+      // 只在作战室视图且主容器在顶部时阻止向上滚动（防止 overscroll）
+      window.addEventListener(
+        "wheel",
+        (event) => {
+          if (!isChatViewActive()) return;
+          const mainEl = getMainScrollEl();
+          if (isPageAtTop() && (!mainEl || mainEl.scrollTop <= 0) && event.deltaY < 0) event.preventDefault();
+        },
+        { passive: false },
+      );
+
+      window.addEventListener(
+        "touchstart",
+        (event) => {
+          touchStartY = event.touches[0]?.clientY ?? 0;
+        },
+        { passive: true },
+      );
+
+      window.addEventListener(
+        "touchmove",
+        (event) => {
+          if (!isChatViewActive()) return;
+          const currentY = event.touches[0]?.clientY ?? touchStartY;
+          const mainEl = getMainScrollEl();
+          if (isPageAtTop() && (!mainEl || mainEl.scrollTop <= 0) && currentY > touchStartY) event.preventDefault();
+        },
+        { passive: false },
+      );
+
+      // 只在作战室视图中，将 composer 区域的滚轮重定向到消息列表
+      document.querySelector(".composer").addEventListener(
+        "wheel",
+        (event) => {
+          if (!isChatViewActive()) return;
+          messages.scrollTop += event.deltaY;
+        },
+        { passive: true },
+      );
+
+      function showToast(text) {
+        toast.textContent = text;
+        toast.classList.add("show");
+        window.setTimeout(() => toast.classList.remove("show"), 1800);
+      }
+
+      function showLoginGate() {
+        loginGate.classList.remove("hidden");
+        loginGate.setAttribute("aria-hidden", "false");
+        authUser.textContent = "未登录";
+        sideAuthUser.textContent = "未登录";
+        window.setTimeout(() => loginUserId.focus(), 0);
+      }
+
+      function hideLoginGate() {
+        loginGate.classList.add("hidden");
+        loginGate.setAttribute("aria-hidden", "true");
+      }
+
+      async function loginWithCredentials(userId, password) {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, password }),
+        });
+        if (!response.ok) throw new Error("login failed");
+        const data = await response.json();
+        currentUser = data.user;
+        authUser.textContent = `${roleLabel(data.user.role)} · ${data.user.name}`;
+        sideAuthUser.textContent = `${roleLabel(data.user.role)} · ${data.user.name}`;
+        hideLoginGate();
+        return data.user;
+      }
+
+      async function ensureAuthenticated() {
+        try {
+          const response = await fetch("/api/auth/me");
+          if (response.ok) {
+            const data = await response.json();
+            currentUser = data.user;
+            authUser.textContent = `${roleLabel(data.user.role)} · ${data.user.name}`;
+            sideAuthUser.textContent = `${roleLabel(data.user.role)} · ${data.user.name}`;
+            hideLoginGate();
+            return data.user;
+          }
+
+          currentUser = null;
+          showLoginGate();
+          return null;
+        } catch (error) {
+          currentUser = null;
+          showLoginGate();
+          return null;
+        }
+      }
+
+      async function submitLogin(event) {
+        event.preventDefault();
+        const userId = loginUserId.value.trim();
+        const password = loginPassword.value;
+        if (!userId || !password) {
+          showToast("请输入账号和密码");
+          return;
+        }
+        try {
+          await loginWithCredentials(userId, password);
+          loginPassword.value = "";
+          await bootApp();
+          showToast("登录成功");
+        } catch (error) {
+          showToast("账号或密码不正确");
+        }
+      }
+
+      async function logout() {
+        await fetch("/api/auth/logout", { method: "POST" });
+        currentUser = null;
+        showLoginGate();
+        showToast("已退出登录");
+      }
+
+      function scrollMessagesToBottom() {
+        messages.scrollTo({
+          top: messages.scrollHeight,
+          behavior: "auto",
+        });
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "").replace(
+          /[<>&"']/g,
+          (char) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[char],
+        );
+      }
+
+      function resultTypeLabel(value) {
+        const labels = {
+          chat_message: "对话",
+          activity_log: "今日记录",
+          blackboard_evidence: "证据",
+          memory_item: "记忆",
+        };
+        return labels[value] || value;
+      }
+
+      function scopeLabel(value) {
+        const labels = {
+          private: "私有",
+          project: "项目可见",
+          team_candidate: "候选团队记忆",
+          team_accepted: "团队记忆",
+        };
+        return labels[value] || value;
+      }
+
+      function sourceTypeLabel(value) {
+        const labels = {
+          project_review: "项目复盘",
+        };
+        return labels[value] || value;
+      }
+
+      function renderBootstrap(state) {
+        currentUser = state.user;
+        knownAgents = state.agents || [];
+        const serviceAgents = (state.agents || []).filter((agent) => agent.agent_type !== "personal");
+        const personalAgent =
+          (state.agents || []).find((agent) => agent.id === state.user.personal_agent_id) ||
+          (state.agents || []).find((agent) => agent.agent_type === "personal");
+        const metrics = state.metrics || {};
+
+        currentWorkspaceId = state.workspace.id;
+        currentProjectId = state.project.id;
+        if (createUserWorkspace && !createUserWorkspace.value) createUserWorkspace.value = currentWorkspaceId || "";
+        if (createUserProject && !createUserProject.value) createUserProject.value = currentProjectId || "";
+        currentPersonalAgentId = personalAgent?.id || state.user.personal_agent_id;
+        document.querySelectorAll(".workspace-name").forEach((node) => {
+          node.textContent = state.workspace.name;
+        });
+        projectName.textContent = state.project.name;
+        sourceMetric.textContent = metrics.source_count ?? 0;
+        activityMetric.textContent =
+          (metrics.personal_activity_count ?? 0) + (metrics.external_activity_count ?? 0);
+        memoryMetric.textContent = metrics.memory_candidate_count ?? 0;
+        personalAgentBadge.textContent = personalAgent ? `${personalAgent.name} 在线` : "个人 Agent 在线";
+        serviceAgentBadge.textContent = `可调用 ${serviceAgents.length} 个外接 Agent`;
+        rightAgentTitle.textContent = `${state.user.name}的 Agent 今日记录`;
+        if (inboxNavCount) inboxNavCount.textContent = metrics.inbox_open_count ?? 0;
+        if (memoryNavCount) memoryNavCount.textContent = metrics.memory_candidate_count ?? 0;
+        if (agentNavCount) agentNavCount.textContent = (state.agents || []).length;
+        if (userCount) userCount.textContent = (state.users || []).length;
+      }
+
+      async function loadModelState() {
+        if (!modelStateBadge) return;
+        try {
+          const response = await fetch("/api/health/providers");
+          if (!response.ok) throw new Error("provider health failed");
+          const data = await response.json();
+          const llm = (data.providers || []).find((item) => item.provider === "llm");
+          if (llm?.status === "configured") {
+            modelStateBadge.textContent = `模型：${llm.label || llm.model || "已配置"}`;
+            modelStateBadge.classList.remove("amber");
+            modelStateBadge.classList.add("green");
+            return;
+          }
+          modelStateBadge.textContent = "模型：本地兜底模式";
+          modelStateBadge.classList.remove("green");
+          modelStateBadge.classList.add("amber");
+        } catch (error) {
+          modelStateBadge.textContent = "模型：检查失败";
+          modelStateBadge.classList.remove("green");
+          modelStateBadge.classList.add("amber");
+        }
+      }
+
+      async function loadBootstrap() {
+        try {
+          const response = await fetch("/api/bootstrap");
+          if (!response.ok) throw new Error("bootstrap request failed");
+          renderBootstrap(await response.json());
+          loadModelState();
+        } catch (error) {
+          showToast("启动状态暂不可用，已保留默认界面");
+        }
+      }
+
+      function appendUserMessage(value) {
+        const item = document.createElement("div");
+        item.className = "message user";
+        item.innerHTML = `<div class="bubble"><p>${escapeHtml(value)}</p></div>`;
+        messages.appendChild(item);
+        scrollMessagesToBottom();
+      }
+
+      function intentLabel(value) {
+        const labels = {
+          general_chat: "普通对话",
+          ask_memory: "查询记忆/经验",
+          generate_brief: "生成 Brief/文档",
+          record_private_note: "记录私有笔记",
+          request_external_research: "调用 research_agent 检索资料",
+          request_data_query: "调用 data_agent 查询数据",
+          request_risk_review: "调用 risk_agent 做风控",
+          create_memory_candidate: "创建团队候选记忆",
+          ask_system_info: "查询系统/模型配置",
+        };
+        return labels[value] || value || "未识别";
+      }
+
+      function uniqueLabels(values) {
+        return [...new Set(values.filter(Boolean))];
+      }
+
+      function traceAgents(context = {}) {
+        const intent = context.task?.intent;
+        const agents = [];
+        const add = (value) => {
+          if (value && value !== "personal_agent") agents.push(agentLabel(value));
+        };
+        [context.requestPost, context.evidencePost, context.riskPost].forEach((post) => {
+          if (!post) return;
+          add(post.actor);
+          add(post.current_owner_agent_id);
+          add(post.current_owner_label);
+        });
+        if (intent === "request_external_research") add("research_agent");
+        if (intent === "request_data_query") add("data_agent");
+        if (intent === "request_risk_review") add("risk_agent");
+        return uniqueLabels(agents);
+      }
+
+      function traceWrites(context = {}) {
+        const writes = new Set(["私有对话"]);
+        const intent = context.task?.intent;
+        if (intent === "record_private_note") writes.add("私有上下文");
+        if (context.requestPost || context.evidencePost || context.riskPost) writes.add("BBS");
+        if ((context.inboxItems || []).length) writes.add("收件箱");
+        if ((context.memoryItems || []).length) writes.add("记忆库");
+        if ((context.userMemoryItems || []).length) writes.add("短期记忆");
+        return [...writes];
+      }
+
+      function chatTraceMarkup(context = {}) {
+        const trace = context.workflowTrace || {};
+        const intent = trace.intent || context.task?.intent;
+        if (!intent) return "";
+        const agents = traceAgents(context);
+        const writes = trace.persisted === false ? ["未持久化"] : traceWrites(context);
+        const sourceLabel = trace.source === "llm" ? "大模型语义分析" : "规则兜底";
+        const confidence = Number.isFinite(trace.confidence) ? `${Math.round(trace.confidence * 100)}%` : "未返回";
+        const fallbackLabels = {
+          model_not_configured: "未配置可用模型",
+          model_low_confidence: "模型置信度不足",
+          model_low_confidence_or_failed: "模型置信度不足或调用失败",
+          no_real_provider_sources: "真实检索没有返回可用来源",
+        };
+        const chips = [
+          `识别结果：${intentLabel(intent)}`,
+          `来源：${sourceLabel}`,
+          `置信度：${confidence}`,
+          `调用路径：${intentLabel(trace.selected_workflow || intent)}`,
+          agents.length ? `调用 Agent：${agents.join("、")}` : "调用 Agent：团队大脑",
+          `数据写入：${writes.join("、")}`,
+        ];
+        if (trace.fallback_reason) chips.push(`兜底原因：${fallbackLabels[trace.fallback_reason] || trace.fallback_reason}`);
+        return `
+          <div class="intent-trace">
+            ${chips.map((chip) => `<span class="intent-chip">${escapeHtml(chip)}</span>`).join("")}
+          </div>
+        `;
+      }
+
+      function appendAssistantMessage(message, context = {}) {
+        const sources = message.sources || [];
+        const sourceMarkup = sources
+          .map(
+            (source) =>
+              `<button class="cite" data-source-reference="${escapeHtml(source.reference || "")}" type="button">${escapeHtml(source.title)}</button>`,
+          )
+          .join(" ");
+        const traceMarkup = chatTraceMarkup(context);
+        const item = document.createElement("div");
+        item.className = "message";
+        item.innerHTML = `
+          <div class="bubble">
+            <strong>团队大脑</strong>
+            <p>${escapeHtml(message.content)} ${sourceMarkup}</p>
+            ${traceMarkup}
+          </div>
+        `;
+        messages.appendChild(item);
+        scrollMessagesToBottom();
+      }
+
+      function activityRowMarkup(log, type) {
+        const typeAttribute = type ? ` data-type="${type}"` : "";
+        return `
+          <div class="log-row"${typeAttribute}>
+            <div class="log-bar"></div>
+            <div>
+              <strong>${escapeHtml(log.title)}</strong>
+              <span>${escapeHtml(log.summary)}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      function emptyActivityMarkup(text) {
+        return `
+          <div class="log-row">
+            <div class="log-bar"></div>
+            <div>
+              <strong>${text}</strong>
+              <span>发送一条消息后，这里会显示实际写入的活动记录。</span>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderActivityPanel(logs, listElement, type) {
+        const recentLogs = (logs || []).slice(-6).reverse();
+        listElement.innerHTML = recentLogs.length
+          ? recentLogs.map((log) => activityRowMarkup(log, type)).join("")
+          : emptyActivityMarkup("暂无实际记录");
+      }
+
+      function appendActivity(log, listElement, type) {
+        if (!listElement) return;
+        const row = document.createElement("div");
+        row.className = "log-row";
+        if (type) row.dataset.type = type;
+        row.innerHTML = `
+          <div class="log-bar"></div>
+          <div>
+            <strong>${escapeHtml(log.title)}</strong>
+            <span>${escapeHtml(log.summary)}</span>
+          </div>
+        `;
+        const emptyRow = listElement.querySelector(".log-row");
+        if (emptyRow && emptyRow.textContent.includes("暂无实际记录")) listElement.innerHTML = "";
+        listElement.prepend(row);
+      }
+
+      async function loadActivity() {
+        try {
+          const response = await fetch("/api/activity/today");
+          if (!response.ok) throw new Error("activity request failed");
+          const data = await response.json();
+          renderActivityPanel(data.personal || [], personalActivityList);
+          renderActivityPanel(data.external || [], externalActivityList, "external");
+        } catch (error) {
+          renderActivityPanel([], personalActivityList);
+          renderActivityPanel([], externalActivityList, "external");
+        }
+      }
+
+      function renderKeySources(sources) {
+        const uniqueSources = [];
+        const seenTitles = new Set();
+        (sources || []).forEach((source) => {
+          if (!source.title || seenTitles.has(source.title)) return;
+          seenTitles.add(source.title);
+          uniqueSources.push(source);
+        });
+        keySourcesList.innerHTML = uniqueSources.length
+          ? uniqueSources
+              .slice(-6)
+              .reverse()
+              .map(
+                (source) => `
+                  <div class="source-row">
+                    <strong>${escapeHtml(source.title)}</strong>
+                    <span>${escapeHtml(sourceTypeLabel(source.source_type))}</span>
+                  </div>
+                `,
+              )
+              .join("")
+          : `
+            <div class="source-row">
+              <strong>暂无实际来源</strong>
+              <span>外接 Agent 返回证据后会在这里显示来源。</span>
+            </div>
+          `;
+      }
+
+      async function loadKeySources() {
+        try {
+          const response = await fetch("/api/blackboard");
+          if (!response.ok) throw new Error("blackboard request failed");
+          const data = await response.json();
+          renderKeySources((data.items || []).flatMap((item) => item.sources || []));
+        } catch (error) {
+          renderKeySources([]);
+        }
+      }
+
+      function appendReviewItems(inboxItems, memoryItems) {
+        if (!reviewItems) return;
+
+        const items = [
+          ...(inboxItems || []).map((item) => ({
+            title: item.title,
+            summary: item.summary,
+            badge: "收件箱",
+          })),
+          ...(memoryItems || []).map((item) => ({
+            title: item.title,
+            summary: item.summary,
+            badge: "记忆库",
+          })),
+        ];
+        if (items.length === 0) return;
+
+        reviewItems.innerHTML = "";
+        items.forEach((item) => {
+          const row = document.createElement("div");
+          row.className = "inbox-row";
+          row.innerHTML = `
+            <strong>${escapeHtml(item.title)} <span class="badge amber">${escapeHtml(item.badge)}</span></strong>
+            <span>${escapeHtml(item.summary)}</span>
+          `;
+          reviewItems.appendChild(row);
+        });
+      }
+
+      function roleLabel(value) {
+        const labels = {
+          user: "用户",
+          team_lead: "组长",
+          admin: "管理员",
+          product_designer: "用户",
+        };
+        return labels[value] || value;
+      }
+
+      function showView(name) {
+        Object.entries(views).forEach(([viewName, element]) => {
+          element.classList.toggle("view-hidden", viewName !== name);
+        });
+        document.querySelectorAll("[data-view]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.view === name);
+        });
+        // 切换视图时重置主区域滚动位置
+        const mainEl = getMainScrollEl();
+        if (mainEl) mainEl.scrollTop = 0;
+        if (name === "inbox") loadInbox();
+        if (name === "memory") loadMemory();
+        if (name === "agent") loadAgents();
+        if (name === "tasks") loadTasks();
+        if (name === "bbs") loadBbs();
+        if (name === "audit") loadAudit();
+        if (name === "users") loadUsers();
+      }
+
+      function showBbsPanel(name) {
+        activeBbsPanel = name === "tasks" ? "tasks" : "posts";
+        if (bbsPostsPanel) bbsPostsPanel.classList.toggle("bbs-panel-hidden", activeBbsPanel !== "posts");
+        if (bbsTasksPanel) bbsTasksPanel.classList.toggle("bbs-panel-hidden", activeBbsPanel !== "tasks");
+        document.querySelectorAll("[data-bbs-panel-tab]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.bbsPanelTab === activeBbsPanel);
+        });
+      }
+
+      function showTaskView(name) {
+        activeTaskView = name === "claimed" ? "claimed" : "initiated";
+        document.querySelectorAll("[data-task-view]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.taskView === activeTaskView);
+        });
+        loadTasks();
+      }
+
+      function renderInbox(items) {
+        inboxList.innerHTML = "";
+        if (!items.length) {
+          inboxList.innerHTML = `
+            <div class="review-item">
+              <div class="review-item-head">
+                <strong>暂无待处理报告</strong>
+                <span class="badge green">clear</span>
+              </div>
+              <p>个人 Agent 在 BBS 中发现与你相关的帖子、风险或行动项后，会整理成报告放到这里。</p>
+            </div>
+          `;
+          return;
+        }
+        items.forEach((item) => {
+          const snoozeText = item.snooze_until ? `稍后至 ${formatTime(item.snooze_until)}` : "";
+          const row = document.createElement("div");
+          row.className = "review-item";
+          row.innerHTML = `
+            <div class="review-item-head">
+              <strong>${escapeHtml(item.title)}</strong>
+              <span class="badge amber">${escapeHtml(item.status)}</span>
+            </div>
+            <p>${escapeHtml(item.summary)}</p>
+            ${
+              snoozeText
+                ? `<div class="bbs-post-meta"><span class="source-pill">${escapeHtml(snoozeText)}</span></div>`
+                : ""
+            }
+            <div class="review-actions">
+              <button class="small-action primary" data-inbox-resolve="${escapeHtml(item.id)}" type="button">完成</button>
+              <button class="small-action" data-inbox-snooze="${escapeHtml(item.id)}" type="button">稍后 1 小时</button>
+              ${
+                item.status === "snoozed"
+                  ? `<button class="small-action" data-inbox-open="${escapeHtml(item.id)}" type="button">重新打开</button>`
+                  : ""
+              }
+            </div>
+          `;
+          inboxList.appendChild(row);
+        });
+      }
+
+      function memoryTypeLabel(value) {
+        const labels = {
+          project_background: "项目背景",
+          data: "数据",
+          competitor: "竞品",
+          risk: "风险",
+          decision: "决策",
+          daily_summary: "每日摘要",
+          project_summary: "项目摘要",
+          project_archive: "项目归档",
+          note: "笔记",
+          manual: "手动",
+        };
+        return labels[value] || value || "未分类";
+      }
+
+      function memoryLayerLabel(value) {
+        const labels = {
+          short_term: "短期",
+          mid_term: "项目",
+          long_term: "归档",
+        };
+        return labels[value] || value || "团队";
+      }
+
+      function renderMemory(items, viewName = activeMemoryView) {
+        memoryList.innerHTML = "";
+        if (!items.length) {
+          const emptyText = {
+            short: "短期记忆会来自当天有效事件、Agent 调用结果和群聊总结，不包含普通闲聊。",
+            project: "项目记忆会从短期记忆中提炼项目背景、数据、竞品、风险和决策。",
+            archive: "项目归档会在项目结束后保存长期总结和召回索引。",
+            team: "团队候选记忆会等待组长或管理员审核后进入团队记忆。",
+          };
+          memoryList.innerHTML = `
+            <div class="review-item">
+              <div class="review-item-head">
+                <strong>暂无${escapeHtml(memoryViewTitle(viewName))}</strong>
+                <span class="badge green">clear</span>
+              </div>
+              <p>${escapeHtml(emptyText[viewName] || "暂无记忆。")}</p>
+            </div>
+          `;
+          return;
+        }
+        items.forEach((item) => {
+          const sources = item.sources || [];
+          const sourceMarkup = sources.length
+            ? sources
+                .map(
+                  (source) =>
+                    `<span class="source-pill">${escapeHtml(source.title)} · ${escapeHtml(sourceTypeLabel(source.source_type))}</span>`,
+                )
+                .join("")
+            : `<span class="source-pill">暂无来源</span>`;
+          const row = document.createElement("div");
+          row.className = "review-item";
+          const isTeamMemory = viewName === "team";
+          const dateText = item.memory_date || (item.created_at ? item.created_at.slice(0, 10) : "");
+          row.innerHTML = `
+            <div class="review-item-head">
+              <strong>${escapeHtml(item.title)}</strong>
+              <span class="badge blue">${escapeHtml(isTeamMemory ? `${item.status} · ${scopeLabel(item.scope)}` : memoryLayerLabel(item.layer))}</span>
+            </div>
+            <p>${escapeHtml(item.summary)}</p>
+            <div class="memory-meta">
+              ${dateText ? `<span class="source-pill">日期：${escapeHtml(dateText)}</span>` : ""}
+              <span class="source-pill">类型：${escapeHtml(memoryTypeLabel(item.memory_type))}</span>
+              ${item.project_id ? `<span class="source-pill">项目：${escapeHtml(item.project_id)}</span>` : ""}
+              ${item.source_kind ? `<span class="source-pill">来源：${escapeHtml(item.source_kind)}</span>` : ""}
+            </div>
+            <div class="source-list">${sourceMarkup}</div>
+            ${
+              isTeamMemory
+                ? `<div class="review-actions">
+                    <button class="small-action primary" data-memory-accept="${escapeHtml(item.id)}" type="button">接受为团队记忆</button>
+                    <button class="small-action" data-memory-dispute="${escapeHtml(item.id)}" type="button">标记争议</button>
+                  </div>`
+                : ""
+            }
+          `;
+        memoryList.appendChild(row);
+        });
+      }
+
+      function updateMemoryCounts(counts = {}) {
+        document.querySelectorAll("[data-memory-count]").forEach((node) => {
+          const key = node.dataset.memoryCount;
+          node.textContent = String(counts[key] ?? 0);
+        });
+        if (memoryNavCount) memoryNavCount.textContent = counts.team ?? 0;
+        if (memoryMetric) memoryMetric.textContent = counts.team ?? 0;
+      }
+
+      function memoryViewTitle(viewName) {
+        const labels = {
+          short: "我的短期",
+          project: "项目记忆",
+          archive: "项目归档",
+          team: "团队候选",
+        };
+        return labels[viewName] || "记忆";
+      }
+
+      function renderSearchResults(items, query) {
+        searchResultsPanel.classList.toggle("view-hidden", !query);
+        searchResults.innerHTML = "";
+        if (!query) return;
+        if (!items.length) {
+          searchResults.innerHTML = `
+            <div class="search-row">
+              <div class="search-row-head">
+                <strong>没有找到相关结果</strong>
+                <span class="badge">0</span>
+              </div>
+              <p>换一个项目名、关键词或经验描述再试一次。</p>
+            </div>
+          `;
+          return;
+        }
+        items.forEach((item) => {
+          const sources = item.sources || [];
+          const sourceMarkup = sources.length
+            ? sources
+                .map(
+                  (source) =>
+                    `<span class="source-pill">${escapeHtml(source.title)} · ${escapeHtml(sourceTypeLabel(source.source_type))}</span>`,
+                )
+                .join("")
+            : `<span class="source-pill">无外部来源</span>`;
+          const row = document.createElement("div");
+          row.className = "search-row";
+          row.innerHTML = `
+            <div class="search-row-head">
+              <strong>${escapeHtml(item.title)}</strong>
+              <span class="badge blue">${escapeHtml(resultTypeLabel(item.result_type))} · ${escapeHtml(scopeLabel(item.scope))}</span>
+            </div>
+            <p>${escapeHtml(item.summary)}</p>
+            <div class="source-list">${sourceMarkup}</div>
+          `;
+          searchResults.appendChild(row);
+        });
+      }
+
+      async function runSearch() {
+        const query = topSearch.value.trim();
+        if (!query) {
+          renderSearchResults([], "");
+          return;
+        }
+        try {
+          const params = new URLSearchParams({ q: query, visibility: "personal" });
+          if (currentWorkspaceId) params.set("workspace_id", currentWorkspaceId);
+          if (currentProjectId) params.set("project_id", currentProjectId);
+          const response = await fetch(`/api/search?${params.toString()}`);
+          if (!response.ok) throw new Error("search request failed");
+          const data = await response.json();
+          renderSearchResults(data.items || [], query);
+        } catch (error) {
+          renderSearchResults([], query);
+          showToast("搜索 API 暂不可用");
+        }
+      }
+
+      async function loadInbox() {
+        const response = await fetch("/api/inbox");
+        const data = await response.json();
+        renderInbox(data.items || []);
+      }
+
+      async function loadMemory() {
+        const dateValue = memoryDateFilter?.value || "";
+        const typeValue = memoryTypeFilter?.value || "";
+        const params = new URLSearchParams();
+        if (currentProjectId) params.set("project_id", currentProjectId);
+        if (typeValue) params.set("memory_type", typeValue);
+        if (activeMemoryView === "short" && dateValue) params.set("memory_date", dateValue);
+        const response = await fetch(`/api/memory/overview?${params.toString()}`);
+        const data = await response.json();
+        updateMemoryCounts(data.counts || {});
+        renderMemory((data.sections || {})[activeMemoryView] || [], activeMemoryView);
+      }
+
+      function setMemoryView(viewName) {
+        activeMemoryView = viewName || "short";
+        document.querySelectorAll("[data-memory-view]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.memoryView === activeMemoryView);
+        });
+        if (memoryDateFilter) memoryDateFilter.disabled = activeMemoryView !== "short";
+        if (memoryPromoteButton) {
+          const labels = {
+            short: "生成每日摘要",
+            project: "提炼项目记忆",
+            archive: "生成长期归档",
+            team: "团队候选无需晋升",
+          };
+          memoryPromoteButton.textContent = labels[activeMemoryView] || "生成当前层摘要";
+          memoryPromoteButton.disabled = activeMemoryView === "team";
+        }
+        loadMemory();
+      }
+
+      async function promoteCurrentMemoryLayer() {
+        const payload = currentProjectId ? { project_id: currentProjectId } : {};
+        let endpoint = "";
+        if (activeMemoryView === "short") {
+          endpoint = "/api/memory/user/daily-summary";
+          if (memoryDateFilter?.value) payload.date = memoryDateFilter.value;
+        } else if (activeMemoryView === "project") {
+          endpoint = "/api/memory/user/project-summary";
+        } else if (activeMemoryView === "archive") {
+          endpoint = "/api/memory/user/archive-project";
+        } else {
+          return;
+        }
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          showToast("没有可用于生成摘要的源记忆");
+          return;
+        }
+        showToast("已生成记忆摘要");
+        await loadMemory();
+        await loadBootstrap();
+      }
+
+      async function uploadSelectedFile(file) {
+        if (!file) return;
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch("/api/documents/upload", {
+          method: "POST",
+          body: formData,
+        });
+        if (!response.ok) {
+          showToast("上传失败，请确认文件类型和大小");
+          return;
+        }
+        const data = await response.json();
+        await loadBootstrap();
+        await loadKeySources();
+        showToast(data.job ? "文件已进入后台解析" : "文档已上传");
+      }
+
+      function renderAgentForm(agent) {
+        if (!agent) return;
+        creatingPersonalAgent = false;
+        currentPersonalAgentId = agent.id;
+        personalAgentDetail?.classList.remove("view-hidden");
+        agentName.value = agent.name || "";
+        agentStatus.value = agent.status || "online";
+        agentDescription.value = agent.description || "";
+        agentCapabilities.value = (agent.capabilities || []).join(", ");
+        agentModel.value = agent.model_id || "default";
+      }
+
+      function startCreatePersonalAgent() {
+        creatingPersonalAgent = true;
+        currentPersonalAgentId = null;
+        personalAgentDetail?.classList.remove("view-hidden");
+        agentName.value = "";
+        agentStatus.value = "online";
+        agentDescription.value = "";
+        agentCapabilities.value = "";
+        agentModel.value = availableModels[0]?.id || "default";
+        currentAgentToolIds = new Set();
+        renderAgentTools();
+      }
+
+      function showAgentView(name) {
+        activeAgentView = name === "public" ? "public" : "personal";
+        agentPersonalPanel?.classList.toggle("hidden", activeAgentView !== "personal");
+        agentPublicPanel?.classList.toggle("hidden", activeAgentView !== "public");
+        document.querySelectorAll("[data-agent-view]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.agentView === activeAgentView);
+        });
+      }
+
+      function renderAgentModels() {
+        agentModel.innerHTML = availableModels.length
+          ? availableModels
+              .map(
+                (model) =>
+                  `<option value="${escapeHtml(model.id)}">${escapeHtml(model.label)}${model.configured ? "" : " · fallback"}</option>`,
+              )
+              .join("")
+          : `<option value="default">本地兜底模式</option>`;
+      }
+
+      function renderAgentTools() {
+        if (!agentToolList) return;
+        agentToolList.innerHTML = availableTools.length
+          ? availableTools
+              .map(
+                (tool) => `
+                  <label class="tool-option">
+                    <input type="checkbox" value="${escapeHtml(tool.id)}" ${currentAgentToolIds.has(tool.id) ? "checked" : ""} />
+                    <span class="tool-copy">
+                      <strong>${escapeHtml(tool.name)} · ${escapeHtml(tool.provider || "system")} · ${escapeHtml(tool.risk_level)}</strong>
+                      <small>${escapeHtml(tool.description)}</small>
+                    </span>
+                  </label>
+                `,
+              )
+              .join("")
+          : `<div class="review-item"><strong>暂无可配置工具</strong><p>系统工具注册后会显示在这里。</p></div>`;
+      }
+
+      function renderPersonalAgents(items) {
+        if (!personalAgentList) return;
+        const agents = items || [];
+        const personalAgents = agents.filter((agent) => agent.agent_type === "personal" && agent.owner_user_id === currentUser?.id);
+        personalAgentList.innerHTML = personalAgents.length
+          ? personalAgents
+              .map(
+                (agent) => `
+                  <button class="review-item review-button" data-personal-agent-open="${escapeHtml(agent.id)}" type="button">
+                    <div class="review-item-head">
+                      <strong>${escapeHtml(agent.name)}</strong>
+                      <span class="badge blue">${escapeHtml(runtimeLabel(agent.runtime_status))}</span>
+                    </div>
+                    <p>${escapeHtml(agent.description)}</p>
+                  </button>
+                `,
+              )
+              .join("")
+          : `<div class="review-item"><strong>暂无个人 Agent</strong><p>点击新建 Agent 后填写名称、描述和能力。</p></div>`;
+      }
+
+      function renderPublicAgentDetail(agent) {
+        if (!agent || !publicAgentDetail) return;
+        const canEdit = currentUser?.role === "team_lead" || currentUser?.role === "admin";
+        publicAgentDetail.classList.remove("view-hidden");
+        publicAgentName.textContent = agent.name || "公共 Agent";
+        publicAgentBadge.textContent = canEdit ? "可编辑" : "只读";
+        publicAgentDescription.textContent = agent.description || "";
+        publicAgentType.textContent = `类型：${agent.agent_type || "public"}`;
+        publicAgentStatus.textContent = `状态：${agent.status || "-"}`;
+        publicAgentCapabilities.innerHTML = (agent.capabilities || [])
+          .map((capability) => `<span class="source-pill">${escapeHtml(capability)}</span>`)
+          .join("");
+        publicAgentActions.innerHTML = canEdit
+          ? `<button class="small-action primary" data-public-agent-edit="${escapeHtml(agent.id)}" type="button">编辑公共 Agent</button>`
+          : `<span class="source-pill">普通用户无法修改公共 Agent</span>`;
+      }
+
+      function renderAgents(items) {
+        agentList.innerHTML = "";
+        const agents = items || [];
+        knownAgents = agents;
+        renderPersonalAgents(agents);
+        const publicAgents = agents.filter((agent) => agent.agent_type !== "personal");
+        if (!publicAgents.length) {
+          agentList.innerHTML = `<div class="review-item"><strong>暂无公共 Agent</strong><p>公共 Agent 会在这里显示。</p></div>`;
+          return;
+        }
+        publicAgents.forEach((agent) => {
+          const row = document.createElement("div");
+          row.className = "review-item";
+          const toolControls =
+            (currentUser?.role === "admin" || currentUser?.role === "team_lead") && agent.agent_type !== "personal"
+              ? renderPublicAgentToolControls(agent)
+              : "";
+          row.innerHTML = `
+            <div class="review-item-head">
+              <strong>${escapeHtml(agent.name)}</strong>
+              <span class="badge blue">${escapeHtml(agent.agent_type)} · ${escapeHtml(runtimeLabel(agent.runtime_status))}</span>
+            </div>
+            <p>${escapeHtml(agent.description)}</p>
+            <div class="bbs-post-meta">
+              <span class="source-pill">配置：${escapeHtml(agent.status)}</span>
+              <span class="source-pill">当前任务：${escapeHtml(agent.current_task_title || "无")}</span>
+              <span class="source-pill">最近活动：${escapeHtml(formatTime(agent.last_active_at) || "暂无")}</span>
+            </div>
+            <div class="source-list">
+              ${(agent.capabilities || [])
+		                .map((capability) => `<span class="source-pill">${escapeHtml(capability)}</span>`)
+		                .join("")}
+            </div>
+            <div class="review-actions">
+              <button class="small-action primary" data-public-agent-open="${escapeHtml(agent.id)}" type="button">查看详情</button>
+            </div>
+            ${toolControls}
+          `;
+          agentList.appendChild(row);
+        });
+        if (publicAgents.length && publicAgentDetail?.classList.contains("view-hidden")) {
+          renderPublicAgentDetail(publicAgents[0]);
+        }
+      }
+
+      function renderPublicAgentToolControls(agent) {
+        const selected = publicAgentToolIdsByAgent.get(agent.id) || new Set();
+        if (!availableTools.length) {
+          return `<div class="review-item"><strong>暂无可授权工具</strong><p>请先同步系统工具或 Oxygen 工具。</p></div>`;
+        }
+        return `
+          <div class="field">
+            <label>公共 Agent 工具授权</label>
+            <div class="tool-list">
+              ${availableTools
+                .map(
+                  (tool) => `
+                    <label class="tool-option">
+                      <input type="checkbox" data-public-agent-tool="${escapeHtml(agent.id)}" value="${escapeHtml(tool.id)}" ${
+                        selected.has(tool.id) ? "checked" : ""
+                      } />
+                      <span class="tool-copy">
+                        <strong>${escapeHtml(tool.name)} · ${escapeHtml(tool.provider || "system")} · ${escapeHtml(tool.risk_level)}</strong>
+                        <small>${escapeHtml(tool.description)}</small>
+                      </span>
+                    </label>
+                  `,
+                )
+                .join("")}
+            </div>
+            <div class="review-actions">
+              <button class="small-action primary" data-public-agent-save-tools="${escapeHtml(agent.id)}" type="button">保存工具授权</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderO2Status(status) {
+        if (!o2StatusCard) return;
+        const installed = Boolean(status?.installed);
+        const login = status?.login || {};
+        const loggedIn = Boolean(login.logged_in);
+        const setupChecks = status?.setup_checks || [];
+        const checkRows = setupChecks.length
+          ? setupChecks
+              .map((check) => {
+                const checkStatus = check.status || "unknown";
+                const checkBadge = checkStatus === "ready" ? "green" : checkStatus === "unavailable" ? "red" : "amber";
+                return `
+                  <div class="review-item compact">
+                    <div class="review-item-head">
+                      <strong>${escapeHtml(check.label || check.id || "检查项")}</strong>
+                      <span class="badge ${checkBadge}">${escapeHtml(checkStatus)}</span>
+                    </div>
+                    <p>${escapeHtml(check.message || "")}</p>
+                  </div>
+                `;
+              })
+              .join("")
+          : `<div class="review-item compact"><strong>暂无前置条件检查</strong><p>后端未返回 Oxygen setup checks。</p></div>`;
+        const badgeClass = installed && loggedIn ? "green" : installed ? "amber" : "red";
+        const badgeText = installed && loggedIn ? "ready" : installed ? "need login" : "not installed";
+        o2StatusCard.innerHTML = `
+          <div class="review-item">
+            <div class="review-item-head">
+              <strong>Oxygen-CLI ${escapeHtml(status?.version || status?.binary || "o2")}</strong>
+              <span class="badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <p>内部资料、JoySpace、商品数据和业务 CLI 可以通过 Oxygen 接入；外部网页检索仍由独立 Web provider 承担。</p>
+            <div class="bbs-post-meta">
+              <span class="source-pill">安装：${escapeHtml(installed ? "已安装" : "未安装")}</span>
+              <span class="source-pill">登录：${escapeHtml(loggedIn ? "已登录" : "未确认")}</span>
+              <span class="source-pill">入口：${escapeHtml(status?.binary || "o2")}</span>
+            </div>
+          </div>
+          ${checkRows}
+        `;
+        if (syncO2Button) syncO2Button.style.display = currentUser?.role === "admin" ? "inline-flex" : "none";
+      }
+
+      async function loadO2Status() {
+        if (!o2StatusCard) return;
+        try {
+          const response = await fetch("/api/integrations/o2/status");
+          renderO2Status(await response.json());
+        } catch (error) {
+          o2StatusCard.innerHTML = `<div class="review-item"><strong>Oxygen 状态检查失败</strong><p>请确认后端 API 是否可用。</p></div>`;
+        }
+      }
+
+      async function syncO2Tools() {
+        const response = await fetch("/api/integrations/o2/sync", { method: "POST" });
+        if (!response.ok) {
+          showToast("Oxygen 工具同步失败");
+          return;
+        }
+        const data = await response.json();
+        await loadAgents();
+        showToast(`已同步 ${data.count || 0} 个 Oxygen 工具`);
+      }
+
+      async function loadAgents() {
+        const [mineResponse, agentsResponse, toolsResponse, modelsResponse] = await Promise.all([
+          fetch("/api/agents/me"),
+          fetch("/api/agents"),
+          fetch("/api/tools"),
+          fetch("/api/models"),
+        ]);
+        const mine = await mineResponse.json();
+        const agentToolsResponse = await fetch(`/api/agents/${mine.id}/tools`);
+        const toolsData = await toolsResponse.json();
+        const agentToolsData = await agentToolsResponse.json();
+        const modelsData = await modelsResponse.json();
+        availableModels = modelsData.items || [];
+        renderAgentModels();
+        renderAgentForm(mine);
+        availableTools = toolsData.items || [];
+        currentAgentToolIds = new Set((agentToolsData.items || []).map((tool) => tool.id));
+        renderAgentTools();
+        const data = await agentsResponse.json();
+        const publicAgents = (data.items || []).filter((agent) => agent.agent_type !== "personal");
+        publicAgentToolIdsByAgent = new Map();
+        if (currentUser?.role === "admin") {
+          await Promise.all(
+            publicAgents.map(async (agent) => {
+              const response = await fetch(`/api/agents/${agent.id}/tools`);
+              const grantData = await response.json();
+              publicAgentToolIdsByAgent.set(agent.id, new Set((grantData.items || []).map((tool) => tool.id)));
+            }),
+          );
+        }
+        renderAgents(data.items || []);
+        await loadO2Status();
+      }
+
+      async function savePublicAgentTools(agentId) {
+        const selectedToolIds = Array.from(
+          document.querySelectorAll(`input[data-public-agent-tool="${CSS.escape(agentId)}"]:checked`),
+        ).map((input) => input.value);
+        const response = await fetch(`/api/agents/${agentId}/tools`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tool_ids: selectedToolIds }),
+        });
+        if (!response.ok) {
+          showToast("公共 Agent 工具授权保存失败");
+          return;
+        }
+        await loadAgents();
+        showToast("公共 Agent 工具授权已保存");
+      }
+
+      async function saveAgentConfig() {
+        if (!currentPersonalAgentId && !creatingPersonalAgent) {
+          showToast("个人 Agent 尚未加载");
+          return;
+        }
+        const capabilities = agentCapabilities.value
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const endpoint = creatingPersonalAgent ? "/api/agents" : `/api/agents/${currentPersonalAgentId}`;
+        const response = await fetch(endpoint, {
+          method: creatingPersonalAgent ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: agentName.value.trim(),
+            status: creatingPersonalAgent ? undefined : agentStatus.value,
+            description: agentDescription.value.trim(),
+            capabilities,
+          }),
+        });
+        if (!response.ok) {
+          showToast("Agent 配置保存失败");
+          return;
+        }
+        const savedAgent = await response.json();
+        currentPersonalAgentId = savedAgent.id;
+        creatingPersonalAgent = false;
+        const selectedToolIds = Array.from(agentToolList.querySelectorAll("input[type='checkbox']:checked")).map(
+          (input) => input.value,
+        );
+        const toolsResponse = await fetch(`/api/agents/${currentPersonalAgentId}/tools`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tool_ids: selectedToolIds }),
+        });
+        if (!toolsResponse.ok) {
+          showToast("工具授权保存失败");
+          return;
+        }
+        const modelResponse = await fetch(`/api/agents/${currentPersonalAgentId}/model`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model_id: agentModel.value }),
+        });
+        if (!modelResponse.ok) {
+          showToast("模型配置保存失败");
+          return;
+        }
+        renderAgentForm(await modelResponse.json());
+        await loadBootstrap();
+        await loadAgents();
+        showToast("Agent 配置已保存");
+      }
+
+      function agentLabel(value) {
+        const personalName = currentUser?.name ? `${currentUser.name}的个人 Agent` : "当前用户的个人 Agent";
+        const labels = {
+          personal_agent: personalName,
+          mock_research_agent: "research_agent",
+          mock_risk_agent: "risk_agent",
+          research_agent: "research_agent",
+          risk_agent: "risk_agent",
+          data_agent: "data_agent",
+        };
+        return labels[value] || value;
+      }
+
+      function agentRuntimeId(agent) {
+        const runtimeIds = {
+          agent_research: "research_agent",
+          agent_data: "data_agent",
+          agent_risk: "risk_agent",
+        };
+        return runtimeIds[agent.id] || agent.id;
+      }
+
+      function handoffAgentOptions() {
+        const agents = knownAgents.length
+          ? knownAgents
+          : [
+              { id: "agent_research", name: "research_agent", agent_type: "service" },
+              { id: "agent_data", name: "data_agent", agent_type: "service" },
+              { id: "agent_risk", name: "risk_agent", agent_type: "service" },
+            ];
+        return agents
+          .slice()
+          .sort((left, right) => {
+            const leftName = left.name || left.id || "";
+            const rightName = right.name || right.id || "";
+            if (left.agent_type === right.agent_type) return leftName.localeCompare(rightName);
+            return left.agent_type === "personal" ? 1 : -1;
+          })
+          .map((agent) => {
+            const value = agentRuntimeId(agent);
+            const label = agent.name || value;
+            return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`;
+          })
+          .join("");
+      }
+
+      function renderHandoffForm(post) {
+        return `
+          <div class="handoff-form" data-handoff-form="${escapeHtml(post.id)}">
+            <div class="handoff-grid">
+              <label>
+                交接目标
+                <input id="handoff-goal-${escapeHtml(post.id)}" value="${escapeHtml(post.title)}" />
+              </label>
+              <label>
+                下一位 Agent
+                <select id="handoff-owner-${escapeHtml(post.id)}">${handoffAgentOptions()}</select>
+              </label>
+            </div>
+            <label>
+              当前结果
+              <textarea id="handoff-result-${escapeHtml(post.id)}" placeholder="已经完成了什么，产出了什么结论"></textarea>
+            </label>
+            <label>
+              完成条件
+              <input id="handoff-done-${escapeHtml(post.id)}" value="${escapeHtml(post.done_when || "")}" placeholder="接棒 Agent 做到什么就算完成" />
+            </label>
+            <div class="handoff-grid">
+              <label>
+                阻塞项
+                <input id="handoff-blockers-${escapeHtml(post.id)}" placeholder="可选，用逗号分隔" />
+              </label>
+              <label>
+                需要输入方
+                <input id="handoff-inputs-${escapeHtml(post.id)}" placeholder="可选，用逗号分隔" />
+              </label>
+            </div>
+            <div class="review-actions">
+              <button class="small-action primary" data-bbs-handoff-submit="${escapeHtml(post.id)}" type="button">创建交接</button>
+              <button class="small-action" data-bbs-handoff-cancel="true" type="button">取消</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function stageLabel(value) {
+        const labels = {
+          discussion: "讨论",
+          execution: "执行中",
+          review: "评审",
+          blocked: "阻塞",
+          completed: "已完成",
+        };
+        return labels[value] || value || "讨论";
+      }
+
+      function runtimeLabel(value) {
+        const labels = {
+          idle: "空闲",
+          queued: "排队",
+          running: "执行中",
+          review: "评审",
+          blocked: "阻塞",
+          waiting_approval: "等待审批",
+        };
+        return labels[value] || value || "空闲";
+      }
+
+      function taskStatusLabel(value) {
+        const labels = {
+          created: "已创建",
+          running: "进行中",
+          waiting_external_agent: "等待 Agent",
+          synthesizing: "汇总中",
+          completed: "已完成",
+          failed: "失败",
+        };
+        return labels[value] || value || "未知";
+      }
+
+      function agentAvatarText(value) {
+        const label = agentLabel(value);
+        if (!label) return "A";
+        if (label.includes("research")) return "R";
+        if (label.includes("data")) return "D";
+        if (label.includes("risk")) return "K";
+        if (label.includes("个人")) return "我";
+        return label.slice(0, 1).toUpperCase();
+      }
+
+      function agentAvatarMarkup(value) {
+        const serviceClass = value && value !== "personal_agent" ? " service" : "";
+        return `<div class="agent-avatar${serviceClass}" title="${escapeHtml(agentLabel(value))}">${escapeHtml(agentAvatarText(value))}</div>`;
+      }
+
+      function readerReceiptMarkup(readers = []) {
+        const labels = uniqueLabels(readers.map(agentLabel));
+        if (!labels.length) {
+          return `<div class="reader-receipt"><strong>已读</strong><span>暂无 Agent 阅读</span></div>`;
+        }
+        const visible = labels.slice(0, 4);
+        const hiddenCount = Math.max(0, labels.length - visible.length);
+        const names = visible.map((name) => `<span class="reader-name">${escapeHtml(name)}</span>`).join("、");
+        return `
+          <div class="reader-receipt">
+            <strong>已读</strong>
+            <span>${names}${hiddenCount ? `、+${hiddenCount} 人` : ""}</span>
+          </div>
+        `;
+      }
+
+      function taskUpstream(card) {
+        if (card.upstream_agents?.length) return card.upstream_agents.map(agentLabel).join(" / ");
+        const post = card.latest_post;
+        if (post?.actor) return agentLabel(post.actor);
+        if (post?.related_post_id) return post.related_post_id;
+        return "用户输入";
+      }
+
+      function taskDownstream(card) {
+        if (card.downstream_agents?.length) return card.downstream_agents.map(agentLabel).join(" / ");
+        const post = card.latest_post;
+        if (post?.handoff?.next_owner_agent_id) return agentLabel(post.handoff.next_owner_agent_id);
+        if (card.active_lock?.owner_label) return agentLabel(card.active_lock.owner_label);
+        if (card.owner) return agentLabel(card.owner);
+        if (post?.current_owner_agent_id) return agentLabel(post.current_owner_agent_id);
+        return "等待认领";
+      }
+
+      function isPersonalTaskCard(card) {
+        if (card.claimed_by_personal_agent) return true;
+        const post = card.latest_post || {};
+        const personalIds = new Set(["personal_agent", currentUser?.personal_agent_id, currentPersonalAgentId].filter(Boolean));
+        const labels = [card.owner, post.actor, post.current_owner_agent_id, post.current_owner_label, card.active_lock?.owner_agent_id, card.active_lock?.owner_label]
+          .filter(Boolean)
+          .map((value) => String(value));
+        return labels.some((value) => personalIds.has(value) || value.includes("个人 Agent") || value.includes(currentUser?.name || "__never__"));
+      }
+
+      function truncateText(value, maxLength = 220) {
+        if (!value || value.length <= maxLength) return value || "";
+        return `${value.slice(0, maxLength)}...`;
+      }
+
+      function renderBbs(items, meta = {}) {
+        const posts = items || [];
+        const total = meta.total ?? posts.length;
+        if (bbsCount) bbsCount.textContent = total;
+        if (bbsPageInfo) bbsPageInfo.textContent = `第 ${meta.page ?? bbsPage} 页 / 共 ${Math.max(1, Math.ceil(total / bbsPageSize))} 页`;
+        if (bbsPrevButton) bbsPrevButton.disabled = (meta.page ?? bbsPage) <= 1;
+        if (bbsNextButton) bbsNextButton.disabled = !meta.has_next;
+        bbsList.innerHTML = "";
+        if (selectedBbsTaskId) {
+          const filterRow = document.createElement("div");
+          filterRow.className = "review-item bbs-post";
+          filterRow.innerHTML = `
+            <div class="review-item-head">
+              <strong>已筛选：此任务下的 BBS 帖子</strong>
+              <span class="badge blue">${escapeHtml(selectedBbsTaskId)}</span>
+            </div>
+            <p>这里聚合个人 Agent、research_agent、data_agent、risk_agent 围绕同一任务发布的帖子。</p>
+            <div class="review-actions">
+              <button class="small-action" data-bbs-clear-task-filter="true" type="button">查看全部帖子</button>
+            </div>
+          `;
+          bbsList.appendChild(filterRow);
+        }
+        if (!posts.length) {
+          bbsList.innerHTML += `<div class="review-item"><strong>暂无帖子</strong><p>发送需要查资料或沉淀记忆的消息后，Agent 发帖会显示在这里。</p></div>`;
+          return;
+        }
+        posts
+          .slice()
+          .forEach((post) => {
+            const readers = post.read_by_agents || [];
+            const lock = post.execution_lock;
+            const activeLock = lock && !lock.released_at;
+            const owner = post.current_owner_label || post.current_owner_agent_id || (activeLock ? lock.owner_label : "");
+            const handoff = post.handoff;
+            const showingHandoffForm = activeHandoffPostId === post.id;
+            const row = document.createElement("div");
+            row.className = "review-item bbs-post";
+            row.innerHTML = `
+              <div class="bbs-thread">
+                ${agentAvatarMarkup(post.actor)}
+                <div class="bbs-thread-main">
+                  <div class="bbs-thread-head">
+                    <div>
+                      <div class="bbs-thread-author">发帖 Agent：${escapeHtml(agentLabel(post.actor))}</div>
+                      <strong class="bbs-thread-title">${escapeHtml(post.title)}</strong>
+                    </div>
+                    <span class="badge blue">${escapeHtml(post.post_type)} · ${escapeHtml(stageLabel(post.collaboration_stage))}</span>
+                  </div>
+                  <p class="bbs-thread-summary" title="${escapeHtml(post.content)}">${escapeHtml(truncateText(post.content, 180))}</p>
+                  ${readerReceiptMarkup(readers)}
+                  <div class="bbs-post-meta">
+                    <span class="source-pill">Owner：${escapeHtml(owner ? agentLabel(owner) : "未领取")}</span>
+                    <span class="source-pill">锁：${escapeHtml(activeLock ? "已锁定" : "空闲")}</span>
+                    <span class="source-pill">${escapeHtml(scopeLabel(post.scope))}</span>
+                    <span class="source-pill">${escapeHtml(post.permission)}</span>
+                  </div>
+                  ${
+                    post.done_when || handoff
+                      ? `<div class="bbs-task-card">
+                          <strong>${escapeHtml(handoff ? "结构化交接" : "完成条件")}</strong>
+                          <p>${escapeHtml(
+                            handoff
+                              ? `目标：${handoff.goal}；当前结果：${handoff.current_result}；完成条件：${handoff.done_when}`
+                              : post.done_when,
+                          )}</p>
+                        </div>`
+                      : ""
+                  }
+                  ${showingHandoffForm ? renderHandoffForm(post) : ""}
+                  <div class="review-actions">
+                    <button class="small-action" data-bbs-read="${escapeHtml(post.id)}" type="button">标记已读</button>
+                    <button class="small-action" data-bbs-handoff="${escapeHtml(post.id)}" type="button">交接</button>
+                    ${
+                      activeLock
+                        ? `<button class="small-action" data-bbs-unlock="${escapeHtml(post.id)}" type="button">释放执行</button>`
+                        : `<button class="small-action" data-bbs-lock="${escapeHtml(post.id)}" type="button">领取执行</button>`
+                    }
+                  </div>
+                </div>
+              </div>
+            `;
+            bbsList.appendChild(row);
+          });
+      }
+
+      function renderTaskCards(items) {
+        const cards = (items || []).slice(0, 5);
+        if (!taskCardList) return;
+        taskCardList.innerHTML = "";
+        if (!cards.length) {
+          taskCardList.innerHTML = `<div class="review-item"><strong>暂无任务聚合</strong><p>对话产生任务后，这里按 task 汇总帖子数、Owner、状态和完成条件。</p></div>`;
+          return;
+        }
+        cards.forEach((card) => {
+          const task = card.task || {};
+          const lock = card.active_lock;
+          const expanded = expandedTaskCardIds.has(task.id);
+          const selected = selectedBbsTaskId === task.id;
+          const row = document.createElement("div");
+          row.className = `review-item bbs-post task-summary-card${selected ? " is-selected" : ""}`;
+          row.innerHTML = `
+            <div class="review-item-head">
+              <strong>${escapeHtml(task.title || "未命名任务")}</strong>
+              <span class="badge blue">任务卡 · ${escapeHtml(stageLabel(card.stage))}</span>
+            </div>
+            <div class="bbs-post-meta">
+              <span class="source-pill">Owner：${escapeHtml(card.owner ? agentLabel(card.owner) : "未领取")}</span>
+              <span class="source-pill">帖子：${escapeHtml(String(card.post_count || 0))}</span>
+              <span class="source-pill">锁：${escapeHtml(lock ? "已锁定" : "空闲")}</span>
+              <span class="source-pill">状态：${escapeHtml(taskStatusLabel(task.status))}</span>
+            </div>
+            ${
+              expanded
+                ? `<div class="bbs-task-card">
+                    <strong>完成条件</strong>
+                    <p>${escapeHtml(card.done_when || "等待 Agent 或用户补充完成条件。")}</p>
+                    <p>最近帖子：${escapeHtml(card.latest_post?.title || "暂无")}</p>
+                  </div>`
+                : ""
+            }
+            <div class="review-actions">
+              <button class="small-action" data-task-card-toggle="${escapeHtml(task.id)}" type="button">${expanded ? "收起" : "展开"}</button>
+              <button class="small-action primary" data-task-card-filter="${escapeHtml(task.id)}" type="button">筛选此任务帖子</button>
+            </div>
+          `;
+          taskCardList.appendChild(row);
+        });
+      }
+
+      function taskCardMarkup(card, badgeText) {
+        const task = card.task || {};
+        const lock = card.active_lock;
+        const upstream = taskUpstream(card);
+        const downstream = taskDownstream(card);
+        return `
+          <div class="review-item task-board-card">
+            <div class="review-item-head">
+              <strong>${escapeHtml(task.title || "未命名任务")}</strong>
+              <span class="badge blue">${escapeHtml(badgeText || stageLabel(card.stage))}</span>
+            </div>
+            <p>${escapeHtml(card.latest_post?.title || card.done_when || "等待 BBS 帖子补充上下文。")}</p>
+            <div class="bbs-post-meta">
+              <span class="source-pill">状态：${escapeHtml(taskStatusLabel(task.status))}</span>
+              <span class="source-pill">阶段：${escapeHtml(stageLabel(card.stage))}</span>
+              <span class="source-pill">帖子：${escapeHtml(String(card.post_count || 0))}</span>
+              <span class="source-pill">执行锁：${escapeHtml(lock ? "已锁定" : "空闲")}</span>
+            </div>
+            <div class="task-flow">
+              <div class="task-flow-node">
+                <span>上游</span>
+                <strong>${escapeHtml(upstream)}</strong>
+              </div>
+              <div class="task-flow-arrow">→</div>
+              <div class="task-flow-node">
+                <span>下游</span>
+                <strong>${escapeHtml(downstream)}</strong>
+              </div>
+            </div>
+            <div class="review-actions">
+              <button class="small-action primary" data-task-card-filter="${escapeHtml(task.id)}" data-open-bbs-for-task="true" type="button">查看 BBS 帖子</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderTasks(items) {
+        const cards = items || [];
+        if (taskNavCount) taskNavCount.textContent = cards.length;
+        if (!taskList) return;
+        if (!cards.length) {
+          taskList.innerHTML = `<div class="review-item"><strong>暂无任务</strong><p>从 chat 发起任务，或让个人 Agent 在 BBS 中领取任务后，会出现在这里。</p></div>`;
+          return;
+        }
+        const mine = cards.filter((card) => card.initiated_by_current_user);
+        const claimed = cards.filter(isPersonalTaskCard);
+        const section =
+          activeTaskView === "claimed"
+            ? { items: claimed, badge: "已认领", empty: "个人 Agent 还没有从 BBS 认领任务。" }
+            : { items: mine, badge: "我发起", empty: "你还没有发起任务。" };
+        const uniqueItems = section.items.filter((card, index, list) => {
+          const id = card.task?.id;
+          return id ? list.findIndex((item) => item.task?.id === id) === index : true;
+        });
+        taskList.innerHTML = uniqueItems.length
+          ? uniqueItems.map((card) => taskCardMarkup(card, section.badge)).join("")
+          : `<div class="review-item"><strong>${escapeHtml(section.empty)}</strong><p>任务会从 chat 创建，或由个人 Agent 在 BBS 中领取。</p></div>`;
+      }
+
+      async function loadTasks() {
+        const response = await fetch("/api/blackboard/task-cards");
+        if (!response.ok) {
+          if (taskList) taskList.innerHTML = `<div class="review-item"><strong>任务暂不可用</strong><p>请稍后重试。</p></div>`;
+          return;
+        }
+        const data = await response.json();
+        renderTasks(data.items || []);
+      }
+
+      async function loadBbs() {
+        const params = new URLSearchParams({ page: String(bbsPage), page_size: String(bbsPageSize) });
+        if (selectedBbsTaskId) params.set("task_id", selectedBbsTaskId);
+        const [response, cardsResponse] = await Promise.all([
+          fetch(`/api/blackboard?${params.toString()}`),
+          fetch("/api/blackboard/task-cards"),
+        ]);
+        const data = await response.json();
+        const cardsData = await cardsResponse.json();
+        renderTaskCards(cardsData.items || []);
+        renderTasks(cardsData.items || []);
+        renderBbs(data.items || [], data);
+      }
+
+      function renderAudit(items) {
+        const events = items || [];
+        auditList.innerHTML = "";
+        if (!events.length) {
+          auditList.innerHTML = `<div class="review-item"><strong>暂无审计事件</strong><p>聊天、BBS、收件箱等关键操作会显示在这里。</p></div>`;
+          return;
+        }
+        events.forEach((event) => {
+          const metadata = event.metadata ? JSON.stringify(event.metadata) : "{}";
+          const row = document.createElement("div");
+          row.className = "review-item bbs-post";
+          row.innerHTML = `
+            <div class="review-item-head">
+              <strong>${escapeHtml(actionLabel(event.action))}</strong>
+              <span class="badge blue">${escapeHtml(event.target_type)}</span>
+            </div>
+            <div class="bbs-post-meta">
+              <span class="source-pill">Actor：${escapeHtml(agentLabel(event.actor))}</span>
+              <span class="source-pill">Target：${escapeHtml(event.target_id)}</span>
+              <span class="source-pill">${escapeHtml(formatTime(event.created_at))}</span>
+            </div>
+            <p title="${escapeHtml(metadata)}">${escapeHtml(truncateText(metadata, 260))}</p>
+          `;
+          auditList.appendChild(row);
+        });
+      }
+
+      function actionLabel(value) {
+        const labels = {
+          create_task: "创建任务",
+          create_blackboard_request: "创建 BBS 请求",
+          return_chat_response: "返回对话响应",
+          update_inbox_item: "更新收件箱",
+          acquire_execution_lock: "领取执行锁",
+          release_execution_lock: "释放执行锁",
+          create_handoff: "创建交接",
+        };
+        return labels[value] || value;
+      }
+
+      async function loadAudit() {
+        const response = await fetch("/api/audit?limit=80");
+        const data = await response.json();
+        renderAudit(data.items || []);
+      }
+
+      function renderUsers(items) {
+        const users = items || [];
+        const isAdmin = currentUser?.role === "admin";
+        if (createUserPanel) createUserPanel.style.display = isAdmin ? "grid" : "none";
+        if (userCount) userCount.textContent = users.length;
+        userList.innerHTML = users.length
+          ? users
+              .map(
+                (user) => `
+                  <div class="review-item">
+                    <div class="review-item-head">
+                      <strong>${escapeHtml(user.name)}</strong>
+                      <span class="badge blue">${escapeHtml(roleLabel(user.role))}</span>
+                    </div>
+                    <p>默认项目：${escapeHtml(user.default_project_id)}；个人 Agent：${escapeHtml(user.personal_agent_id)}</p>
+                    ${
+                      isAdmin
+                        ? `<div class="review-actions">
+                            <input id="password-reset-${escapeHtml(user.id)}" class="inline-input" type="password" placeholder="新密码" autocomplete="new-password" />
+                            <button class="small-action" data-user-password-reset="${escapeHtml(user.id)}" type="button">重置密码</button>
+                          </div>`
+                        : ""
+                    }
+                  </div>
+                `,
+              )
+              .join("")
+          : `<div class="review-item"><strong>暂无用户</strong><p>用户体系数据尚未加载。</p></div>`;
+      }
+
+      async function loadUsers() {
+        const response = await fetch("/api/users");
+        const data = await response.json();
+        renderUsers(data.items || []);
+      }
+
+      async function createUser() {
+        const payload = {
+          name: createUserName.value.trim(),
+          role: createUserRole.value,
+          password: createUserPassword.value.trim(),
+          workspace_id: createUserWorkspace.value.trim() || currentWorkspaceId,
+          default_project_id: createUserProject.value.trim() || currentProjectId,
+        };
+        if (!payload.name || !payload.password) {
+          showToast("请填写姓名和密码");
+          return;
+        }
+        const response = await fetch("/api/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          showToast(currentUser?.role === "admin" ? "新建用户失败" : "只有管理员可以新建用户");
+          return;
+        }
+        createUserName.value = "";
+        createUserPassword.value = "";
+        await loadUsers();
+        await loadBootstrap();
+        showToast("用户已新建");
+      }
+
+      function riskDecisionLabel(value) {
+        const labels = {
+          allow: "放行",
+          needs_review: "需确认",
+          block: "阻断",
+        };
+        return labels[value] || value;
+      }
+
+      function renderRiskPolicies(items) {
+        const policies = items || [];
+        const isAdmin = currentUser?.role === "admin";
+        if (riskPolicyForm) riskPolicyForm.style.display = isAdmin ? "grid" : "none";
+        if (!policies.length) {
+          riskPolicyList.innerHTML = `<div class="review-item"><strong>暂无风险策略</strong><p>默认策略会在后端启动时写入。</p></div>`;
+          return;
+        }
+        riskPolicyList.innerHTML = policies
+          .map(
+            (rule) => `
+              <div class="review-item">
+                <div class="review-item-head">
+                  <strong>${escapeHtml(rule.rule_id)}</strong>
+                  <span class="badge blue">${escapeHtml(rule.category)} · ${escapeHtml(riskDecisionLabel(rule.decision))}</span>
+                </div>
+                <p>${escapeHtml(rule.message)}</p>
+                <div class="bbs-post-meta">
+                  <span class="source-pill">信号：${escapeHtml(rule.signal)}</span>
+                  <span class="source-pill">状态：${escapeHtml(rule.enabled ? "启用" : "停用")}</span>
+                </div>
+                ${
+                  isAdmin
+                    ? `<div class="review-actions">
+                        <button class="small-action" data-risk-policy-toggle="${escapeHtml(rule.id)}" data-risk-policy-enabled="${escapeHtml(String(!rule.enabled))}" type="button">
+                          ${rule.enabled ? "停用" : "启用"}
+                        </button>
+                      </div>`
+                    : ""
+                }
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      async function loadRiskPolicies() {
+        const response = await fetch("/api/risk/policies");
+        const data = await response.json();
+        renderRiskPolicies(data.items || []);
+      }
+
+      async function changeCurrentPassword() {
+        const current = currentPassword.value.trim();
+        const next = newPassword.value.trim();
+        if (!current || !next) {
+          showToast("请填写当前密码和新密码");
+          return;
+        }
+        const response = await fetch("/api/auth/password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ current_password: current, new_password: next }),
+        });
+        if (!response.ok) {
+          showToast("密码修改失败");
+          return;
+        }
+        currentPassword.value = "";
+        newPassword.value = "";
+        showToast("密码已修改，请重新登录");
+      }
+
+      async function resetMemberPassword(userId) {
+        const field = document.getElementById(`password-reset-${userId}`);
+        if (!(field instanceof HTMLInputElement)) return;
+        const next = field.value.trim();
+        if (!next) {
+          showToast("请输入新密码");
+          return;
+        }
+        const response = await fetch(`/api/users/${userId}/password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ new_password: next }),
+        });
+        if (!response.ok) {
+          showToast("密码重置失败");
+          return;
+        }
+        field.value = "";
+        showToast("成员密码已重置");
+      }
+
+      function formatTime(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleString("zh-CN", { hour12: false });
+      }
+
+      async function updateInboxItem(id, payload) {
+        await fetch(`/api/inbox/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        await loadInbox();
+        await loadBootstrap();
+        showToast("收件箱状态已更新");
+      }
+
+      async function updateMemoryItem(id, payload) {
+        await fetch(`/api/memory/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        await loadMemory();
+        await loadBootstrap();
+        showToast("记忆状态已更新");
+      }
+
+      async function createRiskPolicy() {
+        const payload = {
+          rule_id: riskPolicyRuleId.value.trim(),
+          category: riskPolicyCategory.value.trim(),
+          signal: riskPolicySignal.value.trim(),
+          decision: riskPolicyDecision.value,
+          message: riskPolicyMessage.value.trim(),
+          enabled: riskPolicyEnabled.checked,
+        };
+        if (!payload.rule_id || !payload.category || !payload.signal || !payload.message) {
+          showToast("请补全规则 ID、分类、信号和文案");
+          return;
+        }
+        const response = await fetch("/api/risk/policies", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          showToast("风险策略保存失败");
+          return;
+        }
+        riskPolicyRuleId.value = "";
+        riskPolicyCategory.value = "";
+        riskPolicySignal.value = "";
+        riskPolicyDecision.value = "needs_review";
+        riskPolicyMessage.value = "";
+        riskPolicyEnabled.checked = true;
+        await loadRiskPolicies();
+        showToast("风险策略已保存");
+      }
+
+      async function updateRiskPolicy(id, payload) {
+        const response = await fetch(`/api/risk/policies/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          showToast("风险策略更新失败");
+          return;
+        }
+        await loadRiskPolicies();
+        showToast("风险策略已更新");
+      }
+
+      async function acquireBbsLock(postId) {
+        if (!currentUser) {
+          showToast("用户信息未加载");
+          return;
+        }
+        const response = await fetch(`/api/blackboard/posts/${postId}/lock`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            owner_agent_id: currentUser.personal_agent_id,
+            owner_label: "我的个人 Agent",
+          }),
+        });
+        if (response.status === 409) {
+          showToast("该任务已经被其他 Agent 领取");
+          return;
+        }
+        await loadBbs();
+        showToast("已领取执行");
+      }
+
+      async function releaseBbsLock(postId) {
+        await fetch(`/api/blackboard/posts/${postId}/unlock`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "manual_release" }),
+        });
+        await loadBbs();
+        showToast("已释放执行，进入评审");
+      }
+
+      function fieldValue(id) {
+        const field = document.getElementById(id);
+        return field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement
+          ? field.value.trim()
+          : "";
+      }
+
+      function delimitedList(value) {
+        return value
+          .split(/[,\uFF0C;\uFF1B]/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+
+      async function submitBbsHandoff(postId) {
+        const goal = fieldValue(`handoff-goal-${postId}`);
+        const currentResult = fieldValue(`handoff-result-${postId}`);
+        const doneWhen = fieldValue(`handoff-done-${postId}`);
+        const nextOwnerAgentId = fieldValue(`handoff-owner-${postId}`);
+
+        if (!goal || !currentResult || !doneWhen || !nextOwnerAgentId) {
+          showToast("请补全交接目标、当前结果、完成条件和下一位 Agent");
+          return;
+        }
+
+        const response = await fetch(`/api/blackboard/posts/${postId}/handoff`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            goal,
+            current_result: currentResult,
+            done_when: doneWhen,
+            next_owner_agent_id: nextOwnerAgentId,
+            blockers: delimitedList(fieldValue(`handoff-blockers-${postId}`)),
+            requires_input_from: delimitedList(fieldValue(`handoff-inputs-${postId}`)),
+          }),
+        });
+        if (!response.ok) {
+          showToast("交接创建失败");
+          return;
+        }
+
+        activeHandoffPostId = null;
+        await loadBbs();
+        await loadBootstrap();
+        await loadAudit();
+        showToast("交接已创建");
+      }
+
+      async function sendMessage(forcedValue) {
+        const value = (forcedValue ?? chatInput.value).trim();
+        if (!value) {
+          showToast("先输入你想让平台做的事");
+          return;
+        }
+
+        appendUserMessage(value);
+        if (!forcedValue) chatInput.value = "";
+        showToast("已发送，默认进入个人私有上下文");
+
+        try {
+          const response = await fetch("/api/chat/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: value, thread_id: currentThreadId }),
+          });
+          if (!response.ok) {
+            const error = new Error("chat request failed");
+            error.status = response.status;
+            throw error;
+          }
+
+          const data = await response.json();
+          currentThreadId = data.thread_id;
+          appendAssistantMessage(data.assistant_message, {
+            task: data.task,
+            requestPost: data.request_post,
+            evidencePost: data.evidence_post,
+            riskPost: data.risk_post,
+            inboxItems: data.inbox_items || [],
+            memoryItems: data.memory_items || [],
+            userMemoryItems: data.user_memory_items || [],
+            workflowTrace: data.workflow_trace,
+          });
+          (data.activity_logs || []).forEach((log) => {
+            if (log.category === "external_agent") appendActivity(log, externalActivityList, "external");
+            else appendActivity(log, personalActivityList);
+          });
+          appendReviewItems(data.inbox_items, data.memory_items);
+          await loadBootstrap();
+          await loadKeySources();
+          await loadBbs();
+          showToast("团队大脑已返回结果");
+        } catch (error) {
+          const isUnauthorized = error?.status === 401;
+          appendAssistantMessage({
+            content: isUnauthorized
+              ? "你当前还没有登录，所以这条消息没有写入团队大脑。请先在成员页登录后继续。"
+              : "本地 API 暂不可用，已先保留为界面内私有消息。",
+            sources: [],
+          });
+          showToast(isUnauthorized ? "请先登录" : "API 暂不可用，已使用本地降级");
+        }
+      }
+
+      document.getElementById("sendButton").addEventListener("click", () => sendMessage());
+      uploadButton.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", async () => {
+        await uploadSelectedFile(fileInput.files?.[0]);
+        fileInput.value = "";
+      });
+      chatInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+      topSearch.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") runSearch();
+        if (event.key === "Escape") {
+          topSearch.value = "";
+          renderSearchResults([], "");
+        }
+      });
+      topSearch.addEventListener("change", runSearch);
+
+      document.querySelectorAll(".action-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          button.classList.add("is-pressed");
+          window.setTimeout(() => button.classList.remove("is-pressed"), 220);
+          if (button.dataset.prompt) sendMessage(button.dataset.prompt);
+          if (button.dataset.openView) showView(button.dataset.openView);
+        });
+      });
+
+      saveAgentButton.addEventListener("click", saveAgentConfig);
+      createAgentButton?.addEventListener("click", startCreatePersonalAgent);
+      syncO2Button.addEventListener("click", syncO2Tools);
+      changePasswordButton.addEventListener("click", changeCurrentPassword);
+      createUserButton?.addEventListener("click", createUser);
+      saveRiskPolicyButton.addEventListener("click", createRiskPolicy);
+      agentTabs?.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-agent-view]");
+        if (target) showAgentView(target.dataset.agentView);
+      });
+      taskTabs?.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-task-view]");
+        if (target) showTaskView(target.dataset.taskView);
+      });
+      memoryTabs?.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-memory-view]");
+        if (target) setMemoryView(target.dataset.memoryView);
+      });
+      memoryDateFilter?.addEventListener("change", loadMemory);
+      memoryTypeFilter?.addEventListener("change", loadMemory);
+      memoryClearFilters?.addEventListener("click", () => {
+        if (memoryDateFilter) memoryDateFilter.value = "";
+        if (memoryTypeFilter) memoryTypeFilter.value = "";
+        loadMemory();
+      });
+      memoryPromoteButton?.addEventListener("click", promoteCurrentMemoryLayer);
+      loginForm.addEventListener("submit", submitLogin);
+      logoutButton.addEventListener("click", logout);
+      switchAccountButton.addEventListener("click", logout);
+      document.querySelectorAll("[data-login-user]").forEach((button) => {
+        button.addEventListener("click", () => {
+          loginUserId.value = button.dataset.loginUser || "";
+          loginPassword.value = button.dataset.loginPassword || "";
+          loginPassword.focus();
+        });
+      });
+
+      document.querySelectorAll("[data-collapsible-panel]").forEach((panel) => {
+        const toggle = panel.querySelector(".right-panel-toggle");
+        toggle?.addEventListener("click", () => {
+          const isCollapsed = panel.classList.toggle("is-collapsed");
+          toggle.setAttribute("aria-expanded", String(!isCollapsed));
+        });
+      });
+
+      rightDockToggle.addEventListener("click", () => {
+        const isCollapsed = appShell.classList.toggle("right-collapsed");
+        rightDockToggle.textContent = isCollapsed ? "展开" : "收起";
+        rightDockToggle.setAttribute("aria-pressed", String(isCollapsed));
+      });
+
+      bbsPrevButton.addEventListener("click", async () => {
+        if (bbsPage <= 1) return;
+        bbsPage -= 1;
+        activeHandoffPostId = null;
+        await loadBbs();
+      });
+
+      bbsNextButton.addEventListener("click", async () => {
+        bbsPage += 1;
+        activeHandoffPostId = null;
+        await loadBbs();
+      });
+
+      document.querySelectorAll("[data-view]").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (button.dataset.view) showView(button.dataset.view);
+        });
+      });
+
+      document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const inboxId = target.dataset.inboxResolve;
+        if (inboxId) updateInboxItem(inboxId, { status: "resolved" });
+        const inboxSnoozeId = target.dataset.inboxSnooze;
+        if (inboxSnoozeId) updateInboxItem(inboxSnoozeId, { status: "snoozed", ttl_minutes: 60 });
+        const inboxOpenId = target.dataset.inboxOpen;
+        if (inboxOpenId) updateInboxItem(inboxOpenId, { status: "open" });
+        const memoryAcceptId = target.dataset.memoryAccept;
+        if (memoryAcceptId) updateMemoryItem(memoryAcceptId, { status: "accepted" });
+        const memoryDisputeId = target.dataset.memoryDispute;
+        if (memoryDisputeId) updateMemoryItem(memoryDisputeId, { status: "disputed" });
+        const bbsReadId = target.dataset.bbsRead;
+        if (bbsReadId) {
+          fetch(`/api/blackboard/posts/${bbsReadId}/read`, { method: "PATCH" }).then(() => loadBbs());
+        }
+        const taskToggleId = target.dataset.taskCardToggle;
+        if (taskToggleId) {
+          if (expandedTaskCardIds.has(taskToggleId)) expandedTaskCardIds.delete(taskToggleId);
+          else expandedTaskCardIds.add(taskToggleId);
+          loadBbs();
+        }
+        const taskFilterId = target.dataset.taskCardFilter;
+        if (taskFilterId) {
+          selectedBbsTaskId = taskFilterId;
+          activeHandoffPostId = null;
+          bbsPage = 1;
+          expandedTaskCardIds.add(taskFilterId);
+          showBbsPanel("posts");
+          if (target.dataset.openBbsForTask) showView("bbs");
+          else loadBbs();
+        }
+        if (target.dataset.bbsClearTaskFilter) {
+          selectedBbsTaskId = null;
+          activeHandoffPostId = null;
+          bbsPage = 1;
+          loadBbs();
+        }
+        const bbsPanelTab = target.dataset.bbsPanelTab;
+        if (bbsPanelTab) showBbsPanel(bbsPanelTab);
+        const bbsLockId = target.dataset.bbsLock;
+        if (bbsLockId) acquireBbsLock(bbsLockId);
+        const bbsUnlockId = target.dataset.bbsUnlock;
+        if (bbsUnlockId) releaseBbsLock(bbsUnlockId);
+        const bbsHandoffId = target.dataset.bbsHandoff;
+        if (bbsHandoffId) {
+          activeHandoffPostId = activeHandoffPostId === bbsHandoffId ? null : bbsHandoffId;
+          loadBbs();
+        }
+        if (target.dataset.bbsHandoffCancel) {
+          activeHandoffPostId = null;
+          loadBbs();
+        }
+        const bbsHandoffSubmitId = target.dataset.bbsHandoffSubmit;
+        if (bbsHandoffSubmitId) submitBbsHandoff(bbsHandoffSubmitId);
+        const riskPolicyToggleId = target.dataset.riskPolicyToggle;
+        if (riskPolicyToggleId) updateRiskPolicy(riskPolicyToggleId, { enabled: target.dataset.riskPolicyEnabled === "true" });
+        const userPasswordResetId = target.dataset.userPasswordReset;
+        if (userPasswordResetId) resetMemberPassword(userPasswordResetId);
+        const publicAgentSaveId = target.dataset.publicAgentSaveTools;
+        if (publicAgentSaveId) savePublicAgentTools(publicAgentSaveId);
+        const personalAgentOpenId = target.dataset.personalAgentOpen;
+        if (personalAgentOpenId) {
+          const agent = knownAgents.find((item) => item.id === personalAgentOpenId);
+          if (agent) renderAgentForm(agent);
+        }
+        const publicAgentOpenId = target.dataset.publicAgentOpen;
+        if (publicAgentOpenId) {
+          const agent = knownAgents.find((item) => item.id === publicAgentOpenId);
+          if (agent) renderPublicAgentDetail(agent);
+        }
+        const publicAgentEditId = target.dataset.publicAgentEdit;
+        if (publicAgentEditId) {
+          const agent = knownAgents.find((item) => item.id === publicAgentEditId);
+          if (agent) {
+            renderAgentForm(agent);
+            showAgentView("personal");
+          }
+        }
+        const sourceReference = target.dataset.sourceReference;
+        if (sourceReference !== undefined) {
+          showToast(sourceReference ? `来源引用: ${sourceReference}` : "当前来源没有可打开链接");
+        }
+      });
+
+      async function bootApp() {
+        const user = await ensureAuthenticated();
+        if (!user) return;
+        await loadBootstrap();
+        await loadActivity();
+        await loadKeySources();
+        await loadBbs();
+        await loadUsers();
+        await loadRiskPolicies();
+      }
+
+      bootApp();
+    </script>
+  </body>
+</html>
