@@ -1,12 +1,12 @@
 # AgentMesh Next MVP TODO
 
-目标：把 AgentMesh 从“可运行原型”推进到“真实可试用 MVP”。当前阶段不要继续堆页面，优先打通三件事：模型主导 chat、分层记忆系统、真实数据/工具接入。
+目标：把 AgentMesh 从“可运行原型”推进到“真实可试用 MVP”。当前阶段不要继续堆页面，优先打通三件事：显式 `$` skill chat、分层记忆系统、真实数据/工具接入。
 
 ## 当前状态总览
 
-- [x] Chat 主流程已有“大模型优先、规则兜底”的基础实现。
+- [x] Chat 主流程已切换为“普通对话 + 显式 `$` skill 调用”，不再依赖隐式路由分类。
 - [x] 普通对话 `general_chat` 已避免创建 task、BBS、memory。
-- [x] Workflow 请求已返回调试信息并在前端展示。
+- [x] `$` skill 请求已返回工作流信息并在前端展示。
 - [x] 用户三层记忆的后端基础 API 已实现。
 - [x] BBS、任务、Oxygen、文件上传、用户角色已有可运行基础。
 - [ ] Oxygen 真实 query smoke test 已执行，真实返回仍阻塞于内部工具凭证/初始化。
@@ -18,20 +18,23 @@
 ## 阶段 1：Chat 主流程重构
 
 优先级：最高  
-状态：基本完成；已用当前 `.env` 模型配置做 smoke 回归，后续仍需持续扩大样本。
+状态：基本完成；当前路线为显式 `$` skill 调用，后续重点扩大真实任务样本，而不是继续调旧式自动分类。
 
-- [x] 保持“大模型优先判断意图，规则兜底”。
+- [x] 自然输入走普通对话，不触发任务、BBS、Inbox、Memory。
+- [x] 输入 `$` 唤起 skill 菜单。
+- [x] `$` 菜单支持键盘上下选择、回车插入、鼠标点击。
+- [x] `$memory.search`、`$brief.create`、`$note.save`、`$research.request`、`$data.query`、`$risk.review`、`$memory.propose`、`$system.info` 已注册。
 - [x] 普通对话走 `general_chat`。
 - [x] 普通对话不建任务。
 - [x] 普通对话不写 BBS。
 - [x] 普通对话不入记忆。
-- [x] 明确工作意图才创建 task、BBS、Inbox、Memory。
-- [x] 接口返回调试信息：`intent`、`confidence`、`source`、`selected_workflow`、`llm_used`、`fallback_reason`。
-- [x] 前端展示简洁的识别结果、调用路径、来源。
+- [x] 只有显式 `$` skill 才创建 task、BBS、Inbox、Memory。
+- [x] 接口返回工作流信息：`intent`、`source=skill/chat`、`selected_workflow`、`llm_used`。
+- [x] 前端展示 skill 调用路径、来源和结果。
 - [x] 增加测试：普通问题不会污染数据库。
 - [x] 增加测试：明确查资料、查数据、生成 Brief 能进入正确 workflow。
-- [x] 使用真实模型配置做人工回归，确认大多数 query 不再走规则兜底。
-- [x] 将前端字段命名统一为产品语言：识别结果、调用路径、来源、置信度。
+- [x] 对话等待后端响应时显示“项目正在思考”loading。
+- [x] 将前端字段命名统一为产品语言：调用路径、来源、结果。
 
 ## 阶段 2：记忆系统重建
 
@@ -185,12 +188,12 @@
 
 ## 推荐执行顺序
 
-1. [x] Chat 主流程调试信息 + 普通对话不入库完善。
+1. [x] Chat 主流程改为显式 `$` skill + 普通对话不入库。
 2. [x] 记忆系统数据模型基础设计。
 3. [x] 用户短期记忆落库。
 4. [ ] O2 research 真实调用 smoke test。
 5. [x] Memory 页面按三层结构重做。
-6. [ ] BBS/任务状态流优化。
+6. [x] BBS/任务状态流优化：证据帖可沉淀为候选团队记忆。
 7. [x] 权限矩阵落地。
 8. [ ] 前端 React 拆分。
 

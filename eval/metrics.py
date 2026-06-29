@@ -6,7 +6,7 @@ from typing import Any
 
 MVP_SUCCESS_TARGETS = {
     "scenario_pass_rate": 0.8,
-    "intent_accuracy": 0.8,
+    "workflow_route_accuracy": 0.8,
     "citation_coverage": 0.75,
     "time_to_useful_answer_p95_ms": 3000,
     "workflow_misroute_rate": 0.2,
@@ -41,7 +41,10 @@ def compute_mvp_metrics(results: list[dict[str, Any]], scenarios: list[dict[str,
     ]
     metrics = {
         "scenario_pass_rate": _ratio(passed, total),
-        "intent_accuracy": _ratio(sum(1 for result in results if result["checks"].get("intent_correct")), total),
+        "workflow_route_accuracy": _ratio(
+            sum(1 for result in results if result["checks"].get("workflow_correct")),
+            total,
+        ),
         "citation_coverage": _ratio(
             sum(1 for result in expected_source if result["checks"].get("has_source") is True),
             len(expected_source),
@@ -49,7 +52,7 @@ def compute_mvp_metrics(results: list[dict[str, Any]], scenarios: list[dict[str,
         "time_to_useful_answer_p50_ms": _percentile(useful_durations, 0.5),
         "time_to_useful_answer_p95_ms": _percentile(useful_durations, 0.95),
         "workflow_misroute_rate": _ratio(
-            sum(1 for result in results if result["checks"].get("intent_correct") is False),
+            sum(1 for result in results if result["checks"].get("workflow_correct") is False),
             total,
         ),
         "memory_candidate_creation_rate": _ratio(

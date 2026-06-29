@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 
 from agentmesh.datasources import default_data_source_registry
 from agentmesh.documents import CompositeDocumentParser
-from agentmesh.llm import model_config_from_env
+from agentmesh.llm import llm_timeout_config, model_config_from_env
 from agentmesh.models import User
 from agentmesh.o2 import O2CommandRunner, maybe_register_o2_data_connector
 from agentmesh.routes.deps import current_user
@@ -33,6 +33,7 @@ def _llm_status() -> dict[str, object]:
         "model": default_config["model_name"],
         "label": default_config.get("label", ""),
         "api_style": default_config.get("api_style", "chat_completions"),
+        "timeouts": llm_timeout_config(),
     }
 
 

@@ -5,66 +5,67 @@
       "category": "find_similar_project",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
         "keyword_coverage": "2/2",
         "keywords_found": [
-          "项目",
-          "经验"
+          "首屏",
+          "复盘"
         ],
         "keywords_missing": [],
         "scope_is_private": true
       },
       "response_preview": "相似历史项目经验：2025 年 618 家电会场曾尝试沉浸式头图，但复盘显示首屏核心入口点击下降。后续方案改为效率型楼层结构，并保留重点商品入口。 来源：2025 618 家电会场复盘。",
-      "duration_ms": 1069
+      "duration_ms": 2729
     },
     {
       "id": "find_similar_project_02",
       "category": "find_similar_project",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
-        "keyword_coverage": "1/1",
+        "keyword_coverage": "2/2",
         "keywords_found": [
-          "竞品"
+          "沉浸式头图",
+          "复盘"
         ],
         "keywords_missing": [],
         "scope_is_private": true
       },
       "response_preview": "竞品资料和历史项目经验：2025 年 618 家电会场曾尝试沉浸式头图，但复盘显示首屏核心入口点击下降。后续方案改为效率型楼层结构，并保留重点商品入口。 来源：2025 618 家电会场复盘。",
-      "duration_ms": 960
+      "duration_ms": 2666
     },
     {
       "id": "find_similar_project_03",
       "category": "find_similar_project",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
         "keyword_coverage": "2/2",
         "keywords_found": [
-          "经验",
-          "项目"
+          "首屏",
+          "复盘"
         ],
         "keywords_missing": [],
         "scope_is_private": true
       },
       "response_preview": "相似历史项目经验：2025 年 618 家电会场曾尝试沉浸式头图，但复盘显示首屏核心入口点击下降。后续方案改为效率型楼层结构，并保留重点商品入口。 来源：2025 618 家电会场复盘。",
-      "duration_ms": 711
+      "duration_ms": 2654
     },
     {
       "id": "find_similar_project_memory",
       "category": "find_similar_project",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
@@ -75,77 +76,79 @@
         "keywords_missing": [],
         "scope_is_private": true
       },
-      "response_preview": "团队记忆中的相关经验：2025 年 618 家电会场曾尝试沉浸式头图，但复盘显示首屏核心入口点击下降。后续方案改为效率型楼层结构，并保留重点商品入口。 来源：2025 618 家电会场复盘。",
-      "duration_ms": 984
+      "response_preview": "团队记忆中的相关经验：1. 候选团队记忆：大促首屏入口控制：大促会场首屏入口应优先控制信息密度，超过 10 个入口会显著分散核心点击，需要进入记忆库审核。\n2. 过往项目复盘证据：2025 年 618 家电会场复盘显示，沉浸式头图带来视觉记忆点，但首屏核心入口点击率下降。后续方案建议将利益点、类目入口和爆品卡片前置，并减少横向滚动入口。 来源：2025 618 家电会场复盘。",
+      "duration_ms": 2643
     },
     {
       "id": "generate_brief_01",
       "category": "generate_brief",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
         "has_inbox_item": true,
-        "keyword_coverage": "2/2",
+        "keyword_coverage": "1/2",
         "keywords_found": [
-          "Brief",
+          "Brief"
+        ],
+        "keywords_missing": [
           "入口"
         ],
-        "keywords_missing": [],
         "scope_is_private": true
       },
-      "response_preview": "我可以基于现有项目经验生成 Brief 草稿。当前最重要的可引用结论是：去年沉浸式头图降低了核心入口点击，建议今年优先保证入口效率。",
-      "duration_ms": 964
+      "response_preview": "我已按「活动首页改版 Brief」生成 Brief 草稿《Brief 草稿：活动首页改版 Brief》，并放入收件箱供你打开确认。草稿已结合当前用户需求、可引用证据和来源生成。",
+      "duration_ms": 2696
     },
     {
       "id": "generate_brief_02",
       "category": "generate_brief",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
         "has_inbox_item": true,
         "keyword_coverage": "1/1",
         "keywords_found": [
-          "入口"
+          "Brief"
         ],
         "keywords_missing": [],
         "scope_is_private": true
       },
-      "response_preview": "我可以基于现有项目经验生成 Brief 草稿。当前最重要的可引用结论是：去年沉浸式头图降低了核心入口点击，建议今年优先保证入口效率。",
-      "duration_ms": 1861
+      "response_preview": "我已按「调研分析 Brief」生成 Brief 草稿《Brief 草稿：调研分析 Brief》，并放入收件箱供你打开确认。草稿已结合当前用户需求、可引用证据和来源生成。",
+      "duration_ms": 2649
     },
     {
       "id": "generate_brief_03",
       "category": "generate_brief",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
         "has_inbox_item": true,
-        "keyword_coverage": "2/2",
+        "keyword_coverage": "1/2",
         "keywords_found": [
-          "入口",
           "Brief"
         ],
-        "keywords_missing": [],
+        "keywords_missing": [
+          "入口"
+        ],
         "scope_is_private": true
       },
-      "response_preview": "我可以基于现有项目经验生成 Brief 草稿。当前最重要的可引用结论是：去年沉浸式头图降低了核心入口点击，建议今年优先保证入口效率。",
-      "duration_ms": 906
+      "response_preview": "我已按「调研分析 Brief」生成 Brief 草稿《Brief 草稿：调研分析 Brief》，并放入收件箱供你打开确认。草稿已结合当前用户需求、可引用证据和来源生成。",
+      "duration_ms": 2662
     },
     {
       "id": "record_work_01",
       "category": "record_work",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
@@ -158,14 +161,14 @@
         "scope_is_private": true
       },
       "response_preview": "已记录为你的私有工作上下文，暂不共享到项目或团队记忆。",
-      "duration_ms": 919
+      "duration_ms": 2640
     },
     {
       "id": "data_query_01",
       "category": "data_query",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
@@ -178,14 +181,14 @@
         "scope_is_private": true
       },
       "response_preview": "data_agent 通过 local_metrics 返回指标数据：metric=ctr, value=0.123, source=local_sample。 来源：local_metrics。",
-      "duration_ms": 877
+      "duration_ms": 2638
     },
     {
       "id": "risk_review_01",
       "category": "risk_review",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
@@ -199,14 +202,14 @@
         "scope_is_private": true
       },
       "response_preview": "risk_agent 已返回策略规则评审结论，我已放入收件箱等待你处理。",
-      "duration_ms": 977
+      "duration_ms": 2643
     },
     {
       "id": "create_memory_01",
       "category": "create_memory",
       "passed": true,
       "checks": {
-        "intent_correct": true,
+        "workflow_correct": true,
         "has_source": true,
         "has_evidence_post": true,
         "has_activity_log": true,
@@ -220,13 +223,13 @@
         "scope_is_private": true
       },
       "response_preview": "我已提取一条候选团队记忆，并放入记忆库审核，不会自动写入团队记忆。",
-      "duration_ms": 904
+      "duration_ms": 2642
     }
   ],
   "mvp_metrics": {
     "targets": {
       "scenario_pass_rate": 0.8,
-      "intent_accuracy": 0.8,
+      "workflow_route_accuracy": 0.8,
       "citation_coverage": 0.75,
       "time_to_useful_answer_p95_ms": 3000,
       "workflow_misroute_rate": 0.2,
@@ -235,10 +238,10 @@
     },
     "metrics": {
       "scenario_pass_rate": 1.0,
-      "intent_accuracy": 1.0,
+      "workflow_route_accuracy": 1.0,
       "citation_coverage": 1.0,
-      "time_to_useful_answer_p50_ms": 960,
-      "time_to_useful_answer_p95_ms": 1861,
+      "time_to_useful_answer_p50_ms": 2649,
+      "time_to_useful_answer_p95_ms": 2729,
       "workflow_misroute_rate": 0.0,
       "memory_candidate_creation_rate": 1.0,
       "memory_candidate_acceptance_rate": null,
@@ -246,7 +249,7 @@
     },
     "passes_targets": {
       "scenario_pass_rate": true,
-      "intent_accuracy": true,
+      "workflow_route_accuracy": true,
       "citation_coverage": true,
       "time_to_useful_answer_p95_ms": true,
       "workflow_misroute_rate": true,

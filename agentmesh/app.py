@@ -16,6 +16,7 @@ from agentmesh.routes.agents import router as agents_router
 from agentmesh.routes.auth import router as auth_router
 from agentmesh.routes.blackboard import router as blackboard_router
 from agentmesh.routes.blackboard import start_auto_post_worker, stop_auto_post_worker
+from agentmesh.routes.blackboard import start_research_dispatch_worker, stop_research_dispatch_worker
 from agentmesh.routes.chat import router as chat_router
 from agentmesh.routes.data_sources import router as data_sources_router
 from agentmesh.routes.documents import router as documents_router
@@ -26,7 +27,7 @@ from agentmesh.routes.memory import start_daily_memory_worker, stop_daily_memory
 from agentmesh.routes.risk import router as risk_router
 from agentmesh.routes.users import router as users_router
 from agentmesh.routes.workspace import router as workspace_router
-from agentmesh.seed import ensure_demo_data, ensure_initial_blackboard_data, ensure_seed_data
+from agentmesh.seed import ensure_demo_data, ensure_graph_demo_data, ensure_initial_blackboard_data, ensure_seed_data
 from agentmesh.store import store
 from agentmesh.tools import ensure_tool_seed_data
 
@@ -37,7 +38,9 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 async def lifespan(app: FastAPI):
     await start_auto_post_worker()
     await start_daily_memory_worker()
+    await start_research_dispatch_worker()
     yield
+    await stop_research_dispatch_worker()
     await stop_daily_memory_worker()
     await stop_auto_post_worker()
 
@@ -48,6 +51,7 @@ app = FastAPI(title="AgentMesh", version="0.1.0", lifespan=lifespan)
 ensure_seed_data(store)
 ensure_initial_blackboard_data(store)
 ensure_demo_data(store)
+ensure_graph_demo_data(store)
 ensure_tool_seed_data(store, granted_by="system")
 ensure_model_seed_data(store)
 ensure_risk_policy_seed_data(store)

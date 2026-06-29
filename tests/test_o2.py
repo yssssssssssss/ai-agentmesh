@@ -145,8 +145,32 @@ def test_o2_research_provider_uses_metasearch_command_shape() -> None:
     results = O2ResearchProvider(runner=runner, cli_name="metasearch").search("华为手机", limit=1)
 
     assert results[0].title == "华为手机"
-    assert runner.calls[0][:5] == ("launch", "metasearch", "--json", "search", "华为手机")
-    assert "--token-env" in runner.calls[0]
+    # o2 main-entry fallback shape (FakeRunner reports binary "o2"): verified
+    # DesignOS contract carries an explicit endpoint and no token-env.
+    assert runner.calls[0][:4] == ("launch", "metasearch", "search", "华为手机")
+    assert "--endpoint" in runner.calls[0]
+    assert "--token-env" not in runner.calls[0]
+
+
+def test_o2_research_provider_uses_standalone_metasearch_when_available() -> None:
+    runner = FakeRunner(
+        {"data": {"products": [{"title": "华为手机", "url": "https://jd.com/item", "snippet": "好评"}]}}
+    )
+    runner.binary = "oxygen-metasearch"
+
+    provider = O2ResearchProvider(runner=runner, cli_name="metasearch", endpoint="https://gw.example/agents/sku-search")
+    provider.search("华为手机", limit=1)
+
+    # Verified DesignOS standalone form: oxygen-metasearch --json search --output json --endpoint <ep> <query>
+    assert runner.calls[0] == (
+        "--json",
+        "search",
+        "--output",
+        "json",
+        "--endpoint",
+        "https://gw.example/agents/sku-search",
+        "华为手机",
+    )
 
 
 def test_o2_data_connector_keeps_read_only_business_query_shape() -> None:

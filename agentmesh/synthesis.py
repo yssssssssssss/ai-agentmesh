@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Protocol
 
-from agentmesh.llm import LLMClient
+from agentmesh.llm import LLMClient, LLMRequestError, llm_chat_timeout_seconds
 from agentmesh.model_registry import resolve_agent_model_id
 from agentmesh.models import BlackboardPost, ChatMessage, ChatRole, InboxItem, Intent, MemoryItem, Source, User
 from agentmesh.store import SQLiteStore
@@ -10,6 +11,13 @@ from agentmesh.store import SQLiteStore
 
 class ChatLLM(Protocol):
     def complete(self, system_prompt: str, user_prompt: str) -> str: ...
+
+
+@dataclass(frozen=True)
+class SynthesisResult:
+    content: str
+    llm_used: bool
+    fallback_reason: str | None = None
 
 
 def synthesize_with_llm(
@@ -25,9 +33,37 @@ def synthesize_with_llm(
     user: User,
     history: list[ChatMessage] | None = None,
 ) -> str:
-    client = llm_client or LLMClient.from_model_id(resolve_agent_model_id(repository, user))
+    return synthesize_with_llm_result(
+        repository=repository,
+        llm_client=llm_client,
+        fallback_content=fallback_content,
+        user_content=user_content,
+        intent=intent,
+        evidence_post=evidence_post,
+        risk_post=risk_post,
+        inbox_items=inbox_items,
+        memory_items=memory_items,
+        user=user,
+        history=history,
+    ).content
+
+
+def synthesize_with_llm_result(
+    repository: SQLiteStore,
+    llm_client: ChatLLM | None,
+    fallback_content: str,
+    user_content: str,
+    intent: Intent,
+    evidence_post: BlackboardPost | None,
+    risk_post: BlackboardPost | None,
+    inbox_items: list[InboxItem],
+    memory_items: list[MemoryItem],
+    user: User,
+    history: list[ChatMessage] | None = None,
+) -> SynthesisResult:
+    client = chat_llm_client(repository, user, llm_client)
     if client is None:
-        return fallback_content
+        return SynthesisResult(content=fallback_content, llm_used=False, fallback_reason="llm_not_configured")
     try:
         generated = client.complete(
             system_prompt=(
@@ -47,9 +83,20 @@ def synthesize_with_llm(
                 history=history,
             ),
         )
+    except LLMRequestError as error:
+        return SynthesisResult(content=fallback_content, llm_used=False, fallback_reason=error.reason)
     except Exception:
-        return fallback_content
-    return generated or fallback_content
+        return SynthesisResult(content=fallback_content, llm_used=False, fallback_reason="llm_error")
+    if not generated:
+        return SynthesisResult(content=fallback_content, llm_used=False, fallback_reason="empty_response")
+    return SynthesisResult(content=generated, llm_used=True)
+
+
+def chat_llm_client(repository: SQLiteStore, user: User, llm_client: ChatLLM | None = None) -> ChatLLM | None:
+    return llm_client or LLMClient.from_model_id(
+        resolve_agent_model_id(repository, user),
+        timeout_seconds=llm_chat_timeout_seconds(),
+    )
 
 
 def build_llm_prompt(
@@ -78,7 +125,7 @@ def build_llm_prompt(
     return (
         f"{history_section}"
         f"用户输入：{user_content}\n"
-        f"识别意图：{intent.value}\n"
+        f"调用工作流：{intent.value}\n"
         f"证据：{evidence}\n"
         f"风险：{risk}\n"
         f"来源：{source_titles(evidence_post, risk_post)}\n"

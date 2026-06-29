@@ -94,9 +94,9 @@ def run_scenario(context: EvalContext, scenario: dict[str, Any]) -> dict[str, An
     checks = scenario["expected_checks"]
     results = {}
 
-    # 检查意图分类
-    actual_intent = data.get("task", {}).get("intent")
-    results["intent_correct"] = actual_intent == scenario["expected_intent"]
+    # 检查显式 $ skill 是否路由到预期工作流。
+    actual_workflow = data.get("task", {}).get("intent") or data.get("workflow_trace", {}).get("intent")
+    results["workflow_correct"] = actual_workflow == scenario["expected_workflow"]
 
     # 检查是否有 source
     if "has_source" in checks:
@@ -221,7 +221,7 @@ def main():
         )
         print("关键指标:")
         print(f"  引用覆盖率: {total_sources}/{total_with_source_expected}")
-        print(f"  意图分类准确率: {sum(1 for r in all_results if r['checks'].get('intent_correct'))}/{total}")
+        print(f"  工作流路由准确率: {sum(1 for r in all_results if r['checks'].get('workflow_correct'))}/{total}")
         from eval.metrics import compute_mvp_metrics
 
         mvp_metrics = compute_mvp_metrics(all_results, context["scenarios"])

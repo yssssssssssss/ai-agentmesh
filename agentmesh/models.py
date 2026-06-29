@@ -289,6 +289,10 @@ class DocumentRecord(BaseModel):
     created_at: datetime = Field(default_factory=now_utc)
 
 
+class DocumentUpdateRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=100_000)
+
+
 class DocumentParseJob(BaseModel):
     id: str = Field(default_factory=lambda: new_id("doc_job"))
     file_name: str
@@ -412,6 +416,7 @@ class InboxItem(BaseModel):
     status: str = "open"
     workspace_id: str | None = None
     project_id: str | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
     acknowledged_at: datetime | None = None
     snooze_until: datetime | None = None
     resolved_at: datetime | None = None
@@ -429,6 +434,7 @@ class MemoryItem(BaseModel):
     workspace_id: str | None = None
     project_id: str | None = None
     sources: list[Source] = Field(default_factory=list)
+    metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=now_utc)
 
 

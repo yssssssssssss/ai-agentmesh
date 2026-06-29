@@ -10,13 +10,19 @@ from agentmesh.models import (
     BlackboardPostType,
     BootstrapMetrics,
     BootstrapState,
+    ChatThread,
+    CollaborationStage,
     InboxItem,
+    Intent,
     MemoryItem,
     MemoryLayer,
     MemoryStatus,
     Project,
     Scope,
     Source,
+    StructuredHandoffPacket,
+    Task,
+    TaskStatus,
     Team,
     TeamMembership,
     User,
@@ -480,3 +486,232 @@ def bootstrap_state(repository: SQLiteStore, user: User = USER) -> BootstrapStat
             ),
         ),
     )
+
+
+def ensure_graph_demo_data(repository: SQLiteStore) -> None:
+    """Inject multi-agent collaboration mock data for the graph view."""
+    from datetime import timedelta
+
+    if repository.get_task("task_graph_demo_1") is not None:
+        return
+
+    base_time = datetime(2026, 6, 26, 10, 0, 0, tzinfo=UTC)
+
+    thread = ChatThread(
+        id="thread_graph_demo",
+        workspace_id=WORKSPACE.id,
+        project_id=PROJECT.id,
+        user_id=USER.id,
+        title="618 家电首屏历史经验查询",
+    )
+    repository.save_chat_thread(thread)
+
+    # --- Task 1: memory search → research → evidence → digest ---
+    task1 = Task(
+        id="task_graph_demo_1",
+        thread_id=thread.id,
+        intent=Intent.ASK_MEMORY,
+        status=TaskStatus.COMPLETED,
+        collaboration_stage=CollaborationStage.COMPLETED,
+        current_owner_agent_id="agent_personal_current",
+        title="查询 618 家电会场首屏历史经验",
+        steps=["memory_searched", "external_research_requested", "evidence_received", "synthesized"],
+        created_at=base_time,
+    )
+    repository.save_task(task1)
+
+    post1_request = BlackboardPost(
+        id="bb_graph_demo_1_req",
+        task_id=task1.id,
+        post_type=BlackboardPostType.REQUEST,
+        actor="agent_personal_current",
+        title="请求：618 家电首屏设计经验",
+        content="用户查询 618 家电会场首屏历史经验，本地记忆无命中，需要外部 Agent 补充研究资料。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        collaboration_stage=CollaborationStage.EXECUTION,
+        current_owner_agent_id="agent_research",
+        handoff=StructuredHandoffPacket(
+            goal="获取 618 家电首屏的历史数据与经验",
+            current_result="本地记忆无相关条目",
+            done_when="提供至少 2 条历史首屏设计经验",
+            next_owner_agent_id="agent_research",
+        ),
+        created_at=base_time + timedelta(seconds=5),
+    )
+    repository.add_blackboard_post(post1_request)
+
+    post1_evidence = BlackboardPost(
+        id="bb_graph_demo_1_evi",
+        task_id=task1.id,
+        post_type=BlackboardPostType.EVIDENCE,
+        actor="agent_research",
+        title="证据：618 家电首屏历史数据",
+        content="根据外部数据源查询，2024 年 618 家电会场首屏点击率最高的模块是'爆品直降'（CTR 12.3%），其次是'品类精选'（CTR 9.7%）。2023 年首屏改版后用户停留时长提升 18%。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        related_post_id=post1_request.id,
+        collaboration_stage=CollaborationStage.REVIEW,
+        sources=[Source(id="src_demo_1", title="618 大促复盘数据", source_type="data_connector", reference="internal://analytics/618-2024")],
+        created_at=base_time + timedelta(seconds=30),
+    )
+    repository.add_blackboard_post(post1_evidence)
+
+    post1_risk = BlackboardPost(
+        id="bb_graph_demo_1_risk",
+        task_id=task1.id,
+        post_type=BlackboardPostType.RISK,
+        actor="agent_risk_scanner",
+        title="风险：数据时效性提醒",
+        content="2024 年数据可能不适用于 2026 年会场，用户行为模式可能已变化。建议结合最新 A/B 测试验证。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        related_post_id=post1_evidence.id,
+        collaboration_stage=CollaborationStage.REVIEW,
+        created_at=base_time + timedelta(seconds=45),
+    )
+    repository.add_blackboard_post(post1_risk)
+
+    post1_digest = BlackboardPost(
+        id="bb_graph_demo_1_digest",
+        task_id=task1.id,
+        post_type=BlackboardPostType.DIGEST,
+        actor="agent_personal_current",
+        title="摘要：首屏经验综合结论",
+        content="综合历史数据和风险评估，建议首屏保留'爆品直降'核心模块，同时新增 A/B 测试验证 2026 年用户偏好变化。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        related_post_id=post1_evidence.id,
+        collaboration_stage=CollaborationStage.COMPLETED,
+        created_at=base_time + timedelta(minutes=1),
+    )
+    repository.add_blackboard_post(post1_digest)
+
+    # --- Task 2: brief generation with handoff chain ---
+    task2 = Task(
+        id="task_graph_demo_2",
+        thread_id=thread.id,
+        intent=Intent.GENERATE_BRIEF,
+        status=TaskStatus.COMPLETED,
+        collaboration_stage=CollaborationStage.COMPLETED,
+        current_owner_agent_id="agent_personal_current",
+        title="生成首屏改版设计 Brief",
+        steps=["brief_drafted", "review_requested", "approved", "memory_candidate_created"],
+        created_at=base_time + timedelta(minutes=5),
+    )
+    repository.save_task(task2)
+
+    post2_decision = BlackboardPost(
+        id="bb_graph_demo_2_dec",
+        task_id=task2.id,
+        post_type=BlackboardPostType.DECISION,
+        actor="agent_personal_current",
+        title="决策：启动首屏改版 Brief",
+        content="基于前序经验查询结果，决定立即生成设计 Brief，方向为保留爆品直降+新增品类推荐位。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        collaboration_stage=CollaborationStage.DISCUSSION,
+        created_at=base_time + timedelta(minutes=5, seconds=10),
+    )
+    repository.add_blackboard_post(post2_decision)
+
+    post2_handoff = BlackboardPost(
+        id="bb_graph_demo_2_handoff",
+        task_id=task2.id,
+        post_type=BlackboardPostType.HANDOFF,
+        actor="agent_personal_current",
+        title="交接：Brief 审核给组长",
+        content="Brief 初稿已完成，交接给设计组长进行质量审核。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        related_post_id=post2_decision.id,
+        collaboration_stage=CollaborationStage.REVIEW,
+        handoff=StructuredHandoffPacket(
+            goal="审核 Brief 质量与方向",
+            current_result="Brief 初稿已包含爆品直降模块+品类推荐位",
+            done_when="组长确认 Brief 方向无误",
+            next_owner_agent_id="agent_personal_lead",
+        ),
+        created_at=base_time + timedelta(minutes=6),
+    )
+    repository.add_blackboard_post(post2_handoff)
+
+    post2_evidence = BlackboardPost(
+        id="bb_graph_demo_2_evi",
+        task_id=task2.id,
+        post_type=BlackboardPostType.EVIDENCE,
+        actor="agent_personal_lead",
+        title="审核通过：Brief 方向确认",
+        content="组长确认 Brief 方向合理，建议补充预算约束说明。已批准进入执行阶段。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        related_post_id=post2_handoff.id,
+        collaboration_stage=CollaborationStage.COMPLETED,
+        created_at=base_time + timedelta(minutes=8),
+    )
+    repository.add_blackboard_post(post2_evidence)
+
+    post2_memory = BlackboardPost(
+        id="bb_graph_demo_2_mem",
+        task_id=task2.id,
+        post_type=BlackboardPostType.MEMORY_CANDIDATE,
+        actor="agent_personal_current",
+        title="记忆候选：首屏改版 Brief 经验",
+        content="618 首屏改版 Brief 生成流程：经验查询→风险评估→初稿→组长审核→批准。该流程耗时约 8 分钟。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        related_post_id=post2_evidence.id,
+        collaboration_stage=CollaborationStage.COMPLETED,
+        created_at=base_time + timedelta(minutes=9),
+    )
+    repository.add_blackboard_post(post2_memory)
+
+    # --- Task 3: ongoing task with blocked state ---
+    task3 = Task(
+        id="task_graph_demo_3",
+        thread_id=thread.id,
+        intent=Intent.ASK_MEMORY,
+        status=TaskStatus.WAITING_EXTERNAL_AGENT,
+        collaboration_stage=CollaborationStage.BLOCKED,
+        current_owner_agent_id="agent_research",
+        title="查询竞品首屏布局方案",
+        steps=["memory_searched", "external_research_requested"],
+        created_at=base_time + timedelta(minutes=15),
+    )
+    repository.save_task(task3)
+
+    post3_request = BlackboardPost(
+        id="bb_graph_demo_3_req",
+        task_id=task3.id,
+        post_type=BlackboardPostType.REQUEST,
+        actor="agent_personal_current",
+        title="请求：竞品首屏布局数据",
+        content="需要外部 Agent 提供天猫、苏宁等竞品 618 首屏布局方案对比分析。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        collaboration_stage=CollaborationStage.EXECUTION,
+        current_owner_agent_id="agent_research",
+        handoff=StructuredHandoffPacket(
+            goal="收集竞品首屏布局方案",
+            current_result="暂无竞品数据",
+            done_when="提供至少 3 个竞品首屏布局方案对比",
+            next_owner_agent_id="agent_research",
+        ),
+        created_at=base_time + timedelta(minutes=15, seconds=5),
+    )
+    repository.add_blackboard_post(post3_request)
+
+    post3_correction = BlackboardPost(
+        id="bb_graph_demo_3_cor",
+        task_id=task3.id,
+        post_type=BlackboardPostType.CORRECTION,
+        actor="agent_risk_scanner",
+        title="修正：需补充竞品时间范围",
+        content="请求未指定时间范围，建议明确为 2025-2026 年竞品数据，避免获取过旧信息。",
+        scope=Scope.PROJECT,
+        permission="project_visible",
+        related_post_id=post3_request.id,
+        collaboration_stage=CollaborationStage.BLOCKED,
+        created_at=base_time + timedelta(minutes=16),
+    )
+    repository.add_blackboard_post(post3_correction)

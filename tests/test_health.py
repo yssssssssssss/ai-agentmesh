@@ -67,6 +67,8 @@ class TestProviderHealthCheck:
             "AGENTMESH_LLM_BASE_URL": "https://api.example.com/v1",
             "AGENTMESH_LLM_API_KEY": "sk-test-key",
             "AGENTMESH_LLM_MODEL": "gpt-4",
+            "AGENTMESH_CHAT_LLM_TIMEOUT_SECONDS": "2.5",
+            "AGENTMESH_LLM_CONNECT_TIMEOUT_SECONDS": "1.5",
         }
         with patch.dict("os.environ", env):
             response = auth_client.get("/api/health/providers")
@@ -75,6 +77,8 @@ class TestProviderHealthCheck:
         assert llm["status"] == "configured"
         assert llm["base_url"] == "https://api.example.com/v1"
         assert llm["model"] == "gpt-4"
+        assert llm["timeouts"]["chat_timeout_seconds"] == 2.5
+        assert llm["timeouts"]["connect_timeout_seconds"] == 1.5
 
     def test_ai_api_responses_configured(self, auth_client: TestClient):
         """兼容 AI_* Responses API 配置。"""

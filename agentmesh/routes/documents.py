@@ -5,7 +5,16 @@ from __future__ import annotations
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Response, UploadFile
 
 from agentmesh.documents import CompositeDocumentParser, DocumentIngestionRequest, UnsupportedDocumentTypeError
-from agentmesh.models import DocumentParseJob, DocumentRecord, MemoryLayer, User, UserMemoryItem, UserRole, now_utc
+from agentmesh.models import (
+    DocumentParseJob,
+    DocumentRecord,
+    DocumentUpdateRequest,
+    MemoryLayer,
+    User,
+    UserMemoryItem,
+    UserRole,
+    now_utc,
+)
 from agentmesh.routes.deps import current_user
 from agentmesh.seed import PROJECT, WORKSPACE
 from agentmesh.store import store
@@ -138,6 +147,19 @@ def document_detail(document_id: str, _: User = Depends(current_user)) -> dict[s
     if document is None:
         raise HTTPException(status_code=404, detail="Document not found")
     return {"item": document}
+
+
+@router.patch("/{document_id}")
+def update_document(document_id: str, request: DocumentUpdateRequest, user: User = Depends(current_user)) -> dict[str, object]:
+    document = store.get_document(document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if user.role != UserRole.ADMIN and document.uploaded_by != user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to update this document")
+    document.text = request.text
+    document.metadata["edited_by"] = user.id
+    document.metadata["edited_at"] = now_utc().isoformat()
+    return {"item": store.save_document(document)}
 
 
 def summarize_document_text(text: str) -> str:

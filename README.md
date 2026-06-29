@@ -8,7 +8,7 @@ The first implementation slice proves:
 
 1. A user sends a chat message.
 2. The backend stores the message.
-3. A personal Agent classifies intent.
+3. Natural chat stays private, while explicit `$` skills start workflows.
 4. The backend creates a task.
 5. The task creates an internal blackboard request.
 6. A mock research Agent returns evidence.
@@ -31,6 +31,9 @@ The first implementation slice proves:
 23. Risk review uses persisted policy rules for prompt-injection, source policy, approval, and high-risk tool signals; admins can manage rules from the Members page.
 24. `data_agent` has a connector registry with a local metrics connector and can answer chat-triggered metric queries.
 25. `research_agent` can use a Web acquisition provider when `AGENTMESH_WEB_PROVIDER` is configured.
+26. Chat exposes an explicit `$` skill menu for memory search, Brief creation, private notes, external research, data queries, risk review, memory proposals, and system/model info.
+27. Brief drafts can be confirmed from Inbox and turned into sourced team memory candidates.
+28. Blackboard evidence, decisions, digests, archives, and memory-candidate posts can be promoted into governed team memory candidates.
 
 ## Run Locally
 
@@ -48,6 +51,24 @@ Start the app:
 ```
 
 Port `8000` is intentionally avoided because it may already be used by another local backend.
+If `8010` is already in use, first check whether AgentMesh is already running:
+
+```bash
+lsof -nP -iTCP:8010 -sTCP:LISTEN
+curl http://127.0.0.1:8010/api/health
+```
+
+If the listener is an old AgentMesh process, stop that process before starting a new reloader:
+
+```bash
+kill <PID>
+```
+
+Or start this instance on another port:
+
+```bash
+.venv/bin/uvicorn agentmesh.app:app --reload --port 8011
+```
 
 Open:
 
@@ -56,6 +77,7 @@ http://127.0.0.1:8010/app.html
 ```
 
 The app UI shows a local login panel when no session exists. Use the seeded development accounts below.
+Fill the login field with the account ID on the left, not the Chinese display name.
 
 Development accounts:
 
@@ -166,13 +188,29 @@ export AGENTMESH_O2_DATA_ENABLED=true
 export AGENTMESH_O2_DATA_CLI=metasearch
 ```
 
-Built-in Oxygen command contracts:
+Built-in Oxygen command contracts (verified against the working DesignOS connector):
 
-- Research through `metasearch`: `o2 launch metasearch --json search <query> --token-env JD_METASEARCH_ACCESS_TOKEN --output json`
-- Research through `o2-kb`: `o2 launch o2-kb recall list <query> --json`, with optional `AGENTMESH_O2_KB_RECALL_TOKEN` and `AGENTMESH_O2_KB_FOLDER_TO_APP`.
+AgentMesh prefers the standalone sub-CLI binary when it is on `PATH` and falls back to the `o2 launch <cli>` main entry only when no standalone binary is found. Authentication is handled by each CLI's own login state on the host machine; AgentMesh does not inject an access token via an environment variable.
+
+- Research through `metasearch`:
+  - Standalone (preferred): `oxygen-metasearch --json search --output json --endpoint <AGENTMESH_O2_METASEARCH_ENDPOINT> <query>`
+  - `o2` fallback: `o2 launch metasearch search <query> --endpoint <AGENTMESH_O2_METASEARCH_ENDPOINT> --output json`
+  - The endpoint defaults to `https://agentkits-a2a-gateway.jd.com/agents/sku-search`.
+- Research through `o2-kb`:
+  - Standalone (preferred): `o2-kb recall list --json <query>`
+  - `o2` fallback: `o2 launch o2-kb recall list <query> --json`
+  - Optional `AGENTMESH_O2_KB_RECALL_TOKEN` and `AGENTMESH_O2_KB_FOLDER_TO_APP` are appended only when set.
 - Data through `metasearch`: same read-only search contract as research.
-- Data through `oxygen-comment`: `o2 launch oxygen-comment --json [--dry-run] comment list --page-size <limit> ...`
+- Data through `oxygen-comment`:
+  - Standalone (preferred): `oxygen-comment comment list --json --page-size <limit> [--sku-name <q> | --sku-ids <ids> | ...]`
+  - `o2` fallback: `o2 launch oxygen-comment --json comment list --page-size <limit> ...`
 - Data through `bdp-copilot`: `o2 launch bdp-copilot --json-output find-tables <query>`
+
+Override the metasearch gateway endpoint with:
+
+```bash
+export AGENTMESH_O2_METASEARCH_ENDPOINT=https://agentkits-a2a-gateway.jd.com/agents/sku-search
+```
 
 If an approved CLI uses a different shape, override it with:
 
@@ -185,8 +223,8 @@ The Oxygen data connector is read-only in this slice. Write actions such as uplo
 
 Known runtime prerequisites:
 
-- `metasearch` needs `JD_METASEARCH_ACCESS_TOKEN`.
-- `o2-kb` must be initialized by `o2-kb init` before its config commands work.
+- The standalone sub-CLIs (`oxygen-metasearch`, `o2-kb`, `oxygen-comment`) must be installed and logged in on the host where AgentMesh runs. Auth is not injected by AgentMesh.
+- `o2-kb` must be initialized by `o2-kb init` before its recall/config commands work.
 - `webcli`/browser-backed CLIs need the Browser Bridge daemon and extension connected.
 - `bdp-copilot` execution still depends on the user's internal runtime and auth context.
 
@@ -208,6 +246,16 @@ export AGENTMESH_LLM_MODEL=GPT-5.5
 export AGENTMESH_LLM_API_KEY=your-api-key
 .venv/bin/uvicorn agentmesh.app:app --port 8010
 ```
+
+Chat uses a shorter model timeout than background memory jobs so the workspace stays responsive:
+
+```bash
+export AGENTMESH_CHAT_LLM_TIMEOUT_SECONDS=2.5
+export AGENTMESH_LLM_TIMEOUT_SECONDS=30
+export AGENTMESH_LLM_CONNECT_TIMEOUT_SECONDS=5
+```
+
+If the chat model times out, AgentMesh returns the deterministic local answer and records the reason in `workflow_trace.fallback_reason`.
 
 Additional selectable models use `AGENTMESH_MODELS` plus per-model variables:
 

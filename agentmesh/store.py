@@ -353,6 +353,10 @@ class SQLiteStore:
         self._upsert("documents", document)
         return document
 
+    def save_document(self, document: DocumentRecord) -> DocumentRecord:
+        self._upsert("documents", document)
+        return document
+
     def save_document_parse_job(self, job: DocumentParseJob) -> DocumentParseJob:
         self._upsert("document_parse_jobs", job)
         return job

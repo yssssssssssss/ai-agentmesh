@@ -18,9 +18,45 @@ from agentmesh.web_research import WebSearchProvider, WebSearchResult
 
 READ_ONLY_O2_OPERATIONS = {"search", "query", "list", "find-tables", "schema", "describe"}
 
+# Verified against the working DesignOS Oxygen connector
+# (designOS/backend/src/services/oxygenConnector.ts). The metasearch sub-CLI
+# requires an explicit gateway endpoint and authenticates through the locally
+# installed CLI's own login state, not a token environment variable.
+DEFAULT_METASEARCH_ENDPOINT = "https://agentkits-a2a-gateway.jd.com/agents/sku-search"
+
+# Maps the logical capability name to the standalone sub-CLI binary that
+# DesignOS verified on a real machine. When the standalone binary is present we
+# call it directly; otherwise we fall back to the `o2 launch <cli>` main entry.
+STANDALONE_O2_BINARIES = {
+    "metasearch": "oxygen-metasearch",
+    "oxygen-metasearch": "oxygen-metasearch",
+    "o2-kb": "o2-kb",
+    "oxygen-comment": "oxygen-comment",
+    "bdp-copilot": "bdp-copilot",
+}
+
 
 def env_flag(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def metasearch_endpoint() -> str:
+    return os.getenv("AGENTMESH_O2_METASEARCH_ENDPOINT", "").strip() or DEFAULT_METASEARCH_ENDPOINT
+
+
+def _standalone_binary_for(cli_name: str) -> str | None:
+    binary = STANDALONE_O2_BINARIES.get(cli_name)
+    if binary and shutil.which(binary):
+        return binary
+    return None
+
+
+def _runner_for_cli(cli_name: str, fallback: O2CommandRunner | None = None) -> O2CommandRunner:
+    """Prefer the verified standalone sub-CLI binary; fall back to the o2 main entry."""
+    standalone = _standalone_binary_for(cli_name)
+    if standalone is not None:
+        return O2CommandRunner(binary=standalone)
+    return fallback or O2CommandRunner()
 
 
 def normalize_tool_id(value: str) -> str:
@@ -161,10 +197,13 @@ class O2ResearchProvider(WebSearchProvider):
         runner: O2CommandRunner | None = None,
         command_template: str | None = None,
         cli_name: str | None = None,
+        endpoint: str | None = None,
     ):
-        self.runner = runner or O2CommandRunner()
         self.command_template = command_template or os.getenv("AGENTMESH_O2_RESEARCH_COMMAND_TEMPLATE")
         self.cli_name = cli_name or os.getenv("AGENTMESH_O2_RESEARCH_CLI", "metasearch")
+        self.endpoint = endpoint or metasearch_endpoint()
+        # When no runner is injected, prefer the verified standalone sub-CLI binary.
+        self.runner = runner or _runner_for_cli(self.cli_name)
 
     def search(self, query: str, limit: int = 3) -> list[WebSearchResult]:
         argv = self._argv(query, limit)
@@ -177,27 +216,24 @@ class O2ResearchProvider(WebSearchProvider):
                 query=shlex.quote(query), limit=str(limit), cli=shlex.quote(self.cli_name)
             )
             return shlex.split(rendered)
-        if self.cli_name == "metasearch":
-            return [
-                "launch",
-                "metasearch",
-                "--json",
-                "search",
-                query,
-                "--token-env",
-                "JD_METASEARCH_ACCESS_TOKEN",
-                "--output",
-                "json",
-            ]
+        if self.cli_name in {"metasearch", "oxygen-metasearch"}:
+            if self.runner.binary == "oxygen-metasearch":
+                # Verified DesignOS standalone form.
+                return ["--json", "search", "--output", "json", "--endpoint", self.endpoint, query]
+            # o2 main-entry fallback (also verified, no token-env required).
+            return ["launch", "metasearch", "search", query, "--endpoint", self.endpoint, "--output", "json"]
         if self.cli_name == "o2-kb":
             token = os.getenv("AGENTMESH_O2_KB_RECALL_TOKEN", "")
             app = os.getenv("AGENTMESH_O2_KB_FOLDER_TO_APP", "")
-            argv = ["launch", "o2-kb", "recall", "list", query]
+            if self.runner.binary == "o2-kb":
+                # Verified DesignOS standalone form: `o2-kb recall list --json <query>`.
+                argv = ["recall", "list", "--json", query]
+            else:
+                argv = ["launch", "o2-kb", "recall", "list", query, "--json"]
             if token:
                 argv.extend(["--token", token])
             if app:
                 argv.extend(["--folder-to-app", app])
-            argv.append("--json")
             return argv
         return ["launch", self.cli_name, "search", query, "--limit", str(limit), "--json"]
 
@@ -210,10 +246,13 @@ class O2DataSourceConnector(DataSourceConnector):
         runner: O2CommandRunner | None = None,
         command_template: str | None = None,
         cli_name: str | None = None,
+        endpoint: str | None = None,
     ):
-        self.runner = runner or O2CommandRunner()
         self.command_template = command_template or os.getenv("AGENTMESH_O2_DATA_COMMAND_TEMPLATE")
         self.cli_name = cli_name or os.getenv("AGENTMESH_O2_DATA_CLI", "metasearch")
+        self.endpoint = endpoint or metasearch_endpoint()
+        # When no runner is injected, prefer the verified standalone sub-CLI binary.
+        self.runner = runner or _runner_for_cli(self.cli_name)
 
     def query(self, query: DataSourceQuery) -> DataSourceResult:
         if query.operation.lower() not in READ_ONLY_O2_OPERATIONS:
@@ -247,26 +286,23 @@ class O2DataSourceConnector(DataSourceConnector):
                 operation=shlex.quote(query.operation),
             )
             return shlex.split(rendered)
-        if self.cli_name == "metasearch":
-            return [
-                "launch",
-                "metasearch",
-                "--json",
-                "search",
-                keyword,
-                "--token-env",
-                "JD_METASEARCH_ACCESS_TOKEN",
-                "--output",
-                "json",
-            ]
+        if self.cli_name in {"metasearch", "oxygen-metasearch"}:
+            if self.runner.binary == "oxygen-metasearch":
+                # Verified DesignOS standalone form.
+                return ["--json", "search", "--output", "json", "--endpoint", self.endpoint, keyword]
+            # o2 main-entry fallback (also verified, no token-env required).
+            return ["launch", "metasearch", "search", keyword, "--endpoint", self.endpoint, "--output", "json"]
         if self.cli_name == "oxygen-comment":
-            argv = ["launch", "oxygen-comment", "--json"]
+            standalone = self.runner.binary == "oxygen-comment"
+            argv = [] if standalone else ["launch", "oxygen-comment"]
+            argv.append("--json")
             if query.parameters.get("dry_run"):
                 argv.append("--dry-run")
             argv.extend(["comment", "list", "--page-size", limit])
             for parameter, flag in (
                 ("comment_level", "--comment-level"),
                 ("sku_ids", "--sku-ids"),
+                ("sku_name", "--sku-name"),
                 ("content", "--content"),
                 ("begin_time", "--begin-time"),
                 ("end_time", "--end-time"),
@@ -275,6 +311,10 @@ class O2DataSourceConnector(DataSourceConnector):
                 value = query.parameters.get(parameter)
                 if value is not None and value != "":
                     argv.extend([flag, str(value)])
+            # Fall back to an explicit keyword as a SKU name when no SKU filter is given.
+            explicit_keyword = query.parameters.get("keyword") or query.parameters.get("query")
+            if not query.parameters.get("sku_ids") and not query.parameters.get("sku_name") and explicit_keyword:
+                argv.extend(["--sku-name", str(explicit_keyword)])
             return argv
         if self.cli_name == "bdp-copilot":
             return ["launch", "bdp-copilot", "--json-output", "find-tables", keyword]
@@ -399,7 +439,10 @@ def _registry_login_check(runner: O2CommandRunner) -> dict[str, Any]:
 
 def _metasearch_token_check(runner: O2CommandRunner) -> dict[str, Any]:
     try:
-        payload = runner.run_json("launch", "metasearch", "--json", "doctor")
+        if shutil.which("oxygen-metasearch"):
+            payload = O2CommandRunner(binary="oxygen-metasearch").run_json("--json", "doctor")
+        else:
+            payload = runner.run_json("launch", "metasearch", "--json", "doctor")
     except Exception as error:
         return _setup_check("metasearch_token", "metasearch token", "needs_config", str(error))
     data = payload.get("data", {}) if isinstance(payload, dict) else {}
@@ -410,7 +453,7 @@ def _metasearch_token_check(runner: O2CommandRunner) -> dict[str, Any]:
         "ready" if token_available else "needs_config",
         "metasearch token is available"
         if token_available
-        else "Run `o2 launch metasearch auth-url` and `o2 launch metasearch login`",
+        else "Run `oxygen-metasearch login` (or `o2 launch metasearch login`) to authenticate the CLI",
     )
 
 

@@ -16,26 +16,26 @@ def test_compute_mvp_metrics_reports_quality_and_latency() -> None:
             "id": "s1",
             "passed": True,
             "duration_ms": 100,
-            "checks": {"intent_correct": True, "has_source": True},
+            "checks": {"workflow_correct": True, "has_source": True},
         },
         {
             "id": "s2",
             "passed": True,
             "duration_ms": 300,
-            "checks": {"intent_correct": True, "has_memory_candidate": True},
+            "checks": {"workflow_correct": True, "has_memory_candidate": True},
         },
         {
             "id": "s3",
             "passed": False,
             "duration_ms": 900,
-            "checks": {"intent_correct": False},
+            "checks": {"workflow_correct": False},
         },
     ]
 
     payload = compute_mvp_metrics(results, scenarios)
 
     assert payload["metrics"]["scenario_pass_rate"] == 0.6667
-    assert payload["metrics"]["intent_accuracy"] == 0.6667
+    assert payload["metrics"]["workflow_route_accuracy"] == 0.6667
     assert payload["metrics"]["citation_coverage"] == 1.0
     assert payload["metrics"]["time_to_useful_answer_p95_ms"] == 300
     assert payload["metrics"]["workflow_misroute_rate"] == 0.3333

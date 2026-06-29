@@ -7,41 +7,41 @@ SCENARIOS = [
     {
         "id": "find_similar_project_01",
         "category": "find_similar_project",
-        "input": "我们去年有没有做过类似的618大促家电首页改版？",
-        "expected_intent": "request_external_research",
+        "input": "$research.request 我们去年有没有做过类似的618大促家电首页改版？",
+        "expected_workflow": "request_external_research",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": True,
             "has_activity_log": True,
-            "response_mentions_keywords": ["项目", "经验"],
+            "response_mentions_keywords": ["首屏", "复盘"],
             "scope_is_private": True,
         },
-        "description": "用户询问类似项目经验，系统应走 research agent 并返回带引用的回答。",
+        "description": "用户显式调用资料调研，系统应走 research agent 并返回带引用的回答。",
     },
     {
         "id": "find_similar_project_02",
         "category": "find_similar_project",
-        "input": "搜索一下竞品有没有做过沉浸式头图的方案",
-        "expected_intent": "request_external_research",
+        "input": "$research.request 搜索一下竞品有没有做过沉浸式头图的方案",
+        "expected_workflow": "request_external_research",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": True,
             "has_activity_log": True,
-            "response_mentions_keywords": ["竞品"],
+            "response_mentions_keywords": ["沉浸式头图", "复盘"],
             "scope_is_private": True,
         },
-        "description": "用户搜索竞品方案，系统应调用 research agent。",
+        "description": "用户通过 $research.request 搜索竞品方案，系统应调用 research agent。",
     },
     {
         "id": "find_similar_project_03",
         "category": "find_similar_project",
-        "input": "查一下去年双11有没有相似的活动页设计",
-        "expected_intent": "request_external_research",
+        "input": "$research.request 查一下去年双11有没有相似的活动页设计",
+        "expected_workflow": "request_external_research",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": True,
             "has_activity_log": True,
-            "response_mentions_keywords": ["经验", "项目"],
+            "response_mentions_keywords": ["首屏", "复盘"],
             "scope_is_private": True,
         },
         "description": "用户查找相似活动页设计经验。",
@@ -49,8 +49,8 @@ SCENARIOS = [
     {
         "id": "find_similar_project_memory",
         "category": "find_similar_project",
-        "input": "团队记忆里有没有关于首屏转化率的经验？",
-        "expected_intent": "ask_memory",
+        "input": "$memory.search 团队记忆里有没有关于首屏转化率的经验？",
+        "expected_workflow": "ask_memory",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": True,
@@ -64,8 +64,8 @@ SCENARIOS = [
     {
         "id": "generate_brief_01",
         "category": "generate_brief",
-        "input": "帮我生成这个项目的 Brief",
-        "expected_intent": "generate_brief",
+        "input": "$brief.create 帮我生成这个项目的 Brief",
+        "expected_workflow": "generate_brief",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": True,
@@ -79,14 +79,14 @@ SCENARIOS = [
     {
         "id": "generate_brief_02",
         "category": "generate_brief",
-        "input": "根据现有资料写一个启动方案文档",
-        "expected_intent": "generate_brief",
+        "input": "$brief.create 根据现有资料写一个启动方案文档",
+        "expected_workflow": "generate_brief",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": True,
             "has_activity_log": True,
             "has_inbox_item": True,
-            "response_mentions_keywords": ["入口"],
+            "response_mentions_keywords": ["Brief"],
             "scope_is_private": True,
         },
         "description": "用户请求启动方案。",
@@ -94,8 +94,8 @@ SCENARIOS = [
     {
         "id": "generate_brief_03",
         "category": "generate_brief",
-        "input": "用之前的研究结论生成PRD草稿",
-        "expected_intent": "generate_brief",
+        "input": "$brief.create 用之前的研究结论生成PRD草稿",
+        "expected_workflow": "generate_brief",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": True,
@@ -110,8 +110,8 @@ SCENARIOS = [
     {
         "id": "record_work_01",
         "category": "record_work",
-        "input": "记录一下今天的讨论要点",
-        "expected_intent": "record_private_note",
+        "input": "$note.save 记录一下今天的讨论要点",
+        "expected_workflow": "record_private_note",
         "expected_checks": {
             "has_source": False,
             "has_evidence_post": False,
@@ -125,8 +125,8 @@ SCENARIOS = [
     {
         "id": "data_query_01",
         "category": "data_query",
-        "input": "查一下上周首页点击率数据",
-        "expected_intent": "request_data_query",
+        "input": "$data.query 查一下上周首页点击率数据",
+        "expected_workflow": "request_data_query",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": True,
@@ -140,8 +140,8 @@ SCENARIOS = [
     {
         "id": "risk_review_01",
         "category": "risk_review",
-        "input": "检查素材授权风险",
-        "expected_intent": "request_risk_review",
+        "input": "$risk.review 检查素材授权风险",
+        "expected_workflow": "request_risk_review",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": False,
@@ -156,8 +156,8 @@ SCENARIOS = [
     {
         "id": "create_memory_01",
         "category": "create_memory",
-        "input": "把这个方法论沉淀为团队经验",
-        "expected_intent": "create_memory_candidate",
+        "input": "$memory.propose 把这个方法论沉淀为团队经验",
+        "expected_workflow": "create_memory_candidate",
         "expected_checks": {
             "has_source": True,
             "has_evidence_post": True,

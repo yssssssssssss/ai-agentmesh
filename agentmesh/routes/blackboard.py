@@ -22,8 +22,10 @@ from agentmesh.models import (
     ExecutionLockReleaseRequest,
     ItemResponse,
     ItemsResponse,
+    MemoryItem,
     PaginatedResponse,
     Scope,
+    Source,
     StructuredHandoffPacket,
     User,
     UserRole,
@@ -125,6 +127,99 @@ async def stop_auto_post_worker() -> None:
             await auto_post_worker_task
         auto_post_worker_task = None
     auto_post_worker_state["running"] = False
+
+
+# --- Research Dispatch Worker ---
+
+RESEARCH_DISPATCH_WORKER_ENABLED = os.getenv("AGENTMESH_RESEARCH_DISPATCH_WORKER_ENABLED", "").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+RESEARCH_DISPATCH_WORKER_INTERVAL_SECONDS = positive_int_env(
+    "AGENTMESH_RESEARCH_DISPATCH_WORKER_INTERVAL_SECONDS", 30
+)
+research_dispatch_worker_task: asyncio.Task | None = None
+research_dispatch_worker_state: dict[str, object] = {
+    "enabled": RESEARCH_DISPATCH_WORKER_ENABLED,
+    "interval_seconds": RESEARCH_DISPATCH_WORKER_INTERVAL_SECONDS,
+    "running": False,
+    "last_run_at": None,
+    "last_dispatched": 0,
+    "last_error": None,
+}
+
+
+def drain_dispatchable_research_requests(actor: str) -> dict[str, object]:
+    from agentmesh.agents import RequestAlreadyFulfilledError
+    from agentmesh.routes.chat import agent
+
+    dispatched = 0
+    for post in list(store.blackboard_posts):
+        if post.post_type != "request":
+            continue
+        task = store.get_task(post.task_id)
+        if task is None or task.status != "waiting_external_agent":
+            continue
+        if "requested_tool_call_approval" in task.steps:
+            continue
+        thread = store.get_chat_thread(task.thread_id)
+        if thread is None:
+            continue
+        user = store.get_user(thread.user_id)
+        if user is None:
+            continue
+        try:
+            agent.fulfill_research_request(post, user)
+            dispatched += 1
+        except RequestAlreadyFulfilledError:
+            continue
+        except Exception:
+            continue
+
+    if dispatched:
+        store.add_audit_event(
+            create_audit_event(
+                actor,
+                "drain_research_dispatch",
+                "blackboard_research_dispatch",
+                "research_requests",
+                {"dispatched": dispatched},
+            )
+        )
+    return {"dispatched": dispatched}
+
+
+async def research_dispatch_worker_loop() -> None:
+    while True:
+        await asyncio.sleep(RESEARCH_DISPATCH_WORKER_INTERVAL_SECONDS)
+        research_dispatch_worker_state["last_run_at"] = now_utc().isoformat()
+        try:
+            result = drain_dispatchable_research_requests("research_dispatch_worker")
+            research_dispatch_worker_state["last_dispatched"] = result["dispatched"]
+            research_dispatch_worker_state["last_error"] = None
+        except Exception as error:  # pragma: no cover
+            research_dispatch_worker_state["last_error"] = str(error)
+
+
+async def start_research_dispatch_worker() -> None:
+    global research_dispatch_worker_task
+    if RESEARCH_DISPATCH_WORKER_ENABLED and (
+        research_dispatch_worker_task is None or research_dispatch_worker_task.done()
+    ):
+        research_dispatch_worker_task = asyncio.create_task(research_dispatch_worker_loop())
+        research_dispatch_worker_state["running"] = True
+
+
+async def stop_research_dispatch_worker() -> None:
+    global research_dispatch_worker_task
+    if research_dispatch_worker_task is not None:
+        research_dispatch_worker_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await research_dispatch_worker_task
+        research_dispatch_worker_task = None
+    research_dispatch_worker_state["running"] = False
 
 
 def handoff_summary(packet: StructuredHandoffPacket, next_owner_label: str) -> str:
@@ -296,6 +391,104 @@ def post_visible_to_user(post: BlackboardPost, task_posts: list[BlackboardPost],
     )
 
 
+@router.post("/posts/{post_id}/memory-candidate")
+def create_memory_candidate_from_blackboard_post(
+    post_id: str,
+    user: User = Depends(current_user),
+) -> dict[str, object]:
+    post = store.get_blackboard_post(post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Blackboard post not found")
+    task_posts = [item for item in store.blackboard_posts if item.task_id == post.task_id]
+    if not post_visible_to_user(post, task_posts, user):
+        raise HTTPException(status_code=403, detail="Not allowed to use this blackboard post")
+    if post.post_type not in {"evidence", "decision", "digest", "archive", "memory_candidate"}:
+        raise HTTPException(status_code=400, detail="Blackboard post cannot become a memory candidate")
+
+    source = Source(
+        title=post.title,
+        source_type="blackboard_post",
+        reference=f"blackboard://{post.id}",
+    )
+    store.add_source(source)
+    item = store.add_memory_item(
+        MemoryItem(
+            title=f"候选团队记忆：{post.title}",
+            summary=post.content,
+            memory_type="bbs_evidence" if post.post_type == "evidence" else "bbs_decision",
+            scope=Scope.TEAM_CANDIDATE,
+            workspace_id=user.workspace_id,
+            project_id=user.default_project_id,
+            sources=[source, *post.sources],
+            metadata={"blackboard_post_id": post.id, "task_id": post.task_id, "post_type": post.post_type},
+        )
+    )
+    store.add_audit_event(
+        create_audit_event(
+            user.id,
+            "create_memory_candidate_from_blackboard",
+            "blackboard_post",
+            post.id,
+            {"memory_id": item.id},
+        )
+    )
+    return {"item": item, "post": post}
+
+
+@router.post("/posts/{post_id}/dispatch")
+def dispatch_blackboard_request(
+    post_id: str,
+    user: User = Depends(current_user),
+) -> dict[str, object]:
+    from agentmesh.agents import RequestAlreadyFulfilledError
+    from agentmesh.routes.chat import agent
+
+    post = store.get_blackboard_post(post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Blackboard post not found")
+    task_posts = [item for item in store.blackboard_posts if item.task_id == post.task_id]
+    if not post_visible_to_user(post, task_posts, user):
+        raise HTTPException(status_code=403, detail="Not allowed to use this blackboard post")
+    if post.post_type != "request":
+        raise HTTPException(status_code=400, detail="Only request posts can be dispatched")
+
+    task = store.get_task(post.task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Request post has no backing task")
+    if task.status != "waiting_external_agent":
+        raise HTTPException(status_code=409, detail="Request is not awaiting an external agent")
+    if "requested_tool_call_approval" in task.steps:
+        raise HTTPException(status_code=409, detail="Request is gated behind a pending tool approval")
+
+    try:
+        fulfillment = agent.fulfill_research_request(post, user)
+    except RequestAlreadyFulfilledError:
+        raise HTTPException(status_code=409, detail="Request has already been fulfilled")
+
+    store.add_audit_event(
+        create_audit_event(
+            user.id,
+            "dispatch_blackboard_request",
+            "blackboard_post",
+            post.id,
+            {
+                "task_id": task.id,
+                "evidence_post_id": fulfillment.evidence_post.id,
+                "quarantined": fulfillment.quarantined,
+            },
+        )
+    )
+    return {
+        "request_post": fulfillment.request_post,
+        "evidence_post": fulfillment.evidence_post,
+        "task": fulfillment.task,
+        "assistant_message": fulfillment.assistant_message,
+        "activity_logs": fulfillment.activity_logs,
+        "inbox_items": fulfillment.inbox_items,
+        "quarantined": fulfillment.quarantined,
+    }
+
+
 @router.get("/auto-posts", response_model=ItemsResponse)
 def auto_blackboard_posts(_: User = Depends(current_user)) -> ItemsResponse:
     return ItemsResponse(items=list(reversed(store.auto_blackboard_post_requests)))
@@ -324,6 +517,16 @@ def enqueue_auto_blackboard_post(
 @router.post("/auto-posts/drain", response_model=DrainAutoPostsResponse)
 def drain_auto_blackboard_posts_endpoint(_: User = Depends(current_user)) -> DrainAutoPostsResponse:
     return drain_queued_auto_blackboard_posts("manual_drain")
+
+
+@router.get("/research-dispatch/worker")
+def research_dispatch_worker_status(_: User = Depends(current_user)) -> dict[str, object]:
+    return research_dispatch_worker_state
+
+
+@router.post("/research-dispatch/drain")
+def drain_research_dispatch_endpoint(_: User = Depends(current_user)) -> dict[str, object]:
+    return drain_dispatchable_research_requests("manual_drain")
 
 
 @router.post("/auto-posts/{request_id}/review", response_model=ItemResponse)

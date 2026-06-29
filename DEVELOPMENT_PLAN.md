@@ -25,8 +25,8 @@ The core user-facing promise is:
 Build a working vertical slice:
 
 1. User chats with their personal Agent.
-2. The personal Agent classifies intent and creates a task.
-3. If information is missing, the task creates an internal blackboard request.
+2. Natural chat stays private, while explicit `$` skills create tasks.
+3. If memory is insufficient or a skill needs collaboration, the task creates an internal blackboard request.
 4. A mock service Agent responds with evidence.
 5. The result is returned to the user in chat.
 6. The user's Agent records a daily activity log.
@@ -133,7 +133,8 @@ Responsibilities:
 Responsibilities:
 
 - Receive user chat input.
-- Classify user intent.
+- Parse explicit `$` skill commands.
+- Keep natural chat private and create tasks only for explicit skills.
 - Decide whether to answer directly, search memory, or create a task.
 - Maintain private user context.
 - Produce daily personal activity summaries.
@@ -313,7 +314,7 @@ Deliverables:
 
 Deliverables:
 
-- Personal Agent intent classifier.
+- Personal Agent explicit `$` skill router.
 - Task Router.
 - mock_research_agent.
 - request -> evidence -> chat response loop.
@@ -365,7 +366,7 @@ Build only this:
 
 1. Chat UI.
 2. `POST /api/chat/messages`.
-3. Personal Agent mock intent classifier.
+3. Personal Agent explicit `$` skill router.
 4. Task record creation.
 5. Internal blackboard request creation.
 6. mock_research_agent evidence response.

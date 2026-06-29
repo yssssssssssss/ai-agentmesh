@@ -5,7 +5,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from agentmesh.agents import PersonalAgent
-from agentmesh.models import ChatRequest, ChatResponse, ChatThread, ChatThreadCreateRequest, User
+from agentmesh.chat_skills import list_chat_skills
+from agentmesh.models import ChatRequest, ChatResponse, ChatThread, ChatThreadCreateRequest, ItemsResponse, User
 from agentmesh.o2 import build_acquisition_agent
 from agentmesh.routes.deps import current_user
 from agentmesh.seed import PROJECT, WORKSPACE
@@ -27,6 +28,11 @@ def create_chat_thread(request: ChatThreadCreateRequest, user: User = Depends(cu
         )
     )
     return {"thread": thread}
+
+
+@router.get("/skills", response_model=ItemsResponse)
+def chat_skills(_: User = Depends(current_user)) -> ItemsResponse:
+    return ItemsResponse(items=list_chat_skills())
 
 
 @router.post("/messages", response_model=ChatResponse)

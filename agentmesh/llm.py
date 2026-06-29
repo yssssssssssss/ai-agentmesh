@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import httpx
 
 from agentmesh.models import ModelDefinition
 
 DEFAULT_MODEL_ID = "default"
+DEFAULT_LLM_TIMEOUT_SECONDS = 30.0
+DEFAULT_LLM_CONNECT_TIMEOUT_SECONDS = 5.0
+DEFAULT_CHAT_LLM_TIMEOUT_SECONDS = 2.5
 
 
 class LLMClient:
@@ -17,19 +21,25 @@ class LLMClient:
         model: str,
         api_style: str = "chat_completions",
         http_client: httpx.Client | None = None,
+        timeout_seconds: float | None = None,
+        connect_timeout_seconds: float | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.api_style = api_style
-        self.http_client = http_client or httpx.Client(timeout=30)
+        self.timeout_seconds = timeout_seconds if timeout_seconds is not None else llm_timeout_seconds()
+        self.connect_timeout_seconds = (
+            connect_timeout_seconds if connect_timeout_seconds is not None else llm_connect_timeout_seconds()
+        )
+        self.http_client = http_client or httpx.Client(timeout=self._httpx_timeout())
 
     @classmethod
-    def from_env(cls) -> LLMClient | None:
-        return cls.from_model_id(os.getenv("AGENTMESH_MODEL_DEFAULT") or DEFAULT_MODEL_ID)
+    def from_env(cls, *, timeout_seconds: float | None = None) -> LLMClient | None:
+        return cls.from_model_id(os.getenv("AGENTMESH_MODEL_DEFAULT") or DEFAULT_MODEL_ID, timeout_seconds=timeout_seconds)
 
     @classmethod
-    def from_model_id(cls, model_id: str | None) -> LLMClient | None:
+    def from_model_id(cls, model_id: str | None, *, timeout_seconds: float | None = None) -> LLMClient | None:
         config = model_config_from_env(model_id)
         if config is None or not config["api_key"]:
             return None
@@ -38,14 +48,28 @@ class LLMClient:
             api_key=config["api_key"],
             model=config["model_name"],
             api_style=config.get("api_style", "chat_completions"),
+            timeout_seconds=timeout_seconds,
         )
 
+    def _httpx_timeout(self) -> httpx.Timeout:
+        connect = min(self.connect_timeout_seconds, self.timeout_seconds)
+        return httpx.Timeout(self.timeout_seconds, connect=connect)
+
     def complete(self, system_prompt: str, user_prompt: str) -> str:
-        if self.api_style == "gemini_contents":
-            return self._complete_with_gemini_contents(system_prompt, user_prompt)
-        if self.api_style == "responses":
-            return self._complete_with_responses_api(system_prompt, user_prompt)
-        return self._complete_with_chat_completions(system_prompt, user_prompt)
+        try:
+            if self.api_style == "gemini_contents":
+                return self._complete_with_gemini_contents(system_prompt, user_prompt)
+            if self.api_style == "responses":
+                return self._complete_with_responses_api(system_prompt, user_prompt)
+            return self._complete_with_chat_completions(system_prompt, user_prompt)
+        except httpx.TimeoutException as error:
+            raise LLMRequestError("timeout", f"LLM request timed out after {self.timeout_seconds:g}s") from error
+        except httpx.HTTPStatusError as error:
+            raise LLMRequestError("http_status", f"LLM service returned HTTP {error.response.status_code}") from error
+        except httpx.RequestError as error:
+            raise LLMRequestError("request_error", "LLM request failed before receiving a response") from error
+        except (KeyError, TypeError, ValueError) as error:
+            raise LLMRequestError("invalid_response", "LLM response payload could not be parsed") from error
 
     def _complete_with_chat_completions(self, system_prompt: str, user_prompt: str) -> str:
         response = self.http_client.post(
@@ -128,6 +152,43 @@ def model_config_from_env(model_id: str | None) -> dict[str, str] | None:
         "model_name": model,
         "api_style": api_style,
     }
+
+
+class LLMRequestError(RuntimeError):
+    def __init__(self, reason: str, message: str):
+        super().__init__(message)
+        self.reason = reason
+
+
+def llm_timeout_seconds() -> float:
+    return _positive_float_env("AGENTMESH_LLM_TIMEOUT_SECONDS", DEFAULT_LLM_TIMEOUT_SECONDS)
+
+
+def llm_chat_timeout_seconds() -> float:
+    return _positive_float_env("AGENTMESH_CHAT_LLM_TIMEOUT_SECONDS", DEFAULT_CHAT_LLM_TIMEOUT_SECONDS)
+
+
+def llm_connect_timeout_seconds() -> float:
+    return _positive_float_env("AGENTMESH_LLM_CONNECT_TIMEOUT_SECONDS", DEFAULT_LLM_CONNECT_TIMEOUT_SECONDS)
+
+
+def llm_timeout_config() -> dict[str, Any]:
+    return {
+        "timeout_seconds": llm_timeout_seconds(),
+        "chat_timeout_seconds": llm_chat_timeout_seconds(),
+        "connect_timeout_seconds": llm_connect_timeout_seconds(),
+    }
+
+
+def _positive_float_env(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        value = float(raw)
+    except ValueError:
+        return default
+    return value if value > 0 else default
 
 
 def list_model_definitions_from_env() -> list[ModelDefinition]:

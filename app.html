@@ -643,6 +643,48 @@
         display: none;
       }
 
+      .composer-meta.is-active {
+        width: min(980px, 100%);
+        display: flex;
+        justify-content: flex-start;
+        margin: 0 auto 8px;
+      }
+
+      .skill-reference {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 28px;
+        padding: 0 8px 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .skill-reference strong {
+        color: var(--text);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .skill-reference button {
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--quiet);
+        cursor: pointer;
+      }
+
+      .skill-reference button:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
       .panel {
         border: 1px solid var(--line);
         border-radius: var(--radius);
@@ -949,6 +991,11 @@
         border-color: var(--green);
         background: var(--green);
         color: #fff;
+      }
+
+      .small-action.danger {
+        border-color: var(--red);
+        color: var(--red);
       }
 
       .right {
@@ -1642,6 +1689,162 @@
         text-align: center;
       }
 
+      .graph-swimlane {
+        margin-bottom: 24px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.02);
+        overflow: hidden;
+      }
+
+      .graph-swimlane-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .graph-swimlane-body {
+        position: relative;
+        overflow-x: auto;
+      }
+
+      .graph-lane {
+        display: flex;
+        align-items: stretch;
+        min-height: 64px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .graph-lane:last-child { border-bottom: none; }
+
+      .graph-lane-label {
+        flex: 0 0 120px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-right: 1px solid var(--line);
+        font-size: 11px;
+        color: var(--quiet);
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .graph-lane-label .avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        flex-shrink: 0;
+      }
+
+      .graph-lane-track {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        padding: 8px 16px;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .graph-node {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        white-space: nowrap;
+        cursor: default;
+        border: 2px solid;
+        background: rgba(0, 0, 0, 0.3);
+      }
+
+      .graph-node[data-type="request"] { border-color: #f5a623; color: #f5a623; }
+      .graph-node[data-type="evidence"] { border-color: #4ecdc4; color: #4ecdc4; }
+      .graph-node[data-type="risk"] { border-color: #ff6b6b; color: #ff6b6b; }
+      .graph-node[data-type="decision"] { border-color: #5b9bd5; color: #5b9bd5; }
+      .graph-node[data-type="handoff"] { border-color: #c084fc; color: #c084fc; }
+      .graph-node[data-type="digest"] { border-color: #7ed957; color: #7ed957; }
+      .graph-node[data-type="memory_candidate"] { border-color: #facc15; color: #facc15; }
+      .graph-node[data-type="correction"] { border-color: #fb923c; color: #fb923c; }
+      .graph-node[data-type="archive"] { border-color: #94a3b8; color: #94a3b8; }
+
+      .graph-node-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        flex-shrink: 0;
+      }
+
+      .graph-svg-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: visible;
+      }
+
+      .graph-svg-overlay path {
+        fill: none;
+        stroke-width: 2;
+        opacity: 0.6;
+      }
+
+      .graph-svg-overlay .arrow-head {
+        fill: currentColor;
+        opacity: 0.6;
+      }
+
+      .graph-timeline {
+        overflow-x: auto;
+      }
+
+      .graph-timeline-header {
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+      }
+
+      .graph-timeline-actor {
+        flex: 1;
+        min-width: 100px;
+        text-align: center;
+        font-size: 11px;
+        color: var(--quiet);
+      }
+
+      .graph-timeline-row {
+        display: flex;
+        gap: 0;
+        min-height: 44px;
+      }
+
+      .graph-timeline-cell {
+        flex: 1;
+        min-width: 100px;
+        padding: 6px 8px;
+        border-left: 3px solid transparent;
+        font-size: 11px;
+      }
+
+      .graph-timeline-cell.active {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px;
+      }
+
       @media (max-width: 720px) {
         .bbs-thread {
           grid-template-columns: 1fr;
@@ -1982,6 +2185,58 @@
         line-height: 1.72;
       }
 
+      .message.thinking .bubble {
+        border: 0;
+        background: transparent;
+      }
+
+      .thinking-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: rgba(255, 255, 255, 0.66);
+        font-size: 14px;
+      }
+
+      .thinking-dots {
+        display: inline-flex;
+        gap: 4px;
+      }
+
+      .thinking-dots i {
+        width: 5px;
+        height: 5px;
+        border-radius: 999px;
+        background: var(--green);
+        animation: thinkingPulse 900ms ease-in-out infinite;
+      }
+
+      .thinking-dots i:nth-child(2) {
+        animation-delay: 120ms;
+      }
+
+      .thinking-dots i:nth-child(3) {
+        animation-delay: 240ms;
+      }
+
+      .send-button:disabled {
+        cursor: progress;
+        opacity: 0.62;
+      }
+
+      @keyframes thinkingPulse {
+        0%,
+        80%,
+        100% {
+          opacity: 0.34;
+          transform: translateY(0);
+        }
+        40% {
+          opacity: 1;
+          transform: translateY(-2px);
+        }
+      }
+
       .cite,
       .source-pill {
         background: rgba(215, 196, 255, 0.13);
@@ -2021,6 +2276,136 @@
         left: var(--sidebar);
         padding: 24px max(64px, 10vw) 28px;
         background: linear-gradient(180deg, rgba(12, 12, 13, 0), #0c0c0d 38%);
+      }
+
+      .skill-menu {
+        width: min(980px, 100%);
+        max-height: 310px;
+        margin: 0 auto 10px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        background: rgba(28, 28, 27, 0.96);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+        backdrop-filter: blur(18px);
+        pointer-events: auto;
+      }
+
+      .skill-menu-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px 8px;
+        color: rgba(255, 255, 255, 0.52);
+        font-size: 12px;
+      }
+
+      .skill-menu-list {
+        display: grid;
+        gap: 2px;
+        padding: 0 8px 8px;
+      }
+
+      .skill-menu-item {
+        display: grid;
+        grid-template-columns: minmax(140px, 190px) minmax(0, 1fr);
+        gap: 14px;
+        width: 100%;
+        padding: 11px 10px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .skill-menu-item:hover,
+      .skill-menu-item.is-active {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .skill-command {
+        color: var(--green);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .skill-copy strong {
+        display: block;
+        font-size: 13px;
+        font-weight: 680;
+      }
+
+      .skill-copy span {
+        display: block;
+        margin-top: 2px;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+      }
+
+      .document-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .document-modal.view-hidden {
+        display: none;
+      }
+
+      .document-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.56);
+        backdrop-filter: blur(10px);
+      }
+
+      .document-modal-panel {
+        position: relative;
+        width: min(860px, 100%);
+        max-height: min(760px, calc(100vh - 48px));
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        box-shadow: 0 24px 90px rgba(0, 0, 0, 0.48);
+      }
+
+      .document-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .document-modal-head h2 {
+        margin: 3px 0 0;
+        color: var(--text);
+        font-size: 20px;
+      }
+
+      .document-modal-body {
+        margin: 0;
+        padding: 20px;
+        overflow: auto;
+        border: 0;
+        outline: none;
+        resize: none;
+        background: transparent;
+        white-space: pre-wrap;
+        color: var(--text);
+        font: 14px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
       .composer-box {
@@ -2395,6 +2780,255 @@
           max-height: none;
         }
       }
+
+      /* Final product UI pass: unified hierarchy, calmer color, stable controls. */
+      :root {
+        --bg: #11100f;
+        --surface: #1a1917;
+        --surface-elevated: #23211f;
+        --soft: #282522;
+        --line: #35312d;
+        --line-strong: #504943;
+        --text: #f4f1eb;
+        --muted: #bdb5aa;
+        --quiet: #8f867b;
+        --ink: #8fd6bd;
+        --green: #8fd6bd;
+        --green-soft: #1f342e;
+        --blue: #a9c7ff;
+        --blue-soft: #1f2a3b;
+        --amber: #e0b766;
+        --amber-soft: #392d18;
+        --red: #ff9a9a;
+        --red-soft: #3a2422;
+        --radius: 10px;
+      }
+
+      body {
+        font-size: 14px;
+        line-height: 1.5;
+        background: var(--bg);
+      }
+
+      .main,
+      .chat-shell,
+      .messages {
+        background: var(--bg);
+      }
+
+      .sidebar {
+        background: #151412;
+      }
+
+      .main::before,
+      .chat-head {
+        background: rgba(17, 16, 15, 0.9);
+        color: var(--text);
+      }
+
+      h1 {
+        font-size: clamp(26px, 2.6vw, 36px);
+        line-height: 1.12;
+        font-weight: 760;
+      }
+
+      .breadcrumb,
+      .head-meta,
+      .section-note {
+        color: var(--quiet);
+        font-size: 13px;
+      }
+
+      .section-note {
+        margin: -6px 0 14px;
+      }
+
+      .panel,
+      .right-scroll,
+      .composer-box,
+      .login-card {
+        border-color: var(--line);
+        background: var(--surface);
+      }
+
+      .panel {
+        width: min(1040px, calc(100% - 56px));
+        margin: 22px auto;
+        border-radius: 12px;
+      }
+
+      .panel-pad {
+        padding: 18px;
+      }
+
+      .hero,
+      .segmented-tabs,
+      .module-tabs {
+        width: min(1040px, calc(100% - 56px));
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero {
+        margin-top: 24px;
+        margin-bottom: 12px;
+      }
+
+      .section-title-xl,
+      .list-header strong,
+      .review-item strong,
+      .bbs-thread-title {
+        color: var(--text);
+      }
+
+      .section-title-xl {
+        font-size: 20px;
+      }
+
+      .review-item,
+      .quick-action {
+        border-color: var(--line);
+        background: #201e1c;
+      }
+
+      .review-item {
+        gap: 11px;
+        padding: 16px;
+      }
+
+      .review-item strong,
+      .search-row strong {
+        font-size: 15px;
+      }
+
+      .review-item p,
+      .search-row p,
+      .tool-copy small {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .field label {
+        color: var(--quiet);
+        font-size: 12px;
+      }
+
+      .field input,
+      .field textarea,
+      .field select,
+      .filter-bar input,
+      .filter-bar select,
+      .inline-input {
+        min-height: 38px;
+        border-color: var(--line);
+        background: #171615;
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      .segment-tab,
+      .bbs-tabs button {
+        min-height: 36px;
+        border-color: var(--line);
+        background: #1b1a18;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .segment-tab.active,
+      .bbs-tabs button.active {
+        border-color: rgba(143, 214, 189, 0.58);
+        background: rgba(143, 214, 189, 0.16);
+        color: var(--text);
+        box-shadow: inset 0 -2px 0 rgba(143, 214, 189, 0.72);
+      }
+
+      .badge.green,
+      .small-action.primary,
+      .primary-button,
+      .brand-mark {
+        background: var(--green-soft);
+        color: var(--green);
+        border-color: rgba(143, 214, 189, 0.42);
+        box-shadow: none;
+      }
+
+      .send-button,
+      .small-action.primary {
+        background: var(--ink);
+        color: #10100f;
+      }
+
+      .small-action,
+      .plain-button,
+      .icon-button {
+        min-height: 34px;
+        border-color: var(--line);
+        background: #1b1a18;
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      .small-action:disabled,
+      .plain-button:disabled,
+      .icon-button:disabled,
+      .detail-panel.is-disabled input,
+      .detail-panel.is-disabled select,
+      .detail-panel.is-disabled button {
+        cursor: not-allowed;
+        opacity: 0.52;
+      }
+
+      .source-pill,
+      .cite,
+      .intent-chip {
+        background: rgba(143, 214, 189, 0.12);
+        color: #bce7d8;
+      }
+
+      .right {
+        background: var(--bg);
+      }
+
+      .right-scroll {
+        border-radius: 18px;
+        background: #1a1917;
+      }
+
+      .right-panel {
+        padding: 16px 18px;
+      }
+
+      #bbsView .hero h1 {
+        font-size: clamp(30px, 3vw, 42px);
+      }
+
+      @media (min-width: 1241px) {
+        :root {
+          --sidebar: 252px;
+          --right: 320px;
+        }
+      }
+
+      @media (min-width: 981px) and (max-width: 1240px) {
+        :root {
+          --sidebar: 86px;
+          --right: 320px;
+        }
+      }
+
+      @media (max-width: 980px) {
+        .panel,
+        .hero,
+        .segmented-tabs,
+        .module-tabs {
+          width: min(100% - 28px, 1040px);
+        }
+
+        .two-column {
+          grid-template-columns: 1fr;
+        }
+      }
     </style>
   </head>
       <body>
@@ -2409,8 +3043,8 @@
         </div>
         <form class="login-form" id="loginForm">
           <label>
-            账号
-            <input id="loginUserId" autocomplete="username" placeholder="usr_admin" />
+            账号 ID
+            <input id="loginUserId" autocomplete="username" placeholder="usr_current_designer" />
           </label>
           <label>
             密码
@@ -2432,6 +3066,7 @@
       <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.1-1.1" /></symbol>
       <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13" /></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" /></symbol>
     </svg>
 
     <div class="app">
@@ -2460,6 +3095,9 @@
           </button>
           <button type="button" title="BBS" data-view="bbs">
             <svg class="icon"><use href="#i-grid" /></svg><span class="label">BBS</span><span class="nav-count" id="bbsCount">0</span>
+          </button>
+          <button type="button" title="协作图" data-view="graph">
+            <svg class="icon"><use href="#i-link" /></svg><span class="label">协作图</span>
           </button>
           <button type="button" title="审计" data-view="audit">
             <svg class="icon"><use href="#i-bell" /></svg><span class="label">审计</span>
@@ -2566,19 +3204,19 @@
               </div>
 
               <div class="quick-actions">
-                <button class="quick-action action-button" type="button" data-prompt="帮我基于现有资料生成 618 家电会场项目 Brief">
+                <button class="quick-action action-button" type="button" data-prompt="$brief.create 生成 618 家电会场项目 Brief">
                   <strong>生成项目 Brief</strong>
                   <span>把现有资料整理成启动文档</span>
                 </button>
-                <button class="quick-action action-button" type="button" data-prompt="帮我查 618 家电会场的竞品资料和相似项目经验">
+                <button class="quick-action action-button" type="button" data-prompt="$research.request 查 618 家电会场的竞品资料和相似项目经验">
                   <strong>让 Agent 补资料</strong>
                   <span>调用外接 Agent 查竞品和数据</span>
                 </button>
-                <button class="quick-action action-button" type="button" data-prompt="把今天的讨论总结成我的私有记录">
+                <button class="quick-action action-button" type="button" data-prompt="$note.save 把今天的讨论总结成我的私有记录">
                   <strong>记录今天工作</strong>
                   <span>生成我的私有日结</span>
                 </button>
-                <button class="quick-action action-button" type="button" data-prompt="把首屏效率优先这条经验沉淀为候选团队记忆">
+                <button class="quick-action action-button" type="button" data-prompt="$memory.propose 把首屏效率优先这条经验沉淀为候选团队记忆">
                   <strong>沉淀团队经验</strong>
                   <span>提取候选记忆，放入记忆库审核</span>
                 </button>
@@ -2586,23 +3224,21 @@
             </div>
 
             <div class="composer">
+              <div class="skill-menu view-hidden" id="skillMenu"></div>
               <div class="composer-box">
                 <button class="upload-button" id="uploadButton" type="button" title="上传文档">
                   <svg class="icon"><use href="#i-plus" /></svg>
                 </button>
                 <textarea
                   id="chatInput"
-                  placeholder="输入你想让平台做的事，例如：帮我查相似项目 / 把今天的讨论整理成项目背景 / 调用爬虫 Agent 补竞品资料..."
+                  placeholder="直接对话，或输入 $ 调用能力，例如 $memory.search / $brief.create / $note.save"
                 ></textarea>
                 <button class="send-button" id="sendButton" type="button" title="发送">
                   <svg class="icon"><use href="#i-send" /></svg>
                 </button>
                 <input class="file-input" id="fileInput" type="file" accept=".txt,.md,.markdown,text/plain,text/markdown" />
               </div>
-              <div class="composer-meta">
-                <span class="badge blue">默认私有</span>
-                <span>可切换到项目可见或团队记忆候选</span>
-              </div>
+              <div class="composer-meta" id="skillReference" aria-live="polite"></div>
             </div>
           </section>
         </section>
@@ -2869,6 +3505,7 @@
                 </div>
               </div>
               <div class="section-title-xl">成员管理</div>
+              <p class="section-note" id="createUserHint">管理员可以新建设计师、组长或管理员账号。</p>
               <div class="detail-panel" id="createUserPanel">
                 <div class="form-grid">
                   <div class="two-column">
@@ -2953,6 +3590,28 @@
           </section>
         </section>
 
+        <section class="workspace view-hidden" id="graphView">
+          <div class="hero">
+            <div>
+              <div class="breadcrumb"><span class="workspace-name">家电设计组</span> / 协作图</div>
+              <h1>Agent 协作可视化</h1>
+              <div class="head-meta">展示 BBS 上 Agent 之间的协作流程：谁发起 request，谁补充 evidence，任务如何推进。</div>
+            </div>
+          </div>
+
+          <div class="module-tabs" id="graphTabs">
+            <button class="segment-tab active" data-graph-view="flow" type="button">协作流程</button>
+            <button class="segment-tab" data-graph-view="timeline" type="button">时间线</button>
+          </div>
+
+          <div class="panel panel-pad" id="graphFlowPanel">
+            <div id="graphFlowContent"></div>
+          </div>
+          <div class="panel panel-pad view-hidden" id="graphTimelinePanel">
+            <div id="graphTimelineContent"></div>
+          </div>
+        </section>
+
         <section class="workspace view-hidden" id="auditView">
           <div class="hero">
             <div>
@@ -3006,6 +3665,24 @@
 
     <button class="right-dock-toggle" id="rightDockToggle" type="button" aria-pressed="false">收起</button>
     <div class="toast" id="toast">已更新</div>
+    <div class="document-modal view-hidden" id="documentModal" role="dialog" aria-modal="true" aria-labelledby="documentModalTitle">
+      <div class="document-modal-backdrop" data-document-close="true"></div>
+      <section class="document-modal-panel">
+        <div class="document-modal-head">
+          <div>
+            <div class="breadcrumb">草稿产物</div>
+            <h2 id="documentModalTitle">文档草稿</h2>
+          </div>
+          <button class="icon-button" type="button" title="关闭" data-document-close="true">
+            <svg class="icon"><use href="#i-close" /></svg>
+          </button>
+        </div>
+        <textarea class="document-modal-body" id="documentModalBody" spellcheck="false"></textarea>
+        <div class="review-actions document-modal-actions">
+          <button class="small-action primary view-hidden" id="documentConfirmButton" type="button">确认并沉淀</button>
+        </div>
+      </section>
+    </div>
 
     <script>
       const appShell = document.querySelector(".app");
@@ -3018,6 +3695,9 @@
       const logoutButton = document.getElementById("logoutButton");
       const switchAccountButton = document.getElementById("switchAccountButton");
       const chatInput = document.getElementById("chatInput");
+      const skillMenu = document.getElementById("skillMenu");
+      const skillReference = document.getElementById("skillReference");
+      const sendButton = document.getElementById("sendButton");
       const uploadButton = document.getElementById("uploadButton");
       const fileInput = document.getElementById("fileInput");
       const topSearch = document.getElementById("topSearch");
@@ -3089,6 +3769,7 @@
       const newPassword = document.getElementById("newPassword");
       const changePasswordButton = document.getElementById("changePasswordButton");
       const createUserPanel = document.getElementById("createUserPanel");
+      const createUserHint = document.getElementById("createUserHint");
       const createUserName = document.getElementById("createUserName");
       const createUserRole = document.getElementById("createUserRole");
       const createUserPassword = document.getElementById("createUserPassword");
@@ -3105,6 +3786,10 @@
       const riskPolicyEnabled = document.getElementById("riskPolicyEnabled");
       const saveRiskPolicyButton = document.getElementById("saveRiskPolicyButton");
       const auditList = document.getElementById("auditList");
+      const documentModal = document.getElementById("documentModal");
+      const documentModalTitle = document.getElementById("documentModalTitle");
+      const documentModalBody = document.getElementById("documentModalBody");
+      const documentConfirmButton = document.getElementById("documentConfirmButton");
       const views = {
         workspace: document.getElementById("workspaceView"),
         inbox: document.getElementById("inboxView"),
@@ -3112,6 +3797,7 @@
         agent: document.getElementById("agentView"),
         tasks: document.getElementById("tasksView"),
         bbs: document.getElementById("bbsView"),
+        graph: document.getElementById("graphView"),
         audit: document.getElementById("auditView"),
         users: document.getElementById("usersView"),
       };
@@ -3120,6 +3806,9 @@
       let currentWorkspaceId = null;
       let currentProjectId = null;
       let currentPersonalAgentId = null;
+      let availableChatSkills = [];
+      let activeSkillIndex = -1;
+      let selectedChatSkillCommand = null;
       let availableTools = [];
       let currentAgentToolIds = new Set();
       let publicAgentToolIdsByAgent = new Map();
@@ -3133,6 +3822,8 @@
       let activeBbsPanel = "posts";
       let selectedBbsTaskId = null;
       let activeHandoffPostId = null;
+      let bbsTaskStatusById = {};
+      let activeDocumentDraftId = "";
       const expandedTaskCardIds = new Set();
       const bbsPageSize = 5;
       let touchStartY = 0;
@@ -3217,7 +3908,17 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: userId, password }),
         });
-        if (!response.ok) throw new Error("login failed");
+        if (!response.ok) {
+          let detail = "";
+          try {
+            const payload = await response.json();
+            detail = payload?.detail || "";
+          } catch (error) {
+            detail = "";
+          }
+          if (response.status === 401) throw new Error("账号 ID 或密码不正确");
+          throw new Error(detail ? `登录失败：${detail}` : `登录失败（HTTP ${response.status}）`);
+        }
         const data = await response.json();
         currentUser = data.user;
         authUser.textContent = `${roleLabel(data.user.role)} · ${data.user.name}`;
@@ -3262,7 +3963,7 @@
           await bootApp();
           showToast("登录成功");
         } catch (error) {
-          showToast("账号或密码不正确");
+          showToast(error.message || "登录失败");
         }
       }
 
@@ -3379,12 +4080,273 @@
         }
       }
 
+      const fallbackChatSkills = [
+        {
+          command: "$memory.search",
+          title: "查询记忆/经验",
+          description: "检索个人、项目和团队记忆中的历史经验。",
+          usage: "$memory.search 618 家电会场首屏经验",
+          placeholder: "输入要查询的项目、经验或关键词",
+          aliases: ["$memory", "$search.memory"],
+        },
+        {
+          command: "$brief.create",
+          title: "生成 Brief/文档",
+          description: "基于当前上下文和可引用资料生成项目 Brief 草稿。",
+          usage: "$brief.create 生成 618 家电会场项目 Brief",
+          placeholder: "描述要生成的 Brief 或方案文档",
+          aliases: ["$brief", "$doc.create"],
+        },
+        {
+          command: "$note.save",
+          title: "记录私有笔记",
+          description: "保存到当前用户的私有短期记忆，不共享给团队。",
+          usage: "$note.save 今天讨论确认首屏优先保证入口效率",
+          placeholder: "输入要保存的私有记录",
+          aliases: ["$note", "$private.save"],
+        },
+        {
+          command: "$research.request",
+          title: "请求外部资料",
+          description: "调用资料获取接口，补充竞品、相似项目或外部参考。",
+          usage: "$research.request 查找 2026 大促会场竞品资料",
+          placeholder: "输入要调研的主题",
+          aliases: ["$research", "$web.search"],
+        },
+        {
+          command: "$data.query",
+          title: "查询数据指标",
+          description: "调用 data_agent 查询点击率、转化率等项目指标。",
+          usage: "$data.query 查询 618 会场入口点击率",
+          placeholder: "输入指标、时间范围或分析问题",
+          aliases: ["$data", "$metric.query"],
+        },
+        {
+          command: "$risk.review",
+          title: "风险/授权检查",
+          description: "调用 risk_agent 检查素材授权、合规和提示词注入风险。",
+          usage: "$risk.review 检查这批外部素材授权风险",
+          placeholder: "输入要检查的素材、来源或风险问题",
+          aliases: ["$risk", "$policy.review"],
+        },
+        {
+          command: "$memory.propose",
+          title: "创建候选团队记忆",
+          description: "把可复用结论提炼为候选团队记忆，等待审核。",
+          usage: "$memory.propose 首屏效率优先适用于转化目标项目",
+          placeholder: "输入要沉淀的经验或方法论",
+          aliases: ["$memory.save", "$knowledge.propose"],
+        },
+        {
+          command: "$system.info",
+          title: "查询系统/模型配置",
+          description: "查看当前个人 Agent 使用的模型和系统配置。",
+          usage: "$system.info",
+          placeholder: "无需额外输入",
+          aliases: ["$model", "$system"],
+          requires_input: false,
+        },
+      ];
+
+      async function loadChatSkills() {
+        try {
+          const response = await fetch("/api/chat/skills");
+          if (!response.ok) throw new Error("skill list unavailable");
+          const data = await response.json();
+          availableChatSkills = data.items || fallbackChatSkills;
+        } catch (error) {
+          availableChatSkills = fallbackChatSkills;
+        }
+      }
+
+      function skillMenuQuery() {
+        const value = chatInput.value.trimStart();
+        if (!value.startsWith("$")) return null;
+        return value.slice(1).split(/\s+/)[0].toLowerCase();
+      }
+
+      function matchingChatSkills(query) {
+        const skills = availableChatSkills.length ? availableChatSkills : fallbackChatSkills;
+        if (!query) return skills;
+        return skills.filter((skill) => {
+          const haystack = [skill.command, skill.title, skill.description, ...(skill.aliases || [])].join(" ").toLowerCase();
+          return haystack.includes(query);
+        });
+      }
+
+      function chatSkills() {
+        return availableChatSkills.length ? availableChatSkills : fallbackChatSkills;
+      }
+
+      function findChatSkill(command) {
+        return chatSkills().find((item) => item.command === command || (item.aliases || []).includes(command));
+      }
+
+      function skillMenuItems() {
+        return skillMenu ? Array.from(skillMenu.querySelectorAll("[data-skill-command]")) : [];
+      }
+
+      function setActiveSkillIndex(index) {
+        const items = skillMenuItems();
+        if (!items.length) {
+          activeSkillIndex = -1;
+          return;
+        }
+        activeSkillIndex = ((index % items.length) + items.length) % items.length;
+        items.forEach((item, itemIndex) => {
+          item.classList.toggle("is-active", itemIndex === activeSkillIndex);
+        });
+        items[activeSkillIndex]?.scrollIntoView({ block: "nearest" });
+      }
+
+      function chooseActiveSkill() {
+        const items = skillMenuItems();
+        if (activeSkillIndex < 0 || activeSkillIndex >= items.length) return false;
+        const command = items[activeSkillIndex]?.dataset.skillCommand;
+        if (!command) return false;
+        insertSkillCommand(command);
+        return true;
+      }
+
+      function renderSkillMenu() {
+        if (!skillMenu) return;
+        const query = skillMenuQuery();
+        if (query === null) {
+          skillMenu.classList.add("view-hidden");
+          activeSkillIndex = -1;
+          return;
+        }
+        const skills = matchingChatSkills(query);
+        if (!skills.length) {
+          skillMenu.innerHTML = `
+            <div class="skill-menu-head"><span>没有匹配的能力</span><span>继续输入或按 Esc 关闭</span></div>
+          `;
+          skillMenu.classList.remove("view-hidden");
+          activeSkillIndex = -1;
+          return;
+        }
+        skillMenu.innerHTML = `
+          <div class="skill-menu-head"><span>可调用能力</span><span>点击插入命令</span></div>
+          <div class="skill-menu-list">
+            ${skills
+              .map(
+                (skill) => `
+                  <button class="skill-menu-item" type="button" data-skill-command="${escapeHtml(skill.command)}">
+                    <span class="skill-command">${escapeHtml(skill.command)}</span>
+                    <span class="skill-copy">
+                      <strong>${escapeHtml(skill.title)}</strong>
+                      <span>${escapeHtml(skill.description)}</span>
+                    </span>
+                  </button>
+                `,
+              )
+              .join("")}
+          </div>
+        `;
+        skillMenu.classList.remove("view-hidden");
+        setActiveSkillIndex(Math.min(Math.max(activeSkillIndex, 0), skills.length - 1));
+      }
+
+      function hideSkillMenu() {
+        skillMenu?.classList.add("view-hidden");
+        activeSkillIndex = -1;
+      }
+
+      function renderSelectedSkill() {
+        if (!skillReference) return;
+        const skill = selectedChatSkillCommand ? findChatSkill(selectedChatSkillCommand) : null;
+        if (!skill) {
+          skillReference.classList.remove("is-active");
+          skillReference.innerHTML = "";
+          return;
+        }
+        skillReference.classList.add("is-active");
+        skillReference.innerHTML = `
+          <span class="skill-reference">
+            <strong>${escapeHtml(skill.command)}</strong>
+            <span>${escapeHtml(skill.title)}</span>
+            <button type="button" data-skill-clear title="取消调用">
+              <svg class="icon"><use href="#i-close" /></svg>
+            </button>
+          </span>
+        `;
+      }
+
+      function stripSelectedSkillCommand() {
+        const skill = selectedChatSkillCommand ? findChatSkill(selectedChatSkillCommand) : null;
+        if (!skill) return;
+        const text = chatInput.value.trimStart();
+        const commands = [skill.command, ...(skill.aliases || [])];
+        const matchedCommand = commands.find((command) => text === command || text.startsWith(`${command} `));
+        if (!matchedCommand) return;
+        chatInput.value = text.slice(matchedCommand.length).trimStart();
+        chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+      }
+
+      function clearSelectedSkill(removeCommand = false) {
+        if (removeCommand) stripSelectedSkillCommand();
+        selectedChatSkillCommand = null;
+        renderSelectedSkill();
+      }
+
+      function syncSelectedSkillWithInput() {
+        if (!selectedChatSkillCommand) return;
+        const text = chatInput.value.trimStart();
+        if (!text.startsWith("$")) return;
+        const command = text.split(/\s+/)[0];
+        const skill = findChatSkill(selectedChatSkillCommand);
+        const commands = skill ? [skill.command, ...(skill.aliases || [])] : [];
+        if (!commands.includes(command)) clearSelectedSkill();
+      }
+
+      function insertSkillCommand(command) {
+        const skill = findChatSkill(command);
+        const suffix = skill?.requires_input === false ? "" : " ";
+        selectedChatSkillCommand = skill?.command || command;
+        chatInput.value = `${command}${suffix}`;
+        chatInput.focus();
+        chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+        renderSelectedSkill();
+        hideSkillMenu();
+      }
+
+      function messageContentForSend(rawValue, forcedValue) {
+        const value = rawValue.trim();
+        if (forcedValue || !selectedChatSkillCommand) return value;
+        const skill = findChatSkill(selectedChatSkillCommand);
+        if (!skill) return value;
+        if (value.startsWith("$")) return value;
+        if (!value && skill.requires_input !== false) return "";
+        return `${skill.command}${value ? ` ${value}` : ""}`.trim();
+      }
+
       function appendUserMessage(value) {
         const item = document.createElement("div");
         item.className = "message user";
         item.innerHTML = `<div class="bubble"><p>${escapeHtml(value)}</p></div>`;
         messages.appendChild(item);
         scrollMessagesToBottom();
+      }
+
+      function appendThinkingMessage() {
+        const item = document.createElement("div");
+        item.className = "message thinking";
+        item.innerHTML = `
+          <div class="bubble">
+            <strong>团队大脑</strong>
+            <div class="thinking-row">
+              <span>项目正在思考</span>
+              <span class="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            </div>
+          </div>
+        `;
+        messages.appendChild(item);
+        scrollMessagesToBottom();
+        return item;
+      }
+
+      function removeThinkingMessage(item) {
+        if (item?.parentNode) item.remove();
       }
 
       function intentLabel(value) {
@@ -3399,7 +4361,7 @@
           create_memory_candidate: "创建团队候选记忆",
           ask_system_info: "查询系统/模型配置",
         };
-        return labels[value] || value || "未识别";
+        return labels[value] || value || "未路由";
       }
 
       function uniqueLabels(values) {
@@ -3441,23 +4403,18 @@
         if (!intent) return "";
         const agents = traceAgents(context);
         const writes = trace.persisted === false ? ["未持久化"] : traceWrites(context);
-        const sourceLabel = trace.source === "llm" ? "大模型语义分析" : "规则兜底";
-        const confidence = Number.isFinite(trace.confidence) ? `${Math.round(trace.confidence * 100)}%` : "未返回";
-        const fallbackLabels = {
-          model_not_configured: "未配置可用模型",
-          model_low_confidence: "模型置信度不足",
-          model_low_confidence_or_failed: "模型置信度不足或调用失败",
-          no_real_provider_sources: "真实检索没有返回可用来源",
+        const sourceLabels = {
+          skill: "显式 $ 调用",
+          chat: "普通对话",
         };
+        const sourceLabel = sourceLabels[trace.source] || "系统路由";
         const chips = [
-          `识别结果：${intentLabel(intent)}`,
-          `来源：${sourceLabel}`,
-          `置信度：${confidence}`,
-          `调用路径：${intentLabel(trace.selected_workflow || intent)}`,
+          `工作流：${intentLabel(intent)}`,
+          `入口：${sourceLabel}`,
+          trace.source === "skill" ? `命令：${trace.selected_workflow || "-"}` : `对话模式：${intentLabel(trace.selected_workflow || intent)}`,
           agents.length ? `调用 Agent：${agents.join("、")}` : "调用 Agent：团队大脑",
           `数据写入：${writes.join("、")}`,
         ];
-        if (trace.fallback_reason) chips.push(`兜底原因：${fallbackLabels[trace.fallback_reason] || trace.fallback_reason}`);
         return `
           <div class="intent-trace">
             ${chips.map((chip) => `<span class="intent-chip">${escapeHtml(chip)}</span>`).join("")}
@@ -3643,6 +4600,7 @@
         if (name === "agent") loadAgents();
         if (name === "tasks") loadTasks();
         if (name === "bbs") loadBbs();
+        if (name === "graph") loadGraph();
         if (name === "audit") loadAudit();
         if (name === "users") loadUsers();
       }
@@ -3680,6 +4638,9 @@
         }
         items.forEach((item) => {
           const snoozeText = item.snooze_until ? `稍后至 ${formatTime(item.snooze_until)}` : "";
+          const documentId = item.metadata?.document_id || "";
+          const canConfirmBrief = documentId && item.metadata?.artifact_type === "brief_draft" && !item.metadata?.confirmed_memory_id;
+          const canResolveInjection = item.item_type === "prompt_injection_review" && item.status !== "resolved";
           const row = document.createElement("div");
           row.className = "review-item";
           row.innerHTML = `
@@ -3694,6 +4655,17 @@
                 : ""
             }
             <div class="review-actions">
+              ${
+                documentId
+                  ? `<button class="small-action primary" data-document-open="${escapeHtml(documentId)}" data-document-inbox="${escapeHtml(item.id)}" data-document-confirmable="${canConfirmBrief ? "true" : "false"}" type="button">查看草稿</button>`
+                  : ""
+              }
+              ${
+                canResolveInjection
+                  ? `<button class="small-action primary" data-injection-release="${escapeHtml(item.id)}" type="button">放行资料</button>
+              <button class="small-action danger" data-injection-discard="${escapeHtml(item.id)}" type="button">丢弃资料</button>`
+                  : ""
+              }
               <button class="small-action primary" data-inbox-resolve="${escapeHtml(item.id)}" type="button">完成</button>
               <button class="small-action" data-inbox-snooze="${escapeHtml(item.id)}" type="button">稍后 1 小时</button>
               ${
@@ -3732,6 +4704,16 @@
         return labels[value] || value || "团队";
       }
 
+      function memoryStatusView(item) {
+        if (item.status === "accepted" || item.scope === "team_accepted") {
+          return { label: "已接受 · 团队记忆", badge: "green", canAccept: false, canDispute: true };
+        }
+        if (item.status === "disputed") {
+          return { label: "争议 · 待复核", badge: "red", canAccept: true, canDispute: false };
+        }
+        return { label: "候选 · 待审核", badge: "amber", canAccept: true, canDispute: true };
+      }
+
       function renderMemory(items, viewName = activeMemoryView) {
         memoryList.innerHTML = "";
         if (!items.length) {
@@ -3754,6 +4736,7 @@
         }
         items.forEach((item) => {
           const sources = item.sources || [];
+          const sourceDocumentId = item.metadata?.document_id || "";
           const sourceMarkup = sources.length
             ? sources
                 .map(
@@ -3765,11 +4748,12 @@
           const row = document.createElement("div");
           row.className = "review-item";
           const isTeamMemory = viewName === "team";
+          const statusView = memoryStatusView(item);
           const dateText = item.memory_date || (item.created_at ? item.created_at.slice(0, 10) : "");
           row.innerHTML = `
             <div class="review-item-head">
               <strong>${escapeHtml(item.title)}</strong>
-              <span class="badge blue">${escapeHtml(isTeamMemory ? `${item.status} · ${scopeLabel(item.scope)}` : memoryLayerLabel(item.layer))}</span>
+              <span class="badge ${escapeHtml(isTeamMemory ? statusView.badge : "blue")}">${escapeHtml(isTeamMemory ? statusView.label : memoryLayerLabel(item.layer))}</span>
             </div>
             <p>${escapeHtml(item.summary)}</p>
             <div class="memory-meta">
@@ -3782,8 +4766,21 @@
             ${
               isTeamMemory
                 ? `<div class="review-actions">
-                    <button class="small-action primary" data-memory-accept="${escapeHtml(item.id)}" type="button">接受为团队记忆</button>
-                    <button class="small-action" data-memory-dispute="${escapeHtml(item.id)}" type="button">标记争议</button>
+                    ${
+                      sourceDocumentId
+                        ? `<button class="small-action" data-document-open="${escapeHtml(sourceDocumentId)}" type="button">查看来源草稿</button>`
+                        : ""
+                    }
+                    ${
+                      statusView.canAccept
+                        ? `<button class="small-action primary" data-memory-accept="${escapeHtml(item.id)}" type="button">接受为团队记忆</button>`
+                        : ""
+                    }
+                    ${
+                      statusView.canDispute
+                        ? `<button class="small-action" data-memory-dispute="${escapeHtml(item.id)}" type="button">标记争议</button>`
+                        : ""
+                    }
                   </div>`
                 : ""
             }
@@ -3875,6 +4872,38 @@
         const response = await fetch("/api/inbox");
         const data = await response.json();
         renderInbox(data.items || []);
+      }
+
+      async function openDocumentDraft(documentId, inboxId = "", confirmable = false) {
+        if (!documentId || !documentModal || !documentModalTitle || !documentModalBody) return;
+        documentModalTitle.textContent = "正在打开草稿";
+        documentModalBody.value = "加载中...";
+        activeDocumentDraftId = documentId;
+        if (documentConfirmButton) {
+          documentConfirmButton.classList.toggle("view-hidden", !confirmable);
+          documentConfirmButton.dataset.inboxConfirmBrief = inboxId || "";
+        }
+        documentModal.classList.remove("view-hidden");
+        try {
+          const response = await fetch(`/api/documents/${encodeURIComponent(documentId)}`);
+          if (!response.ok) throw new Error("document detail failed");
+          const data = await response.json();
+          const document = data.item || {};
+          documentModalTitle.textContent = document.title || "文档草稿";
+          documentModalBody.value = document.text || "这个草稿没有正文。";
+        } catch (error) {
+          documentModalTitle.textContent = "草稿暂不可用";
+          documentModalBody.value = "无法打开该草稿，请稍后重试。";
+        }
+      }
+
+      function closeDocumentDraft() {
+        documentModal?.classList.add("view-hidden");
+        activeDocumentDraftId = "";
+        if (documentConfirmButton) {
+          documentConfirmButton.classList.add("view-hidden");
+          documentConfirmButton.dataset.inboxConfirmBrief = "";
+        }
       }
 
       async function loadMemory() {
@@ -4486,6 +5515,14 @@
         return `${value.slice(0, maxLength)}...`;
       }
 
+      function canCreateMemoryFromBbs(post) {
+        return ["evidence", "decision", "digest", "archive", "memory_candidate"].includes(post.post_type);
+      }
+
+      function canDispatchRequest(post) {
+        return post.post_type === "request" && bbsTaskStatusById[post.task_id] === "waiting_external_agent";
+      }
+
       function renderBbs(items, meta = {}) {
         const posts = items || [];
         const total = meta.total ?? posts.length;
@@ -4504,7 +5541,7 @@
             </div>
             <p>这里聚合个人 Agent、research_agent、data_agent、risk_agent 围绕同一任务发布的帖子。</p>
             <div class="review-actions">
-              <button class="small-action" data-bbs-clear-task-filter="true" type="button">查看全部帖子</button>
+              <button class="small-action primary" data-bbs-clear-task-filter="true" type="button">清除筛选，查看全部帖子</button>
             </div>
           `;
           bbsList.appendChild(filterRow);
@@ -4558,6 +5595,16 @@
                   ${showingHandoffForm ? renderHandoffForm(post) : ""}
                   <div class="review-actions">
                     <button class="small-action" data-bbs-read="${escapeHtml(post.id)}" type="button">标记已读</button>
+                    ${
+                      canDispatchRequest(post)
+                        ? `<button class="small-action primary" data-bbs-dispatch="${escapeHtml(post.id)}" type="button">处置求助</button>`
+                        : ""
+                    }
+                    ${
+                      canCreateMemoryFromBbs(post)
+                        ? `<button class="small-action primary" data-bbs-memory="${escapeHtml(post.id)}" type="button">沉淀为记忆</button>`
+                        : ""
+                    }
                     <button class="small-action" data-bbs-handoff="${escapeHtml(post.id)}" type="button">交接</button>
                     ${
                       activeLock
@@ -4694,9 +5741,172 @@
         ]);
         const data = await response.json();
         const cardsData = await cardsResponse.json();
-        renderTaskCards(cardsData.items || []);
-        renderTasks(cardsData.items || []);
+        const cards = cardsData.items || [];
+        bbsTaskStatusById = {};
+        cards.forEach((card) => {
+          if (card.task?.id) bbsTaskStatusById[card.task.id] = card.task.status;
+        });
+        renderTaskCards(cards);
+        renderTasks(cards);
         renderBbs(data.items || [], data);
+      }
+
+      function showGraphPanel(name) {
+        const flowPanel = document.getElementById("graphFlowPanel");
+        const timelinePanel = document.getElementById("graphTimelinePanel");
+        if (flowPanel) flowPanel.classList.toggle("view-hidden", name !== "flow");
+        if (timelinePanel) timelinePanel.classList.toggle("view-hidden", name !== "timeline");
+        document.querySelectorAll("#graphTabs .segment-tab").forEach((btn) => {
+          btn.classList.toggle("active", btn.dataset.graphView === name);
+        });
+      }
+
+      async function loadGraph() {
+        const allPosts = [];
+        let page = 1;
+        let hasNext = true;
+        while (hasNext) {
+          const res = await fetch(`/api/blackboard?page_size=50&page=${page}`);
+          const data = await res.json();
+          allPosts.push(...(data.items || []));
+          hasNext = data.has_next;
+          page++;
+        }
+        const cardsRes = await fetch("/api/blackboard/task-cards");
+        const cards = (await cardsRes.json()).items || [];
+        renderGraphFlow(allPosts, cards);
+        renderGraphTimeline(allPosts);
+      }
+
+      function graphStageColor(stage) {
+        const colors = { discussion: "#5b9bd5", execution: "#f5a623", review: "#7ed957", blocked: "#ff6b6b", completed: "#4ecdc4" };
+        return colors[stage] || "#aaa";
+      }
+
+      function renderGraphFlow(posts, cards) {
+        const container = document.getElementById("graphFlowContent");
+        if (!container) return;
+        if (!cards.length) {
+          container.innerHTML = "<p>暂无任务协作数据。发起一条 <code>$memory.search</code> 或自然语言查询来产生协作流程。</p>";
+          return;
+        }
+        const postsByTask = {};
+        posts.forEach((p) => { (postsByTask[p.task_id] = postsByTask[p.task_id] || []).push(p); });
+
+        let html = "";
+        cards.forEach((card) => {
+          const task = card.task;
+          const taskPosts = (postsByTask[task.id] || []).sort((a, b) => a.created_at.localeCompare(b.created_at));
+          const statusColor = graphStageColor(card.stage || task.collaboration_stage);
+          const statusText = taskStatusLabel(task.status) || task.status;
+
+          const actors = [];
+          const actorSet = new Set();
+          taskPosts.forEach((post) => {
+            if (!actorSet.has(post.actor)) { actorSet.add(post.actor); actors.push(post.actor); }
+            if (post.handoff?.next_owner_agent_id && !actorSet.has(post.handoff.next_owner_agent_id)) {
+              actorSet.add(post.handoff.next_owner_agent_id);
+              actors.push(post.handoff.next_owner_agent_id);
+            }
+          });
+
+          if (!actors.length) {
+            html += `<div class="graph-swimlane"><div class="graph-swimlane-header"><span class="badge" style="background:${statusColor};color:#fff">${escapeHtml(statusText)}</span> <strong>${escapeHtml(task.title || task.intent)}</strong> <span class="quiet">无协作节点</span></div></div>`;
+            return;
+          }
+
+          const postsByActor = {};
+          actors.forEach((a) => { postsByActor[a] = []; });
+          taskPosts.forEach((p) => { if (postsByActor[p.actor]) postsByActor[p.actor].push(p); });
+
+          const taskId = task.id.replace(/[^a-zA-Z0-9]/g, "");
+
+          let lanes = "";
+          actors.forEach((actor) => {
+            const lanePosts = postsByActor[actor] || [];
+            const nodesHtml = lanePosts.map((p) =>
+              `<div class="graph-node" data-type="${p.post_type}" data-postid="${taskId}_${p.id.replace(/[^a-zA-Z0-9]/g, "")}" title="${escapeHtml(p.title || p.content || "")}"><span class="graph-node-dot"></span>${escapeHtml(p.post_type)}${p.title ? " · " + escapeHtml(truncateText(p.title, 20)) : ""}</div>`
+            ).join("");
+            lanes += `<div class="graph-lane"><div class="graph-lane-label"><span class="avatar">${agentAvatarText(actor)}</span>${escapeHtml(agentLabel(actor))}</div><div class="graph-lane-track">${nodesHtml || "<span class=\"quiet\">—</span>"}</div></div>`;
+          });
+
+          html += `<div class="graph-swimlane" data-task="${taskId}"><div class="graph-swimlane-header"><span class="badge" style="background:${statusColor};color:#fff">${escapeHtml(statusText)}</span> <strong>${escapeHtml(task.title || task.intent)}</strong> <span class="quiet">${actors.length} Agent · ${taskPosts.length} 帖</span></div><div class="graph-swimlane-body">${lanes}<svg class="graph-svg-overlay"></svg></div></div>`;
+        });
+        container.innerHTML = html;
+
+        requestAnimationFrame(() => {
+          container.querySelectorAll(".graph-swimlane").forEach((swimlane) => {
+            const svg = swimlane.querySelector(".graph-svg-overlay");
+            if (!svg) return;
+            const body = swimlane.querySelector(".graph-swimlane-body");
+            const bodyRect = body.getBoundingClientRect();
+            svg.setAttribute("width", bodyRect.width);
+            svg.setAttribute("height", bodyRect.height);
+            svg.style.width = bodyRect.width + "px";
+            svg.style.height = bodyRect.height + "px";
+
+            const taskId = swimlane.dataset.task;
+            const allNodes = swimlane.querySelectorAll(".graph-node[data-postid]");
+            const nodeMap = {};
+            allNodes.forEach((el) => { nodeMap[el.dataset.postid] = el; });
+
+            const taskPosts = posts.filter((p) => {
+              const tid = (p.task_id || "").replace(/[^a-zA-Z0-9]/g, "");
+              return tid === taskId;
+            });
+
+            let paths = "";
+            taskPosts.forEach((post) => {
+              if (!post.related_post_id) return;
+              const fromId = taskId + "_" + post.related_post_id.replace(/[^a-zA-Z0-9]/g, "");
+              const toId = taskId + "_" + post.id.replace(/[^a-zA-Z0-9]/g, "");
+              const fromEl = nodeMap[fromId];
+              const toEl = nodeMap[toId];
+              if (!fromEl || !toEl) return;
+
+              const fromRect = fromEl.getBoundingClientRect();
+              const toRect = toEl.getBoundingClientRect();
+              const x1 = fromRect.right - bodyRect.left;
+              const y1 = fromRect.top + fromRect.height / 2 - bodyRect.top;
+              const x2 = toRect.left - bodyRect.left;
+              const y2 = toRect.top + toRect.height / 2 - bodyRect.top;
+
+              const cx1 = x1 + (x2 - x1) * 0.4;
+              const cy1 = y1;
+              const cx2 = x1 + (x2 - x1) * 0.6;
+              const cy2 = y2;
+
+              const color = post.post_type === "evidence" ? "#4ecdc4" : post.post_type === "risk" ? "#ff6b6b" : "#5b9bd5";
+              paths += `<path d="M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}" stroke="${color}" />`;
+              const angle = Math.atan2(y2 - cy2, x2 - cx2);
+              const ax = x2 - 6 * Math.cos(angle);
+              const ay = y2 - 6 * Math.sin(angle);
+              paths += `<polygon class="arrow-head" points="${x2},${y2} ${ax - 4*Math.sin(angle)},${ay + 4*Math.cos(angle)} ${ax + 4*Math.sin(angle)},${ay - 4*Math.cos(angle)}" style="color:${color}" />`;
+            });
+            svg.innerHTML = paths;
+          });
+        });
+      }
+
+      function renderGraphTimeline(posts) {
+        const container = document.getElementById("graphTimelineContent");
+        if (!container) return;
+        if (!posts.length) {
+          container.innerHTML = "<p>暂无帖子数据。</p>";
+          return;
+        }
+        const sorted = [...posts].sort((a, b) => a.created_at.localeCompare(b.created_at));
+        const actors = [...new Set(sorted.map((p) => p.actor))];
+        let html = `<div class="graph-timeline"><div class="graph-timeline-header">${actors.map((a) => `<div class="graph-timeline-actor">${agentAvatarText(a)}<br><small>${escapeHtml(agentLabel(a))}</small></div>`).join("")}</div>`;
+        sorted.forEach((post) => {
+          const colIdx = actors.indexOf(post.actor);
+          const time = formatTime(post.created_at);
+          const color = graphStageColor(post.collaboration_stage);
+          const cells = actors.map((_, i) => i === colIdx ? `<div class="graph-timeline-cell active" style="border-left-color:${color}"><strong>${escapeHtml(post.post_type)}</strong><br><small>${escapeHtml(truncateText(post.title || post.content, 30))}</small><br><span class="quiet">${time}</span></div>` : `<div class="graph-timeline-cell"></div>`).join("");
+          html += `<div class="graph-timeline-row">${cells}</div>`;
+        });
+        html += "</div>";
+        container.innerHTML = html;
       }
 
       function renderAudit(items) {
@@ -4748,7 +5958,17 @@
       function renderUsers(items) {
         const users = items || [];
         const isAdmin = currentUser?.role === "admin";
-        if (createUserPanel) createUserPanel.style.display = isAdmin ? "grid" : "none";
+        if (createUserPanel) {
+          createUserPanel.classList.toggle("is-disabled", !isAdmin);
+          createUserPanel.querySelectorAll("input, select, button").forEach((node) => {
+            node.disabled = !isAdmin;
+          });
+        }
+        if (createUserHint) {
+          createUserHint.textContent = isAdmin
+            ? "管理员可以新建设计师、组长或管理员账号。"
+            : "当前账号没有新建用户权限；请切换为管理员后操作。";
+        }
         if (userCount) userCount.textContent = users.length;
         userList.innerHTML = users.length
           ? users
@@ -4920,6 +6140,42 @@
         showToast("收件箱状态已更新");
       }
 
+      async function confirmBriefInboxItem(id) {
+        if (activeDocumentDraftId && documentModalBody) {
+          const saveResponse = await fetch(`/api/documents/${encodeURIComponent(activeDocumentDraftId)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: documentModalBody.value }),
+          });
+          if (!saveResponse.ok) {
+            showToast("草稿保存失败，请检查正文后重试");
+            return;
+          }
+        }
+        const response = await fetch(`/api/inbox/${id}/confirm-brief`, { method: "POST" });
+        if (!response.ok) {
+          showToast("确认失败，请稍后重试");
+          return;
+        }
+        closeDocumentDraft();
+        await Promise.all([loadInbox(), loadMemory(), loadBootstrap()]);
+        showToast("已生成候选团队记忆");
+      }
+
+      async function resolveInjectionReview(id, action) {
+        const response = await fetch(`/api/inbox/${encodeURIComponent(id)}/resolve-injection-review?action=${action}`, {
+          method: "POST",
+        });
+        if (!response.ok) {
+          const detail = await response.json().catch(() => ({}));
+          showToast(detail.detail || "处置失败，请稍后重试");
+          await loadInbox();
+          return;
+        }
+        await Promise.all([loadInbox(), loadBbs(), loadBootstrap()]);
+        showToast(action === "release" ? "已放行隔离资料并补全求助" : "已丢弃隔离资料并终止任务");
+      }
+
       async function updateMemoryItem(id, payload) {
         await fetch(`/api/memory/${id}`, {
           method: "PATCH",
@@ -4929,6 +6185,29 @@
         await loadMemory();
         await loadBootstrap();
         showToast("记忆状态已更新");
+      }
+
+      async function createMemoryFromBbs(postId) {
+        const response = await fetch(`/api/blackboard/posts/${postId}/memory-candidate`, { method: "POST" });
+        if (!response.ok) {
+          showToast("沉淀失败，请检查帖子类型");
+          return;
+        }
+        await Promise.all([loadMemory(), loadBootstrap()]);
+        showToast("已生成候选团队记忆");
+      }
+
+      async function dispatchRequest(postId) {
+        const response = await fetch(`/api/blackboard/posts/${postId}/dispatch`, { method: "POST" });
+        if (!response.ok) {
+          const detail = await response.json().catch(() => ({}));
+          showToast(detail.detail || "处置失败，请稍后重试");
+          await loadBbs();
+          return;
+        }
+        const data = await response.json();
+        await Promise.all([loadBbs(), loadInbox(), loadBootstrap()]);
+        showToast(data.quarantined ? "外部资料疑似注入，已隔离并转收件箱审核" : "research_agent 已补充证据并完成求助");
       }
 
       async function createRiskPolicy() {
@@ -5058,14 +6337,21 @@
       }
 
       async function sendMessage(forcedValue) {
-        const value = (forcedValue ?? chatInput.value).trim();
+        const rawValue = forcedValue ?? chatInput.value;
+        const value = messageContentForSend(rawValue, forcedValue);
         if (!value) {
           showToast("先输入你想让平台做的事");
           return;
         }
 
         appendUserMessage(value);
-        if (!forcedValue) chatInput.value = "";
+        if (!forcedValue) {
+          chatInput.value = "";
+          clearSelectedSkill();
+        }
+        hideSkillMenu();
+        const thinkingMessage = appendThinkingMessage();
+        if (sendButton) sendButton.disabled = true;
         showToast("已发送，默认进入个人私有上下文");
 
         try {
@@ -5082,6 +6368,7 @@
 
           const data = await response.json();
           currentThreadId = data.thread_id;
+          removeThinkingMessage(thinkingMessage);
           appendAssistantMessage(data.assistant_message, {
             task: data.task,
             requestPost: data.request_post,
@@ -5103,6 +6390,7 @@
           showToast("团队大脑已返回结果");
         } catch (error) {
           const isUnauthorized = error?.status === 401;
+          removeThinkingMessage(thinkingMessage);
           appendAssistantMessage({
             content: isUnauthorized
               ? "你当前还没有登录，所以这条消息没有写入团队大脑。请先在成员页登录后继续。"
@@ -5110,20 +6398,55 @@
             sources: [],
           });
           showToast(isUnauthorized ? "请先登录" : "API 暂不可用，已使用本地降级");
+        } finally {
+          if (sendButton) sendButton.disabled = false;
         }
       }
 
-      document.getElementById("sendButton").addEventListener("click", () => sendMessage());
+      sendButton?.addEventListener("click", () => sendMessage());
       uploadButton.addEventListener("click", () => fileInput.click());
       fileInput.addEventListener("change", async () => {
         await uploadSelectedFile(fileInput.files?.[0]);
         fileInput.value = "";
       });
       chatInput.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          hideSkillMenu();
+          closeDocumentDraft();
+          return;
+        }
+        const menuOpen = skillMenu && !skillMenu.classList.contains("view-hidden");
+        if (menuOpen && event.key === "ArrowDown") {
+          event.preventDefault();
+          setActiveSkillIndex(activeSkillIndex + 1);
+          return;
+        }
+        if (menuOpen && event.key === "ArrowUp") {
+          event.preventDefault();
+          setActiveSkillIndex(activeSkillIndex - 1);
+          return;
+        }
         if (event.key === "Enter" && !event.shiftKey) {
           event.preventDefault();
+          if (menuOpen && chooseActiveSkill()) return;
           sendMessage();
         }
+      });
+      chatInput.addEventListener("input", () => {
+        syncSelectedSkillWithInput();
+        renderSkillMenu();
+      });
+      chatInput.addEventListener("focus", renderSkillMenu);
+      skillMenu?.addEventListener("mouseover", (event) => {
+        const target = event.target instanceof HTMLElement ? event.target.closest("[data-skill-command]") : null;
+        if (!target) return;
+        const index = skillMenuItems().indexOf(target);
+        if (index >= 0) setActiveSkillIndex(index);
+      });
+      skillMenu?.addEventListener("wheel", (event) => event.stopPropagation(), { passive: true });
+      skillMenu?.addEventListener("touchmove", (event) => event.stopPropagation(), { passive: true });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeDocumentDraft();
       });
       topSearch.addEventListener("keydown", (event) => {
         if (event.key === "Enter") runSearch();
@@ -5156,6 +6479,10 @@
       taskTabs?.addEventListener("click", (event) => {
         const target = event.target.closest("[data-task-view]");
         if (target) showTaskView(target.dataset.taskView);
+      });
+      document.getElementById("graphTabs")?.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-graph-view]");
+        if (target) showGraphPanel(target.dataset.graphView);
       });
       memoryTabs?.addEventListener("click", (event) => {
         const target = event.target.closest("[data-memory-view]");
@@ -5216,6 +6543,41 @@
       document.addEventListener("click", (event) => {
         const target = event.target;
         if (!(target instanceof HTMLElement)) return;
+        if (target.dataset.documentClose !== undefined) {
+          closeDocumentDraft();
+          return;
+        }
+        const skillCommand = target.closest("[data-skill-command]")?.dataset.skillCommand;
+        if (skillCommand) {
+          insertSkillCommand(skillCommand);
+          return;
+        }
+        if (target.closest("[data-skill-clear]")) {
+          clearSelectedSkill(true);
+          chatInput.focus();
+          return;
+        }
+        const documentOpenId = target.dataset.documentOpen;
+        if (documentOpenId) {
+          openDocumentDraft(documentOpenId, target.dataset.documentInbox || "", target.dataset.documentConfirmable === "true");
+          return;
+        }
+        const inboxConfirmBriefId = target.dataset.inboxConfirmBrief;
+        if (inboxConfirmBriefId) {
+          confirmBriefInboxItem(inboxConfirmBriefId);
+          return;
+        }
+        const injectionReleaseId = target.dataset.injectionRelease;
+        if (injectionReleaseId) {
+          resolveInjectionReview(injectionReleaseId, "release");
+          return;
+        }
+        const injectionDiscardId = target.dataset.injectionDiscard;
+        if (injectionDiscardId) {
+          resolveInjectionReview(injectionDiscardId, "discard");
+          return;
+        }
+        if (!target.closest(".composer")) hideSkillMenu();
         const inboxId = target.dataset.inboxResolve;
         if (inboxId) updateInboxItem(inboxId, { status: "resolved" });
         const inboxSnoozeId = target.dataset.inboxSnooze;
@@ -5230,6 +6592,10 @@
         if (bbsReadId) {
           fetch(`/api/blackboard/posts/${bbsReadId}/read`, { method: "PATCH" }).then(() => loadBbs());
         }
+        const bbsMemoryId = target.dataset.bbsMemory;
+        if (bbsMemoryId) createMemoryFromBbs(bbsMemoryId);
+        const bbsDispatchId = target.dataset.bbsDispatch;
+        if (bbsDispatchId) dispatchRequest(bbsDispatchId);
         const taskToggleId = target.dataset.taskCardToggle;
         if (taskToggleId) {
           if (expandedTaskCardIds.has(taskToggleId)) expandedTaskCardIds.delete(taskToggleId);
@@ -5250,6 +6616,7 @@
           selectedBbsTaskId = null;
           activeHandoffPostId = null;
           bbsPage = 1;
+          showBbsPanel("posts");
           loadBbs();
         }
         const bbsPanelTab = target.dataset.bbsPanelTab;
@@ -5302,6 +6669,7 @@
       async function bootApp() {
         const user = await ensureAuthenticated();
         if (!user) return;
+        await loadChatSkills();
         await loadBootstrap();
         await loadActivity();
         await loadKeySources();

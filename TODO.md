@@ -18,7 +18,7 @@ Reference plan: `DEVELOPMENT_PLAN.md`.
 - [ ] Do not make the blackboard the primary human interface.
 - [ ] Do not auto-accept team memory.
 - [ ] Keep the first release focused on one vertical slice.
-- [ ] Every shared artifact must have actor, source, scope, permission, status, and timestamp.
+- [x] Every shared artifact must have actor, source, scope, permission, status, and timestamp.
 - [x] Keep the real acquisition Agent as an interface boundary; implementation will be provided by an external project.
 
 ## Milestone 0: Product Baseline
@@ -85,13 +85,17 @@ Reference plan: `DEVELOPMENT_PLAN.md`.
 ## Milestone 4: Personal Agent MVP
 
 - [x] Implement personal Agent interface.
-- [x] Implement mock intent classifier.
-- [x] Classify intents:
-  - [x] ask_memory
-  - [x] generate_brief
-  - [x] record_private_note
-  - [x] request_external_research
-  - [x] create_memory_candidate
+- [x] Implement explicit `$` chat skill registry.
+- [x] Route explicit skills:
+  - [x] `$memory.search`
+  - [x] `$brief.create`
+  - [x] `$note.save`
+  - [x] `$research.request`
+  - [x] `$data.query`
+  - [x] `$risk.review`
+  - [x] `$memory.propose`
+  - [x] `$system.info`
+- [x] Keep natural language input as private general chat unless the user invokes a skill.
 - [x] Ensure user input defaults to private scope.
 - [x] Create ActivityLog for user-agent interactions.
 - [x] Add tests for default private behavior.
@@ -212,7 +216,7 @@ Build this first, end to end:
 - [x] Scaffold frontend and backend.
 - [x] User sends one chat message.
 - [x] Backend stores `ChatMessage`.
-- [x] Personal Agent classifies intent.
+- [x] Personal Agent parses explicit `$` skill commands.
 - [x] Backend creates `Task`.
 - [x] Task creates internal `BlackboardPost` request.
 - [x] `mock_research_agent` creates `BlackboardPost` evidence.
