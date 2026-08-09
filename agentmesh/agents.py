@@ -1130,24 +1130,76 @@ class PersonalAgent:
         scored.sort(key=lambda pair: (pair[0], pair[1].created_at), reverse=True)
         return [item for _, item in scored]
 
+    INSUFFICIENT_PREFIX = "信息不足"
+
     def _synthesize_delegated_answer(
         self, target: User, question: str, matched: list[UserMemoryItem]
     ) -> DelegatedAnswer:
         if not matched:
             return DelegatedAnswer(
                 status=DelegatedAnswerStatus.ANSWERED,
-                answer=f"信息不足：{target.name} 的个人记忆中没有足够依据回答此问题。",
+                answer=f"{self.INSUFFICIENT_PREFIX}：{target.name} 的个人记忆中没有足够依据回答此问题。",
                 citations=[],
                 confidence=AnswerConfidence.NONE,
             )
         citations = self._delegated_citations(matched)
-        confidence = AnswerConfidence.HIGH if len(matched) >= 2 else AnswerConfidence.LOW
-        answer = (
+        count_confidence = AnswerConfidence.HIGH if len(matched) >= 2 else AnswerConfidence.LOW
+
+        llm_answer = self._llm_delegated_answer(target, question, matched)
+        if llm_answer is None:
+            # No LLM configured or the call failed — fall back to a body-free template.
+            return DelegatedAnswer(
+                status=DelegatedAnswerStatus.ANSWERED,
+                answer=self._delegated_template(target, matched),
+                citations=citations,
+                confidence=count_confidence,
+            )
+        if llm_answer.startswith(self.INSUFFICIENT_PREFIX):
+            # Trust the model's own "insufficient" judgement over the hit count.
+            return DelegatedAnswer(
+                status=DelegatedAnswerStatus.ANSWERED,
+                answer=llm_answer,
+                citations=[],
+                confidence=AnswerConfidence.NONE,
+            )
+        return DelegatedAnswer(
+            status=DelegatedAnswerStatus.ANSWERED,
+            answer=llm_answer,
+            citations=citations,
+            confidence=count_confidence,
+        )
+
+    def _llm_delegated_answer(self, target: User, question: str, matched: list[UserMemoryItem]) -> str | None:
+        """Synthesize the target's answer with a real LLM. None when unavailable/failed.
+
+        The target's own model config answers, over the target's matched memory only. The
+        system prompt asks for conclusions (no verbatim copy, no fabrication, say
+        "信息不足" when thin). Cross-user data flow is permitted here (ADR 0003), so this is
+        a UX gateway, not a privacy control.
+        """
+        client = chat_llm_client(self.repository, target, self.llm_client)
+        if client is None:
+            return None
+        system_prompt = (
+            f"你是员工「{target.name}」的数字分身。只能依据下面提供的 {target.name} 的个人记忆回答同事的问题。"
+            "要求：给出可复用的结论性回答；不得逐字照抄原始记忆的句子；不得编造记忆中没有的信息；"
+            f"若信息不足，请直接回答“{self.INSUFFICIENT_PREFIX}”。"
+        )
+        memory_block = "\n".join(f"{index}. {item.title}：{item.summary}" for index, item in enumerate(matched, 1))
+        user_prompt = (
+            f"同事的问题：{question}\n\n{target.name} 的相关个人记忆：\n{memory_block}\n\n请给出你的回答。"
+        )
+        try:
+            answer = client.complete(system_prompt, user_prompt).strip()
+        except Exception:
+            return None
+        return answer or None
+
+    @staticmethod
+    def _delegated_template(target: User, matched: list[UserMemoryItem]) -> str:
+        return (
             f"根据「{target.name}」的 {len(matched)} 条相关个人记忆（详见引用来源），"
             "已归纳出可参考的答复；原始记忆内容未随本次回答一并传出。"
-        )
-        return DelegatedAnswer(
-            status=DelegatedAnswerStatus.ANSWERED, answer=answer, citations=citations, confidence=confidence
         )
 
     @staticmethod

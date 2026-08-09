@@ -81,7 +81,10 @@ def test_standing_grant_and_rich_memory_returns_answer_with_citation_titles() ->
     assert all(isinstance(c, Source) and c.title for c in result.citations)
 
 
-# --- Boundary invariant ---------------------------------------------------
+# --- Verbatim guard (NOT a privacy guarantee) -----------------------------
+# Cross-user data flow is permitted (internal project, ADR 0003 privacy-posture):
+# an LLM answer legitimately reworks the target's facts. This only guards against the
+# whole raw body crossing verbatim — it does not, and need not, prevent semantic leakage.
 
 def test_returned_answer_never_contains_target_raw_memory_body() -> None:
     agent = _reset()
@@ -238,6 +241,63 @@ def test_cannot_adopt_answer_without_citations() -> None:
 
     with pytest.raises(ValueError):
         agent.adopt_delegated_answer(ASKER, TARGET, insufficient)
+
+
+# --- LLM-backed synthesis (real answer, with offline fallback) ------------
+
+class _StubLLM:
+    def __init__(self, reply: str) -> None:
+        self.reply = reply
+
+    def complete(self, system_prompt: str, user_prompt: str) -> str:
+        return self.reply
+
+
+class _FailingLLM:
+    def complete(self, system_prompt: str, user_prompt: str) -> str:
+        raise RuntimeError("llm down")
+
+
+def test_llm_answer_is_used_when_llm_available() -> None:
+    store.reset()
+    ensure_seed_data(store)
+    agent = PersonalAgent(store, llm_client=_StubLLM("A 的综合建议：分级降级 + 灰度发布。"))
+    _rich_target_memory()
+    agent.grant_consent(TARGET, ASKER)
+
+    result = agent.answer_for_peer(ASKER, TARGET, QUESTION)
+
+    assert result.status == "answered"
+    assert result.answer == "A 的综合建议：分级降级 + 灰度发布。"
+    assert result.confidence == "high"
+    assert result.citations
+
+
+def test_llm_insufficient_judgment_downgrades_confidence_to_none() -> None:
+    store.reset()
+    ensure_seed_data(store)
+    agent = PersonalAgent(store, llm_client=_StubLLM("信息不足。"))
+    _add_target_memory("会议里提到过降级", "只说了记得留降级口子，无细节。")  # count would say "low"
+    agent.grant_consent(TARGET, ASKER)
+
+    result = agent.answer_for_peer(ASKER, TARGET, QUESTION)
+
+    assert result.confidence == "none"
+    assert result.citations == []
+
+
+def test_falls_back_to_template_when_llm_fails() -> None:
+    store.reset()
+    ensure_seed_data(store)
+    agent = PersonalAgent(store, llm_client=_FailingLLM())
+    _rich_target_memory()
+    agent.grant_consent(TARGET, ASKER)
+
+    result = agent.answer_for_peer(ASKER, TARGET, QUESTION)
+
+    assert result.status == "answered"
+    assert result.confidence == "high"
+    assert result.answer  # template fallback, not an exception
 
 
 # --- Direct-read refusal --------------------------------------------------
