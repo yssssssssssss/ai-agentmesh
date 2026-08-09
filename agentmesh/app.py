@@ -9,7 +9,12 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from agentmesh.marketplace import start_market_publish_worker, stop_market_publish_worker
+from agentmesh.marketplace import (
+    start_market_publish_worker,
+    start_market_scout_worker,
+    stop_market_publish_worker,
+    stop_market_scout_worker,
+)
 from agentmesh.model_registry import ensure_model_seed_data
 from agentmesh.permissions import ensure_permission_policy_seed_data
 from agentmesh.risk import ensure_risk_policy_seed_data
@@ -45,7 +50,9 @@ async def lifespan(app: FastAPI):
     await start_daily_memory_worker()
     await start_research_dispatch_worker()
     await start_market_publish_worker()
+    await start_market_scout_worker()
     yield
+    await stop_market_scout_worker()
     await stop_market_publish_worker()
     await stop_research_dispatch_worker()
     await stop_daily_memory_worker()
