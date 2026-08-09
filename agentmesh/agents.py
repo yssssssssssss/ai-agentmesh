@@ -1202,6 +1202,67 @@ class PersonalAgent:
             "已归纳出可参考的答复；原始记忆内容未随本次回答一并传出。"
         )
 
+    # ==== Autonomous market: agent-1 publishes a MARKETPLACE_SIGNAL ====
+
+    def publish_marketplace_signal(self, user: User) -> BlackboardPost | None:
+        """agent-1: summarize the user's work into a MARKETPLACE_SIGNAL post.
+
+        The signal is an abstracted summary — capabilities / help-offered / help-needed —
+        built from the user's tasks and personal memory. Skipped when there's no source
+        material. Auto-published with a deterministic id so re-publishing refreshes the
+        user's prior signal rather than duplicating it (the auto-post enqueue/drain pipeline
+        mints a fresh id per drain, so it can't satisfy this refresh requirement — hence a
+        direct upsert). Publishing is audited.
+        """
+        memory = self.repository.list_user_memory_items(user_id=user.id)
+        tasks = self._user_tasks(user)
+        if not memory and not tasks:
+            return None
+        post = BlackboardPost(
+            id=f"bb_signal_{user.id}",  # deterministic → re-publish refreshes, not duplicates
+            task_id=f"signal_{user.id}",  # synthetic, non-task
+            post_type=BlackboardPostType.MARKETPLACE_SIGNAL,
+            actor=self.actor,
+            title=f"{user.name} 的协作信号",
+            content=self._marketplace_signal_content(user, memory, tasks),
+            scope=Scope.PROJECT,
+            permission="project_visible",
+            read_by_agents=[self.actor],
+        )
+        self.repository.add_blackboard_post(post)
+        self._audit("publish_marketplace_signal", "blackboard_post", post.id, {"user": user.id})
+        return post
+
+    def _user_tasks(self, user: User) -> list[Task]:
+        thread_ids = {thread.id for thread in self.repository.chat_threads if thread.user_id == user.id}
+        return [task for task in self.repository.tasks if task.thread_id in thread_ids]
+
+    def _marketplace_signal_content(self, user: User, memory: list[UserMemoryItem], tasks: list[Task]) -> str:
+        llm_signal = self._llm_marketplace_signal(user, memory, tasks)
+        if llm_signal is not None:
+            return llm_signal
+        source_titles = [item.title for item in memory] + [task.title for task in tasks]
+        capabilities = "、".join(source_titles[:5])
+        return f"能力：{capabilities}\n可提供：可就以上经验为同事提供帮助与解答。\n需要：（暂无）"
+
+    def _llm_marketplace_signal(self, user: User, memory: list[UserMemoryItem], tasks: list[Task]) -> str | None:
+        client = chat_llm_client(self.repository, user, self.llm_client)
+        if client is None:
+            return None
+        system_prompt = (
+            f"你是员工「{user.name}」的数字分身。根据这个人的近期任务与个人工作记忆，提炼一条发布到协作看板的信号，"
+            "分三段：能力（能做什么）、可提供（能帮别人解决什么）、需要（自己当前需要什么帮助）。"
+            "每段一行，分别以“能力：”“可提供：”“需要：”开头；给出结论，不要逐字照抄原始记忆。"
+        )
+        memory_block = "；".join(f"{item.title}：{item.summary}" for item in memory[:8]) or "（无）"
+        task_block = "、".join(task.title for task in tasks[:8]) or "（无）"
+        user_prompt = f"{user.name} 的近期任务：{task_block}\n个人工作记忆：\n{memory_block}\n\n请输出三段信号。"
+        try:
+            text = client.complete(system_prompt, user_prompt).strip()
+        except Exception:
+            return None
+        return text or None
+
     @staticmethod
     def _delegated_citations(matched: list[UserMemoryItem]) -> list[Source]:
         """Expose citation titles only — the memory's sources, or its title as a pointer.

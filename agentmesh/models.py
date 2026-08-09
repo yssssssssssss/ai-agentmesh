@@ -66,6 +66,7 @@ class BlackboardPostType(StrEnum):
     ARCHIVE = "archive"
     CORRECTION = "correction"
     MEMORY_CANDIDATE = "memory_candidate"
+    MARKETPLACE_SIGNAL = "marketplace_signal"
 
 
 class ChatRole(StrEnum):
