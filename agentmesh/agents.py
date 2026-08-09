@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import re
+from dataclasses import dataclass, field
+from typing import NoReturn
 
 from agentmesh.acquisition import (
     AcquisitionAgent,
@@ -15,6 +16,7 @@ from agentmesh.llm import LLMRequestError
 from agentmesh.model_registry import resolve_agent_model_id
 from agentmesh.models import (
     ActivityLog,
+    AnswerConfidence,
     AuditEvent,
     BlackboardPost,
     BlackboardPostType,
@@ -24,11 +26,16 @@ from agentmesh.models import (
     ChatThread,
     ChatWorkflowTrace,
     CollaborationStage,
+    ConsentGrant,
+    ContributionPoint,
+    DelegatedAnswer,
+    DelegatedAnswerStatus,
     DocumentRecord,
     InboxItem,
     Intent,
     MemoryItem,
     MemoryLayer,
+    MemoryRelation,
     Scope,
     SearchResult,
     Source,
@@ -975,6 +982,244 @@ class PersonalAgent:
             inbox_items=[],
             quarantined=True,
         )
+
+    # ==== ④ Delegated-answer gateway (answer-only cross-person collaboration) ====
+
+    DELEGATED_CONFIRM_ITEM_TYPE = "delegated_answer_confirmation"
+
+    def grant_consent(self, grantor: User, grantee: User) -> ConsentGrant:
+        """A (grantor) grants B (grantee) standing consent to query A's twin."""
+        existing = self.repository.get_active_consent_grant(grantor.id, grantee.id)
+        if existing is not None:
+            return existing
+        grant = ConsentGrant(
+            grantor_id=grantor.id,
+            grantee_id=grantee.id,
+            workspace_id=grantor.workspace_id,
+        )
+        self.repository.add_consent_grant(grant)
+        self._audit("grant_consent", "consent_grant", grant.id, {"grantor": grantor.id, "grantee": grantee.id})
+        return grant
+
+    def revoke_consent(self, grantor: User, grantee: User) -> None:
+        """Prospective revocation: future queries fall back to the confirmation gate."""
+        grant = self.repository.get_active_consent_grant(grantor.id, grantee.id)
+        if grant is None:
+            return
+        grant.revoked_at = now_utc()
+        self.repository.save_consent_grant(grant)
+        self._audit("revoke_consent", "consent_grant", grant.id, {"grantor": grantor.id, "grantee": grantee.id})
+
+    def answer_for_peer(self, asker: User, target: User, question: str) -> DelegatedAnswer:
+        """B's twin asks A's twin. A answers strictly from A's own personal memory.
+
+        Runs automatically only under a standing grant and when no high-sensitivity
+        memory is matched; otherwise it halts on the confirmation gate (Inbox).
+        Only the abstracted answer and citation titles cross back to the asker.
+        """
+        matched = self._match_target_memory(target, question)
+        high_sensitivity = any(item.sensitivity == "high" for item in matched)
+        has_consent = self.repository.get_active_consent_grant(target.id, asker.id) is not None
+
+        if has_consent and not high_sensitivity:
+            return self._answer_and_audit(target, question, matched, asker_id=asker.id, auto=True)
+
+        reason = "high_sensitivity" if high_sensitivity else "no_standing_consent"
+        inbox_item = self._inbox(
+            title="确认代答请求",
+            summary=f"{asker.name} 的分身请求由你的分身代答：「{self._truncate(question, 60)}」。",
+            item_type=self.DELEGATED_CONFIRM_ITEM_TYPE,
+            scope=Scope.PRIVATE,
+            user_id=target.id,
+            metadata={"asker_id": asker.id, "target_id": target.id, "question": question, "reason": reason},
+        )
+        self._audit(
+            "delegated_answer_pending", "inbox_item", inbox_item.id,
+            {"asker": asker.id, "target": target.id, "reason": reason},
+        )
+        return DelegatedAnswer(status=DelegatedAnswerStatus.AWAITING_CONFIRM, inbox_item=inbox_item)
+
+    def resolve_delegated_answer(self, inbox_item: InboxItem, action: str) -> DelegatedAnswer:
+        """A resolves a pending delegated query: approve → answer, deny → nothing."""
+        if action not in {"approve", "deny"}:
+            raise ValueError("action must be 'approve' or 'deny'")
+        meta = inbox_item.metadata
+        target = self.repository.get_user(meta["target_id"])
+        if target is None:
+            raise ValueError("delegated-answer inbox item has no target user")
+        inbox_item.status = "resolved"
+        inbox_item.resolved_at = now_utc()
+        self.repository.save_inbox_item(inbox_item)
+
+        if action == "deny":
+            self._audit("delegated_answer_denied", "inbox_item", inbox_item.id, {"target": target.id})
+            return DelegatedAnswer(status=DelegatedAnswerStatus.DENIED)
+
+        question = meta.get("question", "")
+        matched = self._match_target_memory(target, question)
+        return self._answer_and_audit(target, question, matched, asker_id=meta.get("asker_id"), auto=False)
+
+    def _answer_and_audit(
+        self, target: User, question: str, matched: list[UserMemoryItem], *, asker_id: str | None, auto: bool
+    ) -> DelegatedAnswer:
+        result = self._synthesize_delegated_answer(target, question, matched)
+        self._audit(
+            "delegated_answer", "user", target.id,
+            {"asker": asker_id, "auto": auto, "confidence": result.confidence.value},
+        )
+        return result
+
+    def adopt_delegated_answer(
+        self, asker: User, target: User, answer: DelegatedAnswer
+    ) -> tuple[ContributionPoint, MemoryRelation]:
+        """B adopts A's answer: record-only shadow point for A + a derived_from edge."""
+        if not answer.citations:
+            raise ValueError("cannot adopt a delegated answer that has no citations")
+        citation = answer.citations[0]
+        adopted = self.repository.add_user_memory_item(
+            UserMemoryItem(
+                user_id=asker.id,
+                layer=MemoryLayer.SHORT_TERM,
+                title=f"采纳自 {target.name} 的代答",
+                summary=self._truncate(answer.answer or "", 240),
+                source_kind="delegated_answer",
+                memory_type="note",
+                workspace_id=asker.workspace_id,
+                project_id=PROJECT.id,
+                sources=list(answer.citations),
+            )
+        )
+        point = self.repository.add_contribution_point(
+            ContributionPoint(
+                awarded_to_id=target.id,
+                awarded_by_id=asker.id,
+                reason="delegated_answer_adopted",
+                redeemable=False,
+                workspace_id=target.workspace_id,
+            )
+        )
+        relation = self.repository.add_memory_relation(
+            MemoryRelation(
+                from_memory_id=adopted.id,
+                to_source_id=citation.id,
+                relation_type="derived_from",
+            )
+        )
+        self._audit(
+            "adopt_delegated_answer", "contribution_point", point.id,
+            {"awarded_to": target.id, "by": asker.id, "relation": relation.id},
+        )
+        return point, relation
+
+    def read_peer_memory_directly(self, asker: User, target: User) -> NoReturn:
+        """No direct-read path exists — the gateway is the only route. Refuse + audit."""
+        self._audit("refuse_direct_peer_memory_read", "user", target.id, {"asker": asker.id})
+        raise PermissionError(
+            f"Direct read of {target.id} personal memory is not permitted; use answer_for_peer."
+        )
+
+    def _match_target_memory(self, target: User, question: str) -> list[UserMemoryItem]:
+        """Retrieve strictly within the target's own personal memory (hard user scope)."""
+        terms = self._search_terms(question)
+        scored: list[tuple[int, UserMemoryItem]] = []
+        for item in self.repository.list_user_memory_items(user_id=target.id):
+            haystack = f"{item.title} {item.summary} {item.memory_type}".lower()
+            score = sum(1 for term in terms if term in haystack)
+            if score >= 1:
+                scored.append((score, item))
+        scored.sort(key=lambda pair: (pair[0], pair[1].created_at), reverse=True)
+        return [item for _, item in scored]
+
+    INSUFFICIENT_PREFIX = "信息不足"
+
+    def _synthesize_delegated_answer(
+        self, target: User, question: str, matched: list[UserMemoryItem]
+    ) -> DelegatedAnswer:
+        if not matched:
+            return DelegatedAnswer(
+                status=DelegatedAnswerStatus.ANSWERED,
+                answer=f"{self.INSUFFICIENT_PREFIX}：{target.name} 的个人记忆中没有足够依据回答此问题。",
+                citations=[],
+                confidence=AnswerConfidence.NONE,
+            )
+        citations = self._delegated_citations(matched)
+        count_confidence = AnswerConfidence.HIGH if len(matched) >= 2 else AnswerConfidence.LOW
+
+        llm_answer = self._llm_delegated_answer(target, question, matched)
+        if llm_answer is None:
+            # No LLM configured or the call failed — fall back to a body-free template.
+            return DelegatedAnswer(
+                status=DelegatedAnswerStatus.ANSWERED,
+                answer=self._delegated_template(target, matched),
+                citations=citations,
+                confidence=count_confidence,
+            )
+        if llm_answer.startswith(self.INSUFFICIENT_PREFIX):
+            # Trust the model's own "insufficient" judgement over the hit count.
+            return DelegatedAnswer(
+                status=DelegatedAnswerStatus.ANSWERED,
+                answer=llm_answer,
+                citations=[],
+                confidence=AnswerConfidence.NONE,
+            )
+        return DelegatedAnswer(
+            status=DelegatedAnswerStatus.ANSWERED,
+            answer=llm_answer,
+            citations=citations,
+            confidence=count_confidence,
+        )
+
+    def _llm_delegated_answer(self, target: User, question: str, matched: list[UserMemoryItem]) -> str | None:
+        """Synthesize the target's answer with a real LLM. None when unavailable/failed.
+
+        The target's own model config answers, over the target's matched memory only. The
+        system prompt asks for conclusions (no verbatim copy, no fabrication, say
+        "信息不足" when thin). Cross-user data flow is permitted here (ADR 0003), so this is
+        a UX gateway, not a privacy control.
+        """
+        client = chat_llm_client(self.repository, target, self.llm_client)
+        if client is None:
+            return None
+        system_prompt = (
+            f"你是员工「{target.name}」的数字分身。只能依据下面提供的 {target.name} 的个人记忆回答同事的问题。"
+            "要求：给出可复用的结论性回答；不得逐字照抄原始记忆的句子；不得编造记忆中没有的信息；"
+            f"若信息不足，请直接回答“{self.INSUFFICIENT_PREFIX}”。"
+        )
+        memory_block = "\n".join(f"{index}. {item.title}：{item.summary}" for index, item in enumerate(matched, 1))
+        user_prompt = (
+            f"同事的问题：{question}\n\n{target.name} 的相关个人记忆：\n{memory_block}\n\n请给出你的回答。"
+        )
+        try:
+            answer = client.complete(system_prompt, user_prompt).strip()
+        except Exception:
+            return None
+        return answer or None
+
+    @staticmethod
+    def _delegated_template(target: User, matched: list[UserMemoryItem]) -> str:
+        return (
+            f"根据「{target.name}」的 {len(matched)} 条相关个人记忆（详见引用来源），"
+            "已归纳出可参考的答复；原始记忆内容未随本次回答一并传出。"
+        )
+
+    @staticmethod
+    def _delegated_citations(matched: list[UserMemoryItem]) -> list[Source]:
+        """Expose citation titles only — the memory's sources, or its title as a pointer.
+
+        Never the memory summary (the raw body), which must not cross the boundary.
+        """
+        citations: list[Source] = []
+        seen: set[str] = set()
+        for item in matched:
+            item_sources = item.sources or [
+                Source(title=item.title, source_type="personal_memory", reference=f"user-memory://{item.id}")
+            ]
+            for source in item_sources:
+                if source.id in seen:
+                    continue
+                seen.add(source.id)
+                citations.append(source)
+        return citations
 
     def _assistant_content_for_turn(self, intent: Intent, content: str, state: _ChatTurnState, user: User) -> str:
         if intent == Intent.ASK_SYSTEM_INFO:
