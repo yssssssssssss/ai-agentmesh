@@ -447,6 +447,7 @@ class UserMemoryItem(BaseModel):
     source_kind: str = Field(min_length=1, max_length=80)
     memory_type: str = Field(default="note", min_length=1, max_length=80)
     memory_date: dt_date = Field(default_factory=lambda: now_utc().date())
+    sensitivity: str = Field(default="normal", min_length=1, max_length=20)
     scope: Scope = Scope.PRIVATE
     workspace_id: str
     project_id: str | None = None
@@ -466,6 +467,74 @@ class AuditEvent(BaseModel):
     target_id: str
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=now_utc)
+
+
+class ConsentGrant(BaseModel):
+    """A per-person standing consent: grantor allows grantee's twin to query theirs.
+
+    Absence of an active grant means deny-auto — every delegated query routes
+    through the confirmation gate. Revocation is prospective (sets revoked_at).
+    """
+
+    id: str = Field(default_factory=lambda: new_id("consent"))
+    grantor_id: str
+    grantee_id: str
+    workspace_id: str
+    created_at: datetime = Field(default_factory=now_utc)
+    revoked_at: datetime | None = None
+
+    @property
+    def active(self) -> bool:
+        return self.revoked_at is None
+
+
+class ContributionPoint(BaseModel):
+    """Record-only shadow contribution point. Not redeemable in this phase."""
+
+    id: str = Field(default_factory=lambda: new_id("contrib"))
+    awarded_to_id: str
+    awarded_by_id: str
+    reason: str = ""
+    redeemable: bool = False
+    workspace_id: str | None = None
+    created_at: datetime = Field(default_factory=now_utc)
+
+
+class MemoryRelation(BaseModel):
+    """A lineage edge from a memory item to the source it was derived from."""
+
+    id: str = Field(default_factory=lambda: new_id("memrel"))
+    from_memory_id: str
+    to_source_id: str
+    relation_type: str = "derived_from"
+    created_at: datetime = Field(default_factory=now_utc)
+
+
+class DelegatedAnswerStatus(StrEnum):
+    ANSWERED = "answered"
+    AWAITING_CONFIRM = "awaiting_confirm"
+    DENIED = "denied"
+
+
+class AnswerConfidence(StrEnum):
+    UNSET = ""
+    NONE = "none"
+    LOW = "low"
+    HIGH = "high"
+
+
+class DelegatedAnswer(BaseModel):
+    """Result of a cross-person delegated query (④ answer-only gateway).
+
+    Only the abstracted ``answer`` and ``citations`` (source titles) ever cross
+    back to the asker — never the target's raw personal-memory bodies.
+    """
+
+    status: DelegatedAnswerStatus
+    answer: str | None = None
+    citations: list[Source] = Field(default_factory=list)
+    confidence: AnswerConfidence = AnswerConfidence.UNSET
+    inbox_item: InboxItem | None = None
 
 
 class ChatRequest(BaseModel):

@@ -20,10 +20,13 @@ from agentmesh.models import (
     BlackboardPostType,
     ChatMessage,
     ChatThread,
+    ConsentGrant,
+    ContributionPoint,
     DocumentParseJob,
     DocumentRecord,
     InboxItem,
     MemoryItem,
+    MemoryRelation,
     ModelDefinition,
     PermissionPolicyRule,
     Project,
@@ -223,6 +226,18 @@ class SQLiteStore:
     def team_memberships(self) -> list[TeamMembership]:
         return self._list("team_memberships", TeamMembership)
 
+    @property
+    def consent_grants(self) -> list[ConsentGrant]:
+        return self._list("consent_grants", ConsentGrant)
+
+    @property
+    def contribution_points(self) -> list[ContributionPoint]:
+        return self._list("contribution_points", ContributionPoint)
+
+    @property
+    def memory_relations(self) -> list[MemoryRelation]:
+        return self._list("memory_relations", MemoryRelation)
+
     def add_chat_message(self, message: ChatMessage) -> ChatMessage:
         self._upsert("chat_messages", message)
         return message
@@ -364,6 +379,34 @@ class SQLiteStore:
     def add_audit_event(self, event: AuditEvent) -> AuditEvent:
         self._upsert("audit_events", event)
         return event
+
+    def add_consent_grant(self, grant: ConsentGrant) -> ConsentGrant:
+        self._upsert("consent_grants", grant)
+        return grant
+
+    def save_consent_grant(self, grant: ConsentGrant) -> ConsentGrant:
+        self._upsert("consent_grants", grant)
+        return grant
+
+    def get_active_consent_grant(self, grantor_id: str, grantee_id: str) -> ConsentGrant | None:
+        for grant in self.consent_grants:
+            if grant.grantor_id == grantor_id and grant.grantee_id == grantee_id and grant.active:
+                return grant
+        return None
+
+    def add_contribution_point(self, point: ContributionPoint) -> ContributionPoint:
+        self._upsert("contribution_points", point)
+        return point
+
+    def list_contribution_points(self, awarded_to_id: str | None = None) -> list[ContributionPoint]:
+        items = self.contribution_points
+        if awarded_to_id is not None:
+            items = [point for point in items if point.awarded_to_id == awarded_to_id]
+        return sorted(items, key=lambda item: item.created_at, reverse=True)
+
+    def add_memory_relation(self, relation: MemoryRelation) -> MemoryRelation:
+        self._upsert("memory_relations", relation)
+        return relation
 
     def get_inbox_item(self, item_id: str) -> InboxItem | None:
         return self._get("inbox_items", item_id, InboxItem)
