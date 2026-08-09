@@ -9,14 +9,19 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from agentmesh.marketplace import start_market_publish_worker, stop_market_publish_worker
 from agentmesh.model_registry import ensure_model_seed_data
 from agentmesh.permissions import ensure_permission_policy_seed_data
 from agentmesh.risk import ensure_risk_policy_seed_data
 from agentmesh.routes.agents import router as agents_router
 from agentmesh.routes.auth import router as auth_router
 from agentmesh.routes.blackboard import router as blackboard_router
-from agentmesh.routes.blackboard import start_auto_post_worker, stop_auto_post_worker
-from agentmesh.routes.blackboard import start_research_dispatch_worker, stop_research_dispatch_worker
+from agentmesh.routes.blackboard import (
+    start_auto_post_worker,
+    start_research_dispatch_worker,
+    stop_auto_post_worker,
+    stop_research_dispatch_worker,
+)
 from agentmesh.routes.chat import router as chat_router
 from agentmesh.routes.data_sources import router as data_sources_router
 from agentmesh.routes.documents import router as documents_router
@@ -39,7 +44,9 @@ async def lifespan(app: FastAPI):
     await start_auto_post_worker()
     await start_daily_memory_worker()
     await start_research_dispatch_worker()
+    await start_market_publish_worker()
     yield
+    await stop_market_publish_worker()
     await stop_research_dispatch_worker()
     await stop_daily_memory_worker()
     await stop_auto_post_worker()
