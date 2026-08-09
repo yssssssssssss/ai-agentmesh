@@ -1263,6 +1263,86 @@ class PersonalAgent:
             return None
         return text or None
 
+    # ==== Autonomous market: agent-2 scouts, matches, triggers ④ answers ====
+
+    def scout_and_match(self, user: User) -> list[tuple[str, DelegatedAnswer]]:
+        """agent-2: scan MARKETPLACE_SIGNAL posts for needs `user` can solve.
+
+        For each solvable need on another person's signal, `user` (the helper) grants that
+        needer standing consent — participating in the market means letting peers pull
+        non-sensitive answers from your twin — and triggers `answer_for_peer(asker=needer,
+        target=user, question=need)` so the helper's twin answers the need. Non-sensitive
+        answers auto-resolve; high-sensitivity matches still hit the confirmation gate.
+        Returns (needer_id, answer) per triggered match.
+        """
+        capabilities = self._capability_text(user)
+        if not capabilities:
+            return []
+        client = chat_llm_client(self.repository, user, self.llm_client)
+        results: list[tuple[str, DelegatedAnswer]] = []
+        for post in self.repository.blackboard_posts:
+            if post.post_type != BlackboardPostType.MARKETPLACE_SIGNAL:
+                continue
+            owner_id = post.task_id.removeprefix("signal_")
+            if owner_id == user.id:  # never answer your own signal
+                continue
+            need = self._extract_need(post.content)
+            if not need or not self._match_signal(need, capabilities, client):
+                continue
+            needer = self.repository.get_user(owner_id)
+            if needer is None:
+                continue
+            self.grant_consent(user, needer)  # helper lets the needer pull non-sensitive answers
+            answer = self.answer_for_peer(asker=needer, target=user, question=need)
+            self._audit(
+                "marketplace_match", "user", needer.id,
+                {"helper": user.id, "status": answer.status.value},
+            )
+            results.append((needer.id, answer))
+        return results
+
+    def _match_signal(self, need: str, capabilities: str, client: ChatLLM | None) -> bool:
+        """Two-stage match (validated by the Issue #6 spike): keyword pre-filter → LLM confirm.
+
+        The pre-filter is permissive and cheap; the LLM is the real gate. With no LLM the
+        match degrades to keyword-only.
+        """
+        if not self._keyword_overlap(need, capabilities):
+            return False
+        if client is None:
+            return True
+        system_prompt = (
+            "你是一个协作匹配判断器。给定候选人的能力和一条求助需求，判断候选人能否切实解决该需求。"
+            "只输出一行：YES 或 NO，后跟一句简短理由。"
+        )
+        user_prompt = f"候选人能力：{capabilities}\n求助需求：{need}\n能否切实解决？"
+        try:
+            reply = client.complete(system_prompt, user_prompt).strip()
+        except Exception:
+            return False
+        return reply.upper().lstrip().startswith("YES")
+
+    def _keyword_overlap(self, left: str, right: str) -> bool:
+        return bool(set(self._search_terms(left)) & set(self._search_terms(right)))
+
+    def _capability_text(self, user: User) -> str:
+        memory = self.repository.list_user_memory_items(user_id=user.id)
+        tasks = self._user_tasks(user)
+        titles = [item.title for item in memory] + [task.title for task in tasks]
+        return "、".join(titles)
+
+    @staticmethod
+    def _extract_need(content: str) -> str | None:
+        for raw_line in content.splitlines():
+            line = raw_line.strip()
+            for prefix in ("需要：", "需要:"):
+                if line.startswith(prefix):
+                    need = line[len(prefix):].strip()
+                    if need and need not in {"（暂无）", "(暂无)", "无"}:
+                        return need
+                    return None
+        return None
+
     @staticmethod
     def _delegated_citations(matched: list[UserMemoryItem]) -> list[Source]:
         """Expose citation titles only — the memory's sources, or its title as a pointer.
