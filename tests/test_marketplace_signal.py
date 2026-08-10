@@ -144,7 +144,9 @@ def test_publish_all_signals_step_counts_users_with_material() -> None:
 def test_market_llm_timeout_is_long_by_default() -> None:
     from agentmesh.llm import llm_chat_timeout_seconds, market_llm_timeout_seconds
 
-    # market background calls must not inherit the short interactive-chat timeout
+    # interactive chat is now generous too (real answers, no fast-fail to fallback)
+    assert llm_chat_timeout_seconds() >= 15
+    # market background calls stay strictly longer than the interactive-chat budget
     assert market_llm_timeout_seconds() >= 15
     assert market_llm_timeout_seconds() > llm_chat_timeout_seconds()
 
