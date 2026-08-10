@@ -1,0 +1,20 @@
+from __future__ import annotations
+
+from fastapi.testclient import TestClient
+
+from agentmesh.app import app
+
+
+def test_market_status_reports_worker_state_and_counts() -> None:
+    client = TestClient(app)
+
+    response = client.get("/api/market/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "enabled" in payload
+    assert "publish_worker" in payload and "running" in payload["publish_worker"]
+    assert "scout_worker" in payload and "running" in payload["scout_worker"]
+    assert "counts" in payload
+    for key in ("signals", "matches", "consent_grants"):
+        assert key in payload["counts"]

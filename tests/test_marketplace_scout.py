@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from agentmesh.agents import PersonalAgent
 from agentmesh.models import BlackboardPost, BlackboardPostType, MemoryLayer, Scope, UserMemoryItem
-from agentmesh.seed import PROJECT, TEAM_LEAD, USER, WORKSPACE, ensure_seed_data
+from agentmesh.seed import ADMIN, PROJECT, TEAM_LEAD, USER, WORKSPACE, ensure_seed_data
 from agentmesh.store import store
 
 # B (USER) is the scout's owner / potential helper. A (TEAM_LEAD) is the needer.
@@ -131,3 +131,26 @@ def test_scout_all_step_counts_triggered_answers() -> None:
     _signal_for(NEEDER.id, "大促降级预案怎么做")
 
     assert scout_all(store) >= 1
+
+
+def test_scout_dedup_skips_already_seen_signals() -> None:
+    agent = _reset()
+    _add_memory("大促降级预案 v3", "核心链路保底。", user_id=HELPER.id)
+    _signal_for(NEEDER.id, "大促降级预案怎么做")
+
+    seen: set[str] = set()
+    first = agent.scout_and_match(HELPER, seen=seen)
+    assert len(first) == 1
+    # same unchanged signal on the next pass is skipped (no re-match / re-answer)
+    second = agent.scout_and_match(HELPER, seen=seen)
+    assert second == []
+
+
+def test_scout_cap_limits_matches_per_run() -> None:
+    agent = _reset()
+    _add_memory("大促降级预案 v3", "核心链路保底。", user_id=HELPER.id)
+    _signal_for(NEEDER.id, "大促降级预案怎么做")
+    _signal_for(ADMIN.id, "大促降级阈值怎么设")  # a second solvable need
+
+    results = agent.scout_and_match(HELPER, max_matches=1)
+    assert len(results) == 1

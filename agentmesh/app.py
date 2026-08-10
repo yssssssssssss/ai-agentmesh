@@ -32,6 +32,7 @@ from agentmesh.routes.data_sources import router as data_sources_router
 from agentmesh.routes.documents import router as documents_router
 from agentmesh.routes.health import router as health_router
 from agentmesh.routes.inbox import router as inbox_router
+from agentmesh.routes.market import router as market_router
 from agentmesh.routes.memory import router as memory_router
 from agentmesh.routes.memory import start_daily_memory_worker, stop_daily_memory_worker
 from agentmesh.routes.risk import router as risk_router
@@ -79,6 +80,7 @@ app.include_router(agents_router)
 app.include_router(blackboard_router)
 app.include_router(memory_router)
 app.include_router(inbox_router)
+app.include_router(market_router)
 app.include_router(documents_router)
 app.include_router(data_sources_router)
 app.include_router(risk_router)
