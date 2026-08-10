@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AgentMesh 协作市场看板</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --line:#e6e8ec; --txt:#1f2430; --muted:#6b7280;
+    --accent:#2563eb; --ok:#16a34a; --off:#9ca3af; --warn:#d97706; --chip:#eef2ff;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC",sans-serif;}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:16px 24px;
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  header h1{font-size:18px;margin:0;font-weight:650;}
+  .badge{font-size:12px;padding:2px 10px;border-radius:999px;font-weight:600;}
+  .badge.on{background:#dcfce7;color:var(--ok);}
+  .badge.off{background:#f3f4f6;color:var(--off);}
+  .spacer{flex:1;}
+  .muted{color:var(--muted);}
+  main{padding:20px 24px;max-width:1160px;margin:0 auto;}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .tile .n{font-size:26px;font-weight:700;}
+  .tile .l{font-size:12px;color:var(--muted);margin-top:2px;}
+  .workers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+  .worker{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .worker h3{margin:0 0 8px;font-size:14px;}
+  .kv{display:flex;justify-content:space-between;font-size:13px;padding:2px 0;}
+  .kv span:first-child{color:var(--muted);}
+  h2{font-size:15px;margin:24px 0 10px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .card .who{font-weight:650;display:flex;align-items:center;gap:8px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--off);}
+  .dot.on{background:var(--ok);}
+  .row{margin-top:8px;font-size:13px;}
+  .row .tag{display:inline-block;min-width:52px;color:var(--muted);}
+  .need{color:var(--accent);}
+  .matches{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .match{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--line);font-size:13px;}
+  .match:first-child{border-top:none;}
+  .arrow{color:var(--muted);}
+  .st{font-size:11px;padding:1px 8px;border-radius:999px;margin-left:auto;}
+  .st.answered{background:#dcfce7;color:var(--ok);}
+  .st.awaiting_confirm{background:#fef3c7;color:var(--warn);}
+  .empty{color:var(--muted);font-style:italic;padding:16px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>协作市场看板</h1>
+  <span class="badge" id="marketBadge">…</span>
+  <div class="spacer"></div>
+  <span class="muted" id="updatedAt">加载中…</span>
+</header>
+<main>
+  <div class="tiles" id="tiles"></div>
+  <div class="workers" id="workers"></div>
+
+  <h2>市场信号 <span class="muted" id="signalCount"></span></h2>
+  <div class="cards" id="signals"><div class="empty">加载中…</div></div>
+
+  <h2>近期匹配</h2>
+  <div class="matches" id="matches"><div class="empty">加载中…</div></div>
+</main>
+
+<script>
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const fmt = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
+
+function tile(n, l){ return `<div class="tile"><div class="n">${n}</div><div class="l">${l}</div></div>`; }
+
+function workerCard(title, w){
+  const running = w.running ? '<span class="badge on">运行中</span>' : '<span class="badge off">未运行</span>';
+  const lastCount = ('last_published' in w) ? `${w.last_published} 条信号` : `${w.last_triggered ?? 0} 次代答`;
+  return `<div class="worker"><h3>${title} ${running}</h3>
+    <div class="kv"><span>间隔</span><b>${w.interval_seconds}s</b></div>
+    <div class="kv"><span>上次运行</span><b>${w.last_run_at ? fmt(w.last_run_at) : "—"}</b></div>
+    <div class="kv"><span>上次产出</span><b>${lastCount}</b></div>
+    <div class="kv"><span>错误</span><b>${w.last_error ? esc(w.last_error) : "无"}</b></div></div>`;
+}
+
+function signalCard(s){
+  return `<div class="card">
+    <div class="who"><span class="dot ${s.participating ? "on":""}"></span>${esc(s.owner_name)}</div>
+    <div class="row"><span class="tag">能力</span>${esc(s.capability) || "<span class='muted'>—</span>"}</div>
+    <div class="row"><span class="tag">可提供</span>${esc(s.offer) || "<span class='muted'>—</span>"}</div>
+    <div class="row"><span class="tag">需要</span><span class="need">${esc(s.need) || "—"}</span></div>
+  </div>`;
+}
+
+function matchRow(m){
+  const st = (m.status||"").replace(/[^a-z_]/g,"");
+  return `<div class="match"><b>${esc(m.helper_name||m.helper_id)}</b>
+    <span class="arrow">→ 帮助 →</span><b>${esc(m.needer_name||m.needer_id)}</b>
+    <span class="st ${st}">${esc(m.status)}</span></div>`;
+}
+
+async function refresh(){
+  try{
+    const r = await fetch("/api/market/board");
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d = await r.json();
+    const badge = document.getElementById("marketBadge");
+    badge.className = "badge " + (d.enabled ? "on":"off");
+    badge.textContent = d.enabled ? "已开启" : "已关闭（总开关）";
+    const c = d.counts;
+    document.getElementById("tiles").innerHTML =
+      tile(c.signals,"市场信号") + tile(c.matches,"累计匹配") + tile(c.participants,"参与人数") + tile(c.consent_grants,"活跃授权");
+    document.getElementById("workers").innerHTML =
+      workerCard("agent-1 发布器", d.publish_worker) + workerCard("agent-2 侦察器", d.scout_worker);
+    document.getElementById("signalCount").textContent = `(${d.signals.length})`;
+    document.getElementById("signals").innerHTML =
+      d.signals.length ? d.signals.map(signalCard).join("") : '<div class="empty">暂无信号（需用户加入市场并发布）</div>';
+    document.getElementById("matches").innerHTML =
+      d.matches.length ? d.matches.map(matchRow).join("") : '<div class="empty">暂无匹配</div>';
+    document.getElementById("updatedAt").textContent = "更新于 " + new Date().toLocaleTimeString();
+  }catch(e){
+    document.getElementById("updatedAt").textContent = "加载失败：" + e.message;
+  }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
