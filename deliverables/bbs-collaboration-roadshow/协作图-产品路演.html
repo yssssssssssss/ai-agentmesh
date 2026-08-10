@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>协作图：让 Agent 协作可被看见 · AgentMesh 投资路演</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,.08);
+      --panel2: rgba(255,255,255,.12);
+      --text: #f7f8ff;
+      --muted: #b8c0d9;
+      --brand: #7c5cff;
+      --brand2: #15d6b3;
+      --warn: #ffcf5a;
+      --line: rgba(255,255,255,.16);
+      --shadow: 0 28px 80px rgba(0,0,0,.35);
+      /* 事件类型语义色，与 app.html POST_TYPE_META 保持一致 */
+      --c-request: #f5a623;
+      --c-evidence: #4ecdc4;
+      --c-risk: #ff6b6b;
+      --c-decision: #5b9bd5;
+      --c-handoff: #c084fc;
+      --c-memory: #facc15;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(124,92,255,.35), transparent 36%),
+        radial-gradient(circle at 88% 12%, rgba(21,214,179,.22), transparent 30%),
+        linear-gradient(180deg, #0b1020 0%, #10172d 48%, #0b1020 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.55;
+    }
+    .deck { width: min(1180px, calc(100vw - 40px)); margin: 0 auto; padding: 32px 0 80px; }
+    .slide {
+      min-height: 680px;
+      margin: 28px 0;
+      padding: 54px;
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.045));
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .slide::after {
+      content: attr(data-page);
+      position: absolute;
+      right: 34px;
+      bottom: 24px;
+      color: rgba(255,255,255,.32);
+      font-size: 14px;
+      letter-spacing: .08em;
+    }
+    .hero {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 720px;
+    }
+    h1, h2, h3 { margin: 0; letter-spacing: -0.04em; }
+    h1 { font-size: 68px; line-height: 1.0; max-width: 900px; }
+    h2 { font-size: 44px; line-height: 1.1; margin-bottom: 28px; }
+    h3 { font-size: 24px; margin-bottom: 12px; color: #ffffff; }
+    p { margin: 0 0 16px; color: var(--muted); font-size: 21px; }
+    .subtitle { font-size: 27px; color: #dce2ff; max-width: 900px; margin-top: 24px; }
+    .tagline { color: var(--brand2); font-weight: 700; font-size: 20px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 18px; }
+    .grid { display: grid; gap: 18px; }
+    .grid.two { grid-template-columns: 1fr 1fr; }
+    .grid.three { grid-template-columns: repeat(3, 1fr); }
+    .grid.four { grid-template-columns: repeat(2, 1fr); }
+    .card {
+      padding: 24px;
+      border-radius: 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    .card strong { display: block; font-size: 23px; margin-bottom: 8px; color: #fff; }
+    .card span, .card li { color: var(--muted); font-size: 18px; }
+    ul { padding-left: 22px; margin: 0; }
+    li { margin: 10px 0; color: var(--muted); font-size: 20px; }
+    .big-number { font-size: 56px; color: var(--brand2); font-weight: 800; letter-spacing: -0.06em; }
+    .pillrow { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+    .pill { border: 1px solid var(--line); background: rgba(255,255,255,.08); color: #eef1ff; padding: 10px 16px; border-radius: 999px; font-size: 17px; }
+    .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: stretch; margin-top: 24px; }
+    .step { padding: 18px; border-radius: 18px; background: rgba(124,92,255,.16); border: 1px solid rgba(124,92,255,.35); min-height: 120px; }
+    .step b { display: block; font-size: 19px; margin-bottom: 8px; color: #fff; }
+    .step small { color: var(--muted); font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 18px; background: var(--panel); }
+    th, td { padding: 15px 18px; border-bottom: 1px solid var(--line); text-align: left; font-size: 17px; }
+    th { color: #fff; background: rgba(255,255,255,.09); }
+    td { color: var(--muted); }
+    .quote { font-size: 34px; line-height: 1.25; color: #fff; max-width: 920px; }
+    .accent { color: var(--brand2); }
+    .lead { font-size: 23px; color: #dce2ff; margin-bottom: 20px; max-width: 940px; }
+    .footnote { position: absolute; left: 54px; bottom: 24px; color: rgba(255,255,255,.42); font-size: 13px; max-width: 900px; }
+
+    /* 图例 */
+    .legend { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 20px; font-size: 16px; color: var(--muted); }
+    .legend i { display: inline-flex; align-items: center; gap: 7px; font-style: normal; }
+    .legend .ln { width: 26px; height: 0; border-top: 3px solid var(--muted); }
+    .legend .ln.dash { border-top-style: dashed; }
+    .legend .dot { width: 11px; height: 11px; border-radius: 50%; }
+
+    /* 协作流程图示意（泳道 + 时间列 + 正交折线） */
+    .swim {
+      margin-top: 22px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(0,0,0,.22);
+      padding: 18px 20px;
+    }
+    .swim-ticks { display: grid; grid-template-columns: 120px repeat(4, 1fr); font-size: 14px; color: var(--muted); padding-bottom: 8px; }
+    .swim-ticks span { text-align: center; }
+    .swim-ticks .corner { text-align: left; color: rgba(255,255,255,.4); }
+    .node-chip {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 13px; border-radius: 16px; font-size: 15px; white-space: nowrap;
+      border: 1.5px solid var(--nc, #8e879d); color: var(--nc, #cbd5e1); background: rgba(0,0,0,.4);
+    }
+    .node-chip .d { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+    /* 项目时间线示意（每项目独立竖轴） */
+    .ptcard { border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.03); overflow: hidden; }
+    .ptcard .hd { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.05); font-size: 17px; }
+    .ptcard .badge { font-size: 13px; padding: 2px 10px; border-radius: 999px; color: #08210b; font-weight: 700; }
+    .ptcard .tr { position: relative; padding: 14px 18px 14px 0; }
+    .ptcard .tr::before { content:""; position:absolute; top:20px; bottom:20px; left:78px; width:2px; background: var(--line); }
+    .ptrow { display: grid; grid-template-columns: 56px 18px 1fr; align-items: start; gap: 10px; padding: 8px 0; }
+    .ptrow .clk { text-align: right; font-size: 14px; color: var(--muted); line-height: 26px; }
+    .ptrow .pd { width: 13px; height: 13px; margin-top: 7px; border-radius: 50%; background: var(--nc, #8e879d); border: 2px solid var(--bg); box-shadow: 0 0 0 2px var(--nc, #8e879d); }
+    .ptrow .bd { border: 1px solid var(--line); border-left: 3px solid var(--nc, #8e879d); border-radius: 9px; background: rgba(255,255,255,.04); padding: 8px 12px; }
+    .ptrow .bd b { color: #fff; font-size: 16px; }
+    .ptrow .bd small { color: var(--muted); font-size: 14px; display: block; margin-top: 2px; }
+    .badge-mini { font-size: 12px; padding: 1px 8px; border: 1px solid var(--nc); border-radius: 999px; color: var(--nc); margin-left: 6px; }
+
+    @media print {
+      body { background: #0b1020; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .deck { width: 100%; padding: 0; }
+      .slide { page-break-after: always; margin: 0; border-radius: 0; min-height: 100vh; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+
+    <!-- 01 封面 -->
+    <section class="slide hero" data-page="01">
+      <div class="tagline">Enterprise Agent Collaboration · Explainability Layer</div>
+      <h1>协作图：让 Agent 协作可被看见</h1>
+      <p class="subtitle">把黑箱的多 Agent 协作，变成一眼看懂的任务地图与时间线。谁发起、谁在做、卡在谁、证据从哪来、下一步谁接手——可读、可查、可追溯。</p>
+      <div class="pillrow">
+        <span class="pill">协作流程图</span>
+        <span class="pill">项目时间线</span>
+        <span class="pill">结构化证据账本</span>
+        <span class="pill">过程可解释</span>
+      </div>
+    </section>
+
+    <!-- 02 问题 -->
+    <section class="slide" data-page="02">
+      <h2>企业接入多个 Agent 后，第一堵墙不是能力，是不可见</h2>
+      <p class="lead">当 Agent 进入真实业务流程，管理者、业务方、合规方立刻需要看懂协作过程——而今天它基本是黑箱。</p>
+      <div class="grid four">
+        <div class="card"><strong>协作是黑箱</strong><span>只看到最终输出，不知道谁在做、卡在哪一步、能否恢复。</span></div>
+        <div class="card"><strong>证据无出处</strong><span>结论的来源和责任散落在日志或群聊里，不敢进正式流程。</span></div>
+        <div class="card"><strong>交接丢上下文</strong><span>任务在多个 Agent 间流转，责任边界模糊，下一个从零开始。</span></div>
+        <div class="card"><strong>视角不统一</strong><span>管理、业务、合规各需一种视图，每次追溯都要翻原始记录。</span></div>
+      </div>
+    </section>
+
+    <!-- 03 产品定义 -->
+    <section class="slide" data-page="03">
+      <h2>产品：两个可解释视图，解开协作黑箱</h2>
+      <p class="quote">协作图要回答负责人每天在问的四个问题：<span class="accent">任务由谁发起？当前卡在谁？证据从哪里来？下一步由谁接手？</span></p>
+      <div class="grid two" style="margin-top:34px">
+        <div class="card"><strong>协作流程图</strong><span>时间列对齐的泳道图。横轴是统一时间刻度，纵轴是 Agent 泳道，正交折线画清"回复/推进"与"任务交接"两类关系——看结构与责任。</span></div>
+        <div class="card"><strong>项目时间线</strong><span>每个项目一条独立竖轴，只含该任务的事件。顺着一张卡片读下来，就是这个项目的完整来龙去脉——看节奏与顺序。</span></div>
+      </div>
+    </section>
+
+    <!-- 04 视图一 协作流程图示意 -->
+    <section class="slide" data-page="04">
+      <h2>视图一 · 协作流程图：时间列对齐 + 正交折线</h2>
+      <div class="swim">
+        <div class="swim-ticks">
+          <span class="corner">时间线 →</span><span>① 18:00</span><span>② 18:00</span><span>③ 18:00</span><span>④ 18:01</span>
+        </div>
+        <svg viewBox="0 0 1000 260" style="width:100%; height:auto; display:block;">
+          <!-- 行分隔 -->
+          <line x1="0" y1="86" x2="1000" y2="86" stroke="rgba(255,255,255,.08)"/>
+          <line x1="0" y1="172" x2="1000" y2="172" stroke="rgba(255,255,255,.08)"/>
+          <!-- 行标签 -->
+          <text x="8" y="52" fill="#b8c0d9" font-size="15">个人 Agent</text>
+          <text x="8" y="138" fill="#b8c0d9" font-size="15">research</text>
+          <text x="8" y="224" fill="#b8c0d9" font-size="15">risk</text>
+          <!-- 回复实线：发起①→补证据②（右→下→左，正交，水平进入左缘） -->
+          <path d="M330,43 L378,43 Q386,43 386,51 L386,120 Q386,128 394,128 L410,128" fill="none" stroke="#4ecdc4" stroke-width="2.5"/>
+          <polygon points="410,128 401,124 401,132" fill="#4ecdc4"/>
+          <!-- 回复实线：补证据②→总结④（右→上→左） -->
+          <path d="M640,128 L740,128 Q748,128 748,120 L748,51 Q748,43 756,43 L800,43" fill="none" stroke="#7ed957" stroke-width="2.5"/>
+          <polygon points="800,43 791,39 791,47" fill="#7ed957"/>
+          <!-- 回复实线：补证据②→提示风险③（下） -->
+          <path d="M500,150 L500,196 Q500,204 508,204 L560,204" fill="none" stroke="#ff6b6b" stroke-width="2.5"/>
+          <polygon points="560,204 551,200 551,208" fill="#ff6b6b"/>
+          <!-- 交接虚线：发起①→补证据②（handoff，纵向优先，从顶部朝下进入，与回复实线的箭头完全错开） -->
+          <path d="M230,58 L230,100 Q230,108 238,108 L510,108 Q518,108 518,116 L518,150" fill="none" stroke="#c084fc" stroke-width="2.5" stroke-dasharray="6 5"/>
+          <polygon points="518,150 514,141 522,141" fill="#c084fc"/>
+          <!-- 节点 -->
+          <foreignObject x="150" y="26" width="180" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="node-chip" style="--nc:#f5a623"><span class="d"></span>发起</div></foreignObject>
+          <foreignObject x="410" y="112" width="200" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="node-chip" style="--nc:#4ecdc4"><span class="d"></span>补证据</div></foreignObject>
+          <foreignObject x="560" y="188" width="180" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="node-chip" style="--nc:#ff6b6b"><span class="d"></span>提示风险</div></foreignObject>
+          <foreignObject x="800" y="26" width="170" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="node-chip" style="--nc:#7ed957"><span class="d"></span>总结</div></foreignObject>
+        </svg>
+        <div class="legend">
+          <i><span class="ln"></span>回复 / 推进（恒左→右，不倒流）</i>
+          <i><span class="ln dash" style="border-top-color:#c084fc"></span>任务交接 handoff</i>
+        </div>
+      </div>
+      <p style="margin-top:16px">正交折线只走直角，绝不斜穿；回复实线与交接虚线在语义和几何上都分离——彻底消除"意面式"交叉。</p>
+    </section>
+
+    <!-- 05 视图二 时间线示意 -->
+    <section class="slide" data-page="05">
+      <h2>视图二 · 项目时间线：每项目一条独立竖轴</h2>
+      <p class="lead">按项目分组，一项目一卡片、一卡片一条竖轴。项目间互不干扰，没有把所有事件塞进全局竖轴造成的巨大空白。</p>
+      <div class="grid two">
+        <div class="ptcard">
+          <div class="hd"><span class="badge" style="background:#4ecdc4">已完成</span><strong style="color:#fff;font-size:18px">生成首屏改版设计 Brief</strong></div>
+          <div class="tr">
+            <div class="ptrow"><div class="clk">18:05</div><div class="pd" style="--nc:#5b9bd5"></div><div class="bd" style="--nc:#5b9bd5"><b>个人 Agent</b><span class="badge-mini">决策</span><small>启动首屏改版 Brief</small></div></div>
+            <div class="ptrow"><div class="clk">18:06</div><div class="pd" style="--nc:#c084fc"></div><div class="bd" style="--nc:#c084fc"><b>个人 Agent</b><span class="badge-mini">交接</span><small>Brief 审核给组长</small></div></div>
+            <div class="ptrow"><div class="clk">18:08</div><div class="pd" style="--nc:#4ecdc4"></div><div class="bd" style="--nc:#4ecdc4"><b>组长 Agent</b><span class="badge-mini">补证据</span><small>审核通过，方向确认</small></div></div>
+            <div class="ptrow"><div class="clk">18:09</div><div class="pd" style="--nc:#facc15"></div><div class="bd" style="--nc:#facc15"><b>个人 Agent</b><span class="badge-mini">记忆候选</span><small>首屏改版 Brief 经验</small></div></div>
+          </div>
+        </div>
+        <div class="ptcard">
+          <div class="hd"><span class="badge" style="background:#f5a623;color:#2a1c02">等待 Agent</span><strong style="color:#fff;font-size:18px">查询竞品首屏布局方案</strong></div>
+          <div class="tr">
+            <div class="ptrow"><div class="clk">18:15</div><div class="pd" style="--nc:#f5a623"></div><div class="bd" style="--nc:#f5a623"><b>个人 Agent</b><span class="badge-mini">发起</span><small>请求竞品首屏布局数据</small></div></div>
+            <div class="ptrow"><div class="clk">18:16</div><div class="pd" style="--nc:#fb923c"></div><div class="bd" style="--nc:#fb923c"><b>risk Agent</b><span class="badge-mini">纠正</span><small>需补充竞品时间范围</small></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 底层协议 -->
+    <section class="slide" data-page="06">
+      <h2>可视化能成立，是因为底层已是结构化事件账本</h2>
+      <p class="lead">图上每个节点都对应一条 <code>BlackboardPost</code>，带来源、责任人、时间和因果关系——不是从聊天记录里猜出来的。系统支持 9 种结构化事件：</p>
+      <div class="pillrow">
+        <span class="pill"><span style="color:var(--c-request)">●</span> request 发起</span>
+        <span class="pill"><span style="color:var(--c-evidence)">●</span> evidence 补证据</span>
+        <span class="pill"><span style="color:var(--c-risk)">●</span> risk 风险</span>
+        <span class="pill"><span style="color:var(--c-decision)">●</span> decision 决策</span>
+        <span class="pill"><span style="color:var(--c-handoff)">●</span> handoff 交接</span>
+        <span class="pill"><span style="color:var(--c-memory)">●</span> memory_candidate</span>
+        <span class="pill">digest 总结</span>
+        <span class="pill">correction 纠正</span>
+        <span class="pill">archive 归档</span>
+      </div>
+      <div class="grid two" style="margin-top:26px">
+        <div class="card"><strong>related_post_id 因果回链</strong><span>evidence / risk 回链到它响应的 request——这就是流程图上"回复实线"的数据来源。</span></div>
+        <div class="card"><strong>结构化交接包 handoff</strong><span>携带 goal、current_result、done_when、next_owner、blockers——这就是"交接虚线"和责任转移的来源。</span></div>
+      </div>
+    </section>
+
+    <!-- 07 技术壁垒 -->
+    <section class="slide" data-page="07">
+      <h2>技术壁垒：可视化引擎不是套个图表库</h2>
+      <div class="grid two">
+        <div class="card"><strong>时间列对齐</strong><span>CSS Grid 一帖一列、每 Agent 一行，从布局层保证"同列即同刻"，回复线因此恒向右。</span></div>
+        <div class="card"><strong>正交折线路由</strong><span>直线段 + 圆角贝塞尔拼接，只走直角；回复线走列间垂直通道，交接线走行间水平通道，几何正交互不缠绕。</span></div>
+        <div class="card"><strong>线型语义分离</strong><span>实线=回复/推进，虚线=交接；多线通道按序错开，避免重叠。</span></div>
+        <div class="card"><strong>渲染健壮性</strong><span>连线依赖节点真实几何，rAF + 定时双触发兜底，解决从隐藏态切入时连线丢失。</span></div>
+      </div>
+      <p style="margin-top:24px">单独画一张泳道图不难；难的是<span class="accent">图上每个节点都对应可追溯的结构化事件</span>。这套协议 + 治理 + 可视化协同的能力，需长期工程沉淀。</p>
+    </section>
+
+    <!-- 08 市场 -->
+    <section class="slide" data-page="08">
+      <h2>市场：可解释性正成为企业 Agent 采购的刚需</h2>
+      <p class="lead">从"能跑"到"敢用"的关键一跃，是让三类角色看懂协作过程。</p>
+      <div class="grid three">
+        <div class="card"><strong>管理者</strong><span>快速定位任务卡在哪、谁在等谁，而不是等最终结果超时才发现。</span></div>
+        <div class="card"><strong>合规 / 审计</strong><span>追溯进入正式流程的结论：证据从哪来、经过谁、是否做过风险检查。</span></div>
+        <div class="card"><strong>业务负责人</strong><span>复核过程本身，判断能否信任这次自动化的产出。</span></div>
+      </div>
+      <p style="margin-top:24px">协作图把"Agent 到底做了什么"，从工程师的日志里翻译成业务方和管理者能读的地图与时间线。</p>
+    </section>
+
+    <!-- 09 竞品对比 -->
+    <section class="slide" data-page="09">
+      <h2>竞争格局：平台都在做 Agent，缺的是协作过程的可解释</h2>
+      <table>
+        <tr><th>代表产品</th><th>已验证强项</th><th>在"协作过程可解释"上的差距</th></tr>
+        <tr><td>Glean</td><td>企业上下文、无代码 Agent 与工作流</td><td>强于"找答案"，弱于"解释这群 Agent 如何协作产出答案"</td></tr>
+        <tr><td>Microsoft Copilot Studio</td><td>M365 集成、connected agents、生成式编排</td><td>过程呈现偏配置视角，非面向业务方的任务地图</td></tr>
+        <tr><td>Salesforce Agentforce</td><td>Customer 360、流程、可观测性与治理</td><td>可观测性面向运维，非面向管理/业务/合规</td></tr>
+        <tr><td>ServiceNow AI Agents</td><td>ITSM 工作流、跨部门编排、中央治理</td><td>聚焦 ITSM 流程，非知识密集协作的过程解释</td></tr>
+        <tr><td>Dify</td><td>可视化工作流、模型/工具编排、私有化</td><td>画的是预设流程图，不是运行时真实发生的协作事件</td></tr>
+      </table>
+      <p class="footnote">竞品信息来源官网/文档，访问日期 2026-07-12。详见 md 文档第 11 节。</p>
+    </section>
+
+    <!-- 10 差异化 -->
+    <section class="slide" data-page="10">
+      <h2>差异化：从"调用 Agent"到"看懂并治理协作"</h2>
+      <table>
+        <tr><th>维度</th><th>通用 Agent 平台</th><th>AgentMesh 协作图</th></tr>
+        <tr><td>图上节点</td><td>消息 / 预设流程节点</td><td>带来源、责任人、时间、因果的结构化事件</td></tr>
+        <tr><td>关系表达</td><td>顺序 / 连接</td><td>回复推进（实线）与责任交接（虚线）分离</td></tr>
+        <tr><td>面向对象</td><td>开发者 / 运维</td><td>管理者、业务、合规</td></tr>
+        <tr><td>呈现的是</td><td>设计态流程</td><td>运行时真实发生的协作</td></tr>
+        <tr><td>产品定位</td><td>通用平台 / 既有业务域</td><td>企业 Agent 的可信协作可解释层</td></tr>
+      </table>
+    </section>
+
+    <!-- 11 能力边界 · 诚实页 -->
+    <section class="slide" data-page="11">
+      <h2>能力边界与红线（诚实披露）</h2>
+      <div class="grid two">
+        <div class="card"><strong>已可演示</strong><span>任务、BBS 帖、证据来源、风险隔离、人工审核、执行锁、结构化交接、协作流程图、项目时间线、仅 research 的自动派发闭环；research / data / risk 三类服务 Agent。</span></div>
+        <div class="card"><strong>产品路线待做</strong><span>通用任务 DAG、跨实例可靠队列、自动重试、Agent 自主计划、生产级关系模型；真实连接器接口就绪未验收（research 默认 Mock、data 回落样例、O2 需宿主 CLI）。</span></div>
+      </div>
+      <div class="card" style="margin-top:18px; border-color: rgba(255,207,90,.5)">
+        <strong style="color:var(--warn)">三条产品红线</strong>
+        <span>AI 产出不是事实源；团队记忆不自动接受；外部连接器默认只读，写操作与高风险行为进入审批。</span>
+      </div>
+      <p class="footnote">后端能力由 tests/test_chat_flow.py 覆盖（派发、隔离、执行锁、交接、证据→记忆、BBS API 等），项目自述 220 项测试。</p>
+    </section>
+
+    <!-- 12 收尾 -->
+    <section class="slide hero" data-page="12">
+      <h2>让每一次 Agent 协作，都被看见、被信任、被复用</h2>
+      <p class="quote">协作图不是画图工具，而是把可追溯的协作账本翻译给人看的窗口。企业 Agent 已进入采购期，<span class="accent">"协作过程可解释、结果可追溯"仍是被低估的基础设施层</span>——协作图是这一层最直观的入口。</p>
+      <div class="pillrow" style="margin-top:26px">
+        <span class="pill">试点闭环：以协作图为验收看板</span>
+        <span class="pill">部门订阅 / 私有化</span>
+        <span class="pill">企业协作可解释底座</span>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>
