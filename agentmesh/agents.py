@@ -12,7 +12,7 @@ from agentmesh.acquisition import (
 )
 from agentmesh.brief_templates import BriefTemplate, select_brief_template
 from agentmesh.chat_skills import ChatSkillInvocation, list_chat_skills, parse_chat_skill_invocation, spec_for_intent
-from agentmesh.llm import LLMRequestError
+from agentmesh.llm import LLMRequestError, market_llm_timeout_seconds
 from agentmesh.model_registry import resolve_agent_model_id
 from agentmesh.models import (
     ActivityLog,
@@ -1177,7 +1177,7 @@ class PersonalAgent:
         "信息不足" when thin). Cross-user data flow is permitted here (ADR 0003), so this is
         a UX gateway, not a privacy control.
         """
-        client = chat_llm_client(self.repository, target, self.llm_client)
+        client = chat_llm_client(self.repository, target, self.llm_client, timeout_seconds=market_llm_timeout_seconds())
         if client is None:
             return None
         system_prompt = (
@@ -1246,7 +1246,7 @@ class PersonalAgent:
         return f"能力：{capabilities}\n可提供：可就以上经验为同事提供帮助与解答。\n需要：（暂无）"
 
     def _llm_marketplace_signal(self, user: User, memory: list[UserMemoryItem], tasks: list[Task]) -> str | None:
-        client = chat_llm_client(self.repository, user, self.llm_client)
+        client = chat_llm_client(self.repository, user, self.llm_client, timeout_seconds=market_llm_timeout_seconds())
         if client is None:
             return None
         system_prompt = (
@@ -1278,7 +1278,7 @@ class PersonalAgent:
         capabilities = self._capability_text(user)
         if not capabilities:
             return []
-        client = chat_llm_client(self.repository, user, self.llm_client)
+        client = chat_llm_client(self.repository, user, self.llm_client, timeout_seconds=market_llm_timeout_seconds())
         results: list[tuple[str, DelegatedAnswer]] = []
         for post in self.repository.blackboard_posts:
             if post.post_type != BlackboardPostType.MARKETPLACE_SIGNAL:
