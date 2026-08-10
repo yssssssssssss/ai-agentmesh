@@ -511,6 +511,23 @@ class MemoryRelation(BaseModel):
     created_at: datetime = Field(default_factory=now_utc)
 
 
+class MarketParticipation(BaseModel):
+    """Per-user opt-in to the autonomous market. Absent record = not participating.
+
+    On top of the global master switch: even when the market is globally enabled, a user's
+    twins only publish signals / answer peers when that user has opted in.
+    """
+
+    id: str  # == user_id (one record per user)
+    user_id: str
+    enabled: bool = False
+    updated_at: datetime = Field(default_factory=now_utc)
+
+
+class MarketParticipationRequest(BaseModel):
+    enabled: bool
+
+
 class DelegatedAnswerStatus(StrEnum):
     ANSWERED = "answered"
     AWAITING_CONFIRM = "awaiting_confirm"

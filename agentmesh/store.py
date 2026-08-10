@@ -25,6 +25,7 @@ from agentmesh.models import (
     DocumentParseJob,
     DocumentRecord,
     InboxItem,
+    MarketParticipation,
     MemoryItem,
     MemoryRelation,
     ModelDefinition,
@@ -237,6 +238,22 @@ class SQLiteStore:
     @property
     def memory_relations(self) -> list[MemoryRelation]:
         return self._list("memory_relations", MemoryRelation)
+
+    @property
+    def market_participations(self) -> list[MarketParticipation]:
+        return self._list("market_participation", MarketParticipation)
+
+    def get_market_participation(self, user_id: str) -> MarketParticipation | None:
+        return self._get("market_participation", user_id, MarketParticipation)
+
+    def is_market_participant(self, user_id: str) -> bool:
+        record = self.get_market_participation(user_id)
+        return bool(record and record.enabled)
+
+    def set_market_participation(self, user_id: str, enabled: bool) -> MarketParticipation:
+        record = MarketParticipation(id=user_id, user_id=user_id, enabled=enabled)
+        self._upsert("market_participation", record)
+        return record
 
     def add_chat_message(self, message: ChatMessage) -> ChatMessage:
         self._upsert("chat_messages", message)

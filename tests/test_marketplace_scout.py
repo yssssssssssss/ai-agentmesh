@@ -128,6 +128,7 @@ def test_scout_all_step_counts_triggered_answers() -> None:
     store.reset()
     ensure_seed_data(store)
     _add_memory("大促降级预案 v3", "核心链路保底。", user_id=HELPER.id)
+    store.set_market_participation(HELPER.id, True)  # helper opts into the market
     _signal_for(NEEDER.id, "大促降级预案怎么做")
 
     assert scout_all(store) >= 1

@@ -57,6 +57,8 @@ def publish_all_signals(repository: SQLiteStore) -> int:
     agent = PersonalAgent(repository)
     published = 0
     for user in list_users(repository):
+        if not repository.is_market_participant(user.id):
+            continue
         if agent.publish_marketplace_signal(user) is not None:
             published += 1
     logger.info("market publish: %d signals published", published)
@@ -110,6 +112,11 @@ scout_worker_state: dict[str, object] = {
 _scout_seen: dict[str, set[str]] = {}
 
 
+def reset_scout_state() -> None:
+    """Clear the scout dedup cache (used when the underlying store is reset)."""
+    _scout_seen.clear()
+
+
 def scout_all(repository: SQLiteStore) -> int:
     """Run every user's scout; return the total number of delegated answers triggered.
 
@@ -119,6 +126,8 @@ def scout_all(repository: SQLiteStore) -> int:
     agent = PersonalAgent(repository)
     triggered = 0
     for user in list_users(repository):
+        if not repository.is_market_participant(user.id):
+            continue
         seen = _scout_seen.setdefault(user.id, set())
         triggered += len(agent.scout_and_match(user, seen=seen, max_matches=MARKET_SCOUT_MAX_PER_RUN))
     logger.info("market scout: %d answers triggered", triggered)

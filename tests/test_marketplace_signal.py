@@ -134,6 +134,7 @@ def test_publish_all_signals_step_counts_users_with_material() -> None:
     store.reset()
     ensure_seed_data(store)
     _add_memory("大促降级预案", "核心链路保底。", user_id=USER.id)  # only USER has material
+    store.set_market_participation(USER.id, True)  # and opts into the market
 
     published = publish_all_signals(store)
 

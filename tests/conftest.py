@@ -4,6 +4,8 @@ import os
 import tempfile
 from pathlib import Path
 
+import pytest
+
 TEST_DB_PATH = Path(tempfile.gettempdir()) / "agentmesh-pytest.sqlite3"
 if TEST_DB_PATH.exists():
     TEST_DB_PATH.unlink()
@@ -21,3 +23,14 @@ for key in (
     "AGENTMESH_LLM_API_STYLE",
 ):
     os.environ[key] = ""
+
+
+@pytest.fixture(autouse=True)
+def _reset_market_scout_state():
+    """The scout dedup cache is a process-lifetime module global; clear it between tests
+    so a fingerprint from one test doesn't suppress matching in another."""
+    from agentmesh.marketplace import reset_scout_state
+
+    reset_scout_state()
+    yield
+
