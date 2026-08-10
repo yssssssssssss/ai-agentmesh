@@ -94,6 +94,19 @@ def test_scout_matches_need_grants_consent_and_answers() -> None:
     assert store.get_active_consent_grant(HELPER.id, NEEDER.id) is not None
 
 
+def test_scout_publishes_a_match_event_to_the_board() -> None:
+    agent = _reset()
+    _add_memory("大促降级预案 v3", "核心链路保底、按 QPS 阶梯降级。", user_id=HELPER.id)
+    _signal_for(NEEDER.id, "大促降级预案怎么做")
+
+    agent.scout_and_match(HELPER)
+
+    events = [p for p in store.blackboard_posts if p.post_type == BlackboardPostType.MARKETPLACE_MATCH]
+    assert len(events) == 1
+    assert events[0].scope == Scope.PROJECT
+    assert NEEDER.name in events[0].title and HELPER.name in events[0].title
+
+
 def test_scout_skips_own_signal() -> None:
     agent = _reset()
     _add_memory("大促降级预案 v3", "核心链路保底。", user_id=HELPER.id)

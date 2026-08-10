@@ -3030,6 +3030,37 @@
         }
       }
     </style>
+    <style>
+      .mkt-badge{font-size:12px;padding:2px 10px;border-radius:999px;font-weight:600;}
+      .mkt-badge.on{background:#dcfce7;color:#16a34a;}
+      .mkt-badge.off{background:#f3f4f6;color:#9ca3af;}
+      .mkt-muted{color:#6b7280;}
+      .mkt-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0 16px;}
+      .mkt-tile{border:1px solid var(--line,#e6e8ec);border-radius:12px;padding:12px 14px;}
+      .mkt-tile .n{font-size:24px;font-weight:700;}
+      .mkt-tile .l{font-size:12px;color:#6b7280;margin-top:2px;}
+      .mkt-workers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+      .mkt-worker{border:1px solid var(--line,#e6e8ec);border-radius:12px;padding:12px 14px;}
+      .mkt-worker h4{margin:0 0 8px;font-size:13px;}
+      .mkt-kv{display:flex;justify-content:space-between;font-size:12px;padding:1px 0;}
+      .mkt-kv span:first-child{color:#6b7280;}
+      .mkt-h{font-size:14px;margin:16px 0 8px;}
+      .mkt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;}
+      .mkt-card{border:1px solid var(--line,#e6e8ec);border-radius:12px;padding:12px 14px;}
+      .mkt-card .who{font-weight:650;display:flex;align-items:center;gap:8px;}
+      .mkt-dot{width:8px;height:8px;border-radius:50%;background:#9ca3af;}
+      .mkt-dot.on{background:#16a34a;}
+      .mkt-row{margin-top:6px;font-size:13px;}
+      .mkt-row .tag{display:inline-block;min-width:52px;color:#6b7280;}
+      .mkt-need{color:#2563eb;}
+      .mkt-matches{border:1px solid var(--line,#e6e8ec);border-radius:12px;overflow:hidden;}
+      .mkt-match{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--line,#e6e8ec);font-size:13px;}
+      .mkt-match:first-child{border-top:none;}
+      .mkt-st{font-size:11px;padding:1px 8px;border-radius:999px;margin-left:auto;}
+      .mkt-st.answered{background:#dcfce7;color:#16a34a;}
+      .mkt-st.awaiting_confirm{background:#fef3c7;color:#d97706;}
+      .mkt-empty{color:#6b7280;font-style:italic;padding:12px 0;}
+    </style>
   </head>
       <body>
     <div class="login-gate hidden" id="loginGate" aria-hidden="true">
@@ -3441,6 +3472,7 @@
               <div class="bbs-tabs" role="tablist" aria-label="BBS 视图">
                 <button class="active" type="button" data-bbs-panel-tab="posts">帖子流</button>
                 <button type="button" data-bbs-panel-tab="tasks">任务聚合</button>
+                <button type="button" data-bbs-panel-tab="market">协作市场</button>
               </div>
               <div id="bbsPostsPanel">
                 <div class="bbs-list" id="bbsList"></div>
@@ -3453,6 +3485,7 @@
               <div class="bbs-panel-hidden" id="bbsTasksPanel">
                 <div class="bbs-list" id="taskCardList"></div>
               </div>
+              <div class="bbs-panel-hidden" id="bbsMarketPanel"></div>
             </div>
           </section>
         </section>
@@ -3761,6 +3794,7 @@
       const bbsList = document.getElementById("bbsList");
       const bbsPostsPanel = document.getElementById("bbsPostsPanel");
       const bbsTasksPanel = document.getElementById("bbsTasksPanel");
+      const bbsMarketPanel = document.getElementById("bbsMarketPanel");
       const bbsPrevButton = document.getElementById("bbsPrevButton");
       const bbsNextButton = document.getElementById("bbsNextButton");
       const bbsPageInfo = document.getElementById("bbsPageInfo");
@@ -4606,12 +4640,79 @@
       }
 
       function showBbsPanel(name) {
-        activeBbsPanel = name === "tasks" ? "tasks" : "posts";
+        activeBbsPanel = ["tasks", "market"].includes(name) ? name : "posts";
         if (bbsPostsPanel) bbsPostsPanel.classList.toggle("bbs-panel-hidden", activeBbsPanel !== "posts");
         if (bbsTasksPanel) bbsTasksPanel.classList.toggle("bbs-panel-hidden", activeBbsPanel !== "tasks");
+        if (bbsMarketPanel) bbsMarketPanel.classList.toggle("bbs-panel-hidden", activeBbsPanel !== "market");
         document.querySelectorAll("[data-bbs-panel-tab]").forEach((button) => {
           button.classList.toggle("active", button.dataset.bbsPanelTab === activeBbsPanel);
         });
+        if (activeBbsPanel === "market") loadMarket();
+      }
+
+      function mktEsc(value) {
+        return escapeHtml(value == null ? "" : String(value));
+      }
+
+      function mktWorkerCard(title, w) {
+        const running = w.running ? '<span class="mkt-badge on">运行中</span>' : '<span class="mkt-badge off">未运行</span>';
+        const lastCount = "last_published" in w ? `${w.last_published} 条信号` : `${w.last_triggered ?? 0} 次代答`;
+        const lastRun = w.last_run_at ? new Date(w.last_run_at).toLocaleString() : "—";
+        return `<div class="mkt-worker"><h4>${title} ${running}</h4>
+          <div class="mkt-kv"><span>间隔</span><b>${w.interval_seconds}s</b></div>
+          <div class="mkt-kv"><span>上次运行</span><b>${lastRun}</b></div>
+          <div class="mkt-kv"><span>上次产出</span><b>${lastCount}</b></div>
+          <div class="mkt-kv"><span>错误</span><b>${w.last_error ? mktEsc(w.last_error) : "无"}</b></div></div>`;
+      }
+
+      function mktSignalCard(s) {
+        return `<div class="mkt-card">
+          <div class="who"><span class="mkt-dot ${s.participating ? "on" : ""}"></span>${mktEsc(s.owner_name)}</div>
+          <div class="mkt-row"><span class="tag">能力</span>${mktEsc(s.capability) || "<span class='mkt-muted'>—</span>"}</div>
+          <div class="mkt-row"><span class="tag">可提供</span>${mktEsc(s.offer) || "<span class='mkt-muted'>—</span>"}</div>
+          <div class="mkt-row"><span class="tag">需要</span><span class="mkt-need">${mktEsc(s.need) || "—"}</span></div>
+        </div>`;
+      }
+
+      function mktMatchRow(m) {
+        const st = (m.status || "").replace(/[^a-z_]/g, "");
+        return `<div class="mkt-match"><b>${mktEsc(m.helper_name || m.helper_id)}</b>
+          <span class="mkt-muted">→ 帮助 →</span><b>${mktEsc(m.needer_name || m.needer_id)}</b>
+          <span class="mkt-st ${st}">${mktEsc(m.status)}</span></div>`;
+      }
+
+      async function loadMarket() {
+        if (!bbsMarketPanel) return;
+        try {
+          const response = await fetch("/api/market/board");
+          if (!response.ok) throw new Error("HTTP " + response.status);
+          const d = await response.json();
+          const c = d.counts || {};
+          const badge = d.enabled
+            ? '<span class="mkt-badge on">总开关：已开启</span>'
+            : '<span class="mkt-badge off">总开关：已关闭</span>';
+          const tiles =
+            `<div class="mkt-tile"><div class="n">${c.signals ?? 0}</div><div class="l">市场信号</div></div>` +
+            `<div class="mkt-tile"><div class="n">${c.matches ?? 0}</div><div class="l">累计匹配</div></div>` +
+            `<div class="mkt-tile"><div class="n">${c.participants ?? 0}</div><div class="l">参与人数</div></div>` +
+            `<div class="mkt-tile"><div class="n">${c.consent_grants ?? 0}</div><div class="l">活跃授权</div></div>`;
+          const signals = (d.signals || []).length
+            ? d.signals.map(mktSignalCard).join("")
+            : '<div class="mkt-empty">暂无信号（需用户加入市场并发布）</div>';
+          const matches = (d.matches || []).length
+            ? d.matches.map(mktMatchRow).join("")
+            : '<div class="mkt-empty">暂无匹配</div>';
+          bbsMarketPanel.innerHTML =
+            `<div style="margin-bottom:8px">${badge}</div>` +
+            `<div class="mkt-tiles">${tiles}</div>` +
+            `<div class="mkt-workers">${mktWorkerCard("agent-1 发布器", d.publish_worker || {})}${mktWorkerCard("agent-2 侦察器", d.scout_worker || {})}</div>` +
+            `<h3 class="mkt-h">市场信号 <span class="mkt-muted">(${(d.signals || []).length})</span></h3>` +
+            `<div class="mkt-cards">${signals}</div>` +
+            `<h3 class="mkt-h">近期匹配</h3>` +
+            `<div class="mkt-matches">${matches}</div>`;
+        } catch (error) {
+          bbsMarketPanel.innerHTML = `<div class="mkt-empty">加载失败：${mktEsc(error.message)}</div>`;
+        }
       }
 
       function showTaskView(name) {
@@ -5515,6 +5616,22 @@
         return `${value.slice(0, maxLength)}...`;
       }
 
+      function bbsTypeLabel(value) {
+        const labels = {
+          request: "请求",
+          evidence: "证据",
+          risk: "风险",
+          decision: "决策",
+          digest: "摘要",
+          handoff: "交接",
+          archive: "归档",
+          correction: "修正",
+          memory_candidate: "记忆候选",
+          marketplace_match: "协作代答",
+        };
+        return labels[value] || value;
+      }
+
       function canCreateMemoryFromBbs(post) {
         return ["evidence", "decision", "digest", "archive", "memory_candidate"].includes(post.post_type);
       }
@@ -5524,7 +5641,7 @@
       }
 
       function renderBbs(items, meta = {}) {
-        const posts = items || [];
+        const posts = (items || []).filter((post) => post.post_type !== "marketplace_signal");
         const total = meta.total ?? posts.length;
         if (bbsCount) bbsCount.textContent = total;
         if (bbsPageInfo) bbsPageInfo.textContent = `第 ${meta.page ?? bbsPage} 页 / 共 ${Math.max(1, Math.ceil(total / bbsPageSize))} 页`;
@@ -5570,7 +5687,7 @@
                       <div class="bbs-thread-author">发帖 Agent：${escapeHtml(agentLabel(post.actor))}</div>
                       <strong class="bbs-thread-title">${escapeHtml(post.title)}</strong>
                     </div>
-                    <span class="badge blue">${escapeHtml(post.post_type)} · ${escapeHtml(stageLabel(post.collaboration_stage))}</span>
+                    <span class="badge blue">${escapeHtml(bbsTypeLabel(post.post_type))} · ${escapeHtml(stageLabel(post.collaboration_stage))}</span>
                   </div>
                   <p class="bbs-thread-summary" title="${escapeHtml(post.content)}">${escapeHtml(truncateText(post.content, 180))}</p>
                   ${readerReceiptMarkup(readers)}
