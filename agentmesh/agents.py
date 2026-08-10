@@ -1321,6 +1321,19 @@ class PersonalAgent:
                 "market match: helper=%s needer=%s status=%s need=%r",
                 user.id, needer.id, answer.status.value, need[:60],
             )
+            self.repository.add_blackboard_post(
+                BlackboardPost(
+                    id=f"bb_match_{user.id}_{needer.id}",  # deterministic per pair → refresh, not spam
+                    task_id="market_activity",  # synthetic, non-task → visible on the board to all
+                    post_type=BlackboardPostType.MARKETPLACE_MATCH,
+                    actor=self.actor,
+                    title=f"协作代答：{user.name} 帮 {needer.name} 解决「{self._truncate(need, 24)}」",
+                    content=self._truncate(answer.answer or "已发起代答，等待对方确认。", 200),
+                    scope=Scope.PROJECT,
+                    permission="project_visible",
+                    read_by_agents=[self.actor],
+                )
+            )
             results.append((needer.id, answer))
             if max_matches is not None and len(results) >= max_matches:
                 logger.info("market scout: hit per-run cap (%d) for helper=%s", max_matches, user.id)

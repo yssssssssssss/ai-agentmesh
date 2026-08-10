@@ -67,6 +67,7 @@ class BlackboardPostType(StrEnum):
     CORRECTION = "correction"
     MEMORY_CANDIDATE = "memory_candidate"
     MARKETPLACE_SIGNAL = "marketplace_signal"
+    MARKETPLACE_MATCH = "marketplace_match"
 
 
 class ChatRole(StrEnum):
