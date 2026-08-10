@@ -10,3 +10,7 @@ __pycache__/
 data/*.sqlite3
 data/*.sqlite3-*
 .DS_Store
+
+# Local-only tooling & throwaway artifacts
+.scratch/
+.claude/

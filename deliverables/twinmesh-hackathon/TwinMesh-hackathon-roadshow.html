@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TwinMesh：企业员工数字分身协同网络</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,.08);
+      --panel2: rgba(255,255,255,.12);
+      --text: #f7f8ff;
+      --muted: #b8c0d9;
+      --brand: #7c5cff;
+      --brand2: #15d6b3;
+      --warn: #ffcf5a;
+      --line: rgba(255,255,255,.16);
+      --shadow: 0 28px 80px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(124,92,255,.35), transparent 36%),
+        radial-gradient(circle at 88% 12%, rgba(21,214,179,.22), transparent 30%),
+        linear-gradient(180deg, #0b1020 0%, #10172d 48%, #0b1020 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.55;
+    }
+    .deck { width: min(1180px, calc(100vw - 40px)); margin: 0 auto; padding: 32px 0 80px; }
+    .slide {
+      min-height: 680px;
+      margin: 28px 0;
+      padding: 54px;
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      background: linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.045));
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .slide::after {
+      content: attr(data-page);
+      position: absolute;
+      right: 34px;
+      bottom: 24px;
+      color: rgba(255,255,255,.32);
+      font-size: 14px;
+      letter-spacing: .08em;
+    }
+    .hero {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 720px;
+    }
+    h1, h2, h3 { margin: 0; letter-spacing: -0.04em; }
+    h1 { font-size: 72px; line-height: .98; max-width: 880px; }
+    h2 { font-size: 46px; line-height: 1.08; margin-bottom: 30px; }
+    h3 { font-size: 24px; margin-bottom: 12px; color: #ffffff; }
+    p { margin: 0 0 16px; color: var(--muted); font-size: 21px; }
+    .subtitle { font-size: 28px; color: #dce2ff; max-width: 860px; margin-top: 26px; }
+    .tagline { color: var(--brand2); font-weight: 700; font-size: 20px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 18px; }
+    .grid { display: grid; gap: 18px; }
+    .grid.two { grid-template-columns: 1fr 1fr; }
+    .grid.three { grid-template-columns: repeat(3, 1fr); }
+    .card {
+      padding: 24px;
+      border-radius: 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    .card strong { display: block; font-size: 24px; margin-bottom: 8px; color: #fff; }
+    .card span, .card li { color: var(--muted); font-size: 18px; }
+    ul { padding-left: 22px; margin: 0; }
+    li { margin: 10px 0; color: var(--muted); font-size: 20px; }
+    .big-number { font-size: 60px; color: var(--brand2); font-weight: 800; letter-spacing: -0.06em; }
+    .pillrow { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+    .pill { border: 1px solid var(--line); background: rgba(255,255,255,.08); color: #eef1ff; padding: 10px 16px; border-radius: 999px; font-size: 17px; }
+    .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: stretch; margin-top: 26px; }
+    .step { padding: 18px; border-radius: 18px; background: rgba(124,92,255,.16); border: 1px solid rgba(124,92,255,.35); min-height: 120px; }
+    .step b { display: block; font-size: 19px; margin-bottom: 8px; color: #fff; }
+    .step small { color: var(--muted); font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 18px; background: var(--panel); }
+    th, td { padding: 16px 18px; border-bottom: 1px solid var(--line); text-align: left; font-size: 18px; }
+    th { color: #fff; background: rgba(255,255,255,.09); }
+    td { color: var(--muted); }
+    .quote { font-size: 36px; line-height: 1.25; color: #fff; max-width: 900px; }
+    .accent { color: var(--brand2); }
+    .diagram {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 1fr;
+      gap: 18px;
+      align-items: center;
+      margin-top: 26px;
+    }
+    .node { padding: 22px; border-radius: 24px; background: var(--panel2); border: 1px solid var(--line); text-align: center; }
+    .node.main { background: linear-gradient(135deg, rgba(124,92,255,.42), rgba(21,214,179,.2)); }
+    .node b { display: block; font-size: 24px; margin-bottom: 6px; }
+    .node span { color: var(--muted); font-size: 17px; }
+    .footer-note { position: absolute; left: 54px; bottom: 28px; color: rgba(255,255,255,.42); font-size: 14px; }
+    @media print {
+      body { background: #0b1020; }
+      .deck { width: 100%; padding: 0; }
+      .slide { page-break-after: always; margin: 0; border-radius: 0; min-height: 100vh; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck">
+    <section class="slide hero" data-page="01">
+      <div class="tagline">Enterprise Digital Twin Collaboration Network</div>
+      <h1>TwinMesh：让每位员工拥有自己的数字分身</h1>
+      <p class="subtitle">可授权、可审计、可协作的企业员工数字分身网络，让知识、工具和人自动协同起来。</p>
+      <div class="pillrow">
+        <span class="pill">员工分身</span><span class="pill">通用 Agent 能力池</span><span class="pill">三级 Memory</span><span class="pill">协作可追踪</span>
+      </div>
+    </section>
+
+    <section class="slide" data-page="02">
+      <h2>企业协作最大的浪费，是上下文不断丢失</h2>
+      <div class="grid two">
+        <div class="card"><strong>信息分散</strong><span>项目背景散落在群聊、会议、文档、需求和业务系统里。</span></div>
+        <div class="card"><strong>重复同步</strong><span>员工每天重复解释背景、找资料、催确认、写纪要。</span></div>
+        <div class="card"><strong>经验流失</strong><span>项目结束后经验沉睡在复盘文档里，换人后知识断层。</span></div>
+        <div class="card"><strong>AI 碎片化</strong><span>AI 工具各自为战，输出不进入业务流程，无法沉淀组织知识。</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-page="03">
+      <h2>核心洞察：企业需要可协作的员工数字分身</h2>
+      <p class="quote">员工是经验的最小载体，项目是上下文的最小容器，团队是组织经验复用的最小单元。</p>
+      <div class="grid three" style="margin-top:36px">
+        <div class="card"><strong>员工</strong><span>偏好、经验、职责、判断标准。</span></div>
+        <div class="card"><strong>项目</strong><span>事实、资料、会议、决策、风险。</span></div>
+        <div class="card"><strong>团队</strong><span>方法论、最佳实践、复盘经验。</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-page="04">
+      <h2>TwinMesh 的三件核心事</h2>
+      <div class="diagram">
+        <div class="node"><b>员工数字分身</b><span>理解员工、代表员工处理上下文</span></div>
+        <div class="node main"><b>TwinMesh</b><span>企业员工数字分身协同网络</span></div>
+        <div class="node"><b>通用能力池</b><span>调研、数据、文档、会议、风险、内部工具</span></div>
+      </div>
+      <div class="card" style="margin-top:24px"><strong>三级 Memory</strong><span>员工 memory、项目 memory、团队 memory，让个人提效、项目沉淀和组织复利连接起来。</span></div>
+    </section>
+
+    <section class="slide" data-page="05">
+      <h2>能力架构：从员工请求到组织记忆</h2>
+      <div class="flow">
+        <div class="step"><b>员工</b><small>提出问题、任务或项目需求</small></div>
+        <div class="step"><b>数字分身</b><small>理解身份、权限、偏好和上下文</small></div>
+        <div class="step"><b>能力池</b><small>调用调研、数据、文档、会议、风险工具</small></div>
+        <div class="step"><b>协作网络</b><small>分身之间结构化请求、证据、交接</small></div>
+        <div class="step"><b>三级 Memory</b><small>候选确认后沉淀为组织知识</small></div>
+      </div>
+      <p style="margin-top:30px">关键不是让 Agent 自由发挥，而是在明确权限、任务和记忆治理下协作。</p>
+    </section>
+
+    <section class="slide" data-page="06">
+      <h2>三级 Memory：从个人经验到组织复利</h2>
+      <div class="grid three">
+        <div class="card"><strong>员工 Memory</strong><span>工作偏好、专业领域、历史项目、私人备忘，让分身越来越懂员工。</span></div>
+        <div class="card"><strong>项目 Memory</strong><span>项目背景、需求变更、会议结论、调研结果、风险判断和阶段总结。</span></div>
+        <div class="card"><strong>团队 Memory</strong><span>跨项目可复用的方法论、风险模式、最佳实践、反例和适用边界。</span></div>
+      </div>
+      <p style="margin-top:30px">AI 输出默认只是候选内容，经过确认后才成为正式知识。</p>
+    </section>
+
+    <section class="slide" data-page="07">
+      <h2>典型 Demo：设计项目里的分身协作</h2>
+      <div class="flow">
+        <div class="step"><b>设计师提问</b><small>这次改版核心用户痛点是什么？</small></div>
+        <div class="step"><b>读取上下文</b><small>分身读取项目 memory 和 PRD</small></div>
+        <div class="step"><b>发起协作</b><small>向用研分身请求证据</small></div>
+        <div class="step"><b>调用工具</b><small>用研分身调用调研 Agent</small></div>
+        <div class="step"><b>沉淀记忆</b><small>结论确认后进入项目 memory</small></div>
+      </div>
+    </section>
+
+    <section class="slide" data-page="08">
+      <h2>为公司带来的价值</h2>
+      <div class="grid two">
+        <div class="card"><strong>降低沟通成本</strong><span>分身之间结构化协作，减少重复解释和跨角色来回确认。</span></div>
+        <div class="card"><strong>缩短上手时间</strong><span>新人由分身生成项目上手包，快速理解历史决策和当前风险。</span></div>
+        <div class="card"><strong>提升沉淀质量</strong><span>会议、工具、调研结果进入项目上下文和候选 memory。</span></div>
+        <div class="card"><strong>形成组织复利</strong><span>项目经验投影为团队 memory，后续项目自动复用。</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-page="09">
+      <h2>提效与收益模型</h2>
+      <div class="grid two">
+        <div class="card"><div class="big-number">1100h</div><strong>每月节省时间</strong><span>100 人团队，每人每天节省 30 分钟，每月释放约 1100 人小时。</span></div>
+        <div class="card"><div class="big-number">6–7</div><strong>等效全职人力</strong><span>相当于释放约 6–7 个全职人力的时间，更重要的是高价值脑力劳动时间。</span></div>
+      </div>
+      <table style="margin-top:26px">
+        <tr><th>指标</th><th>目标收益</th></tr>
+        <tr><td>新人项目上手时间</td><td>降低 30%–50%</td></tr>
+        <tr><td>历史资料查找时间</td><td>降低 30%–60%</td></tr>
+        <tr><td>会议纪要与行动项整理</td><td>节省 50% 以上</td></tr>
+      </table>
+    </section>
+
+    <section class="slide" data-page="10">
+      <h2>和普通 AI 助手的区别</h2>
+      <table>
+        <tr><th>维度</th><th>普通 AI 助手</th><th>TwinMesh</th></tr>
+        <tr><td>身份</td><td>泛用机器人</td><td>员工数字分身</td></tr>
+        <tr><td>上下文</td><td>当前对话</td><td>员工 + 项目 + 团队 memory</td></tr>
+        <tr><td>协作</td><td>人自己转述</td><td>分身之间结构化协作</td></tr>
+        <tr><td>沉淀</td><td>聊天记录</td><td>候选 memory → 确认 → 组织知识</td></tr>
+        <tr><td>价值</td><td>单次提效</td><td>组织智能复利</td></tr>
+      </table>
+    </section>
+
+    <section class="slide" data-page="11">
+      <h2>未来发展：从数字分身到企业智能操作系统</h2>
+      <div class="grid two">
+        <div class="card"><strong>阶段一：个人分身</strong><span>个人记忆、项目问答、工具调用。</span></div>
+        <div class="card"><strong>阶段二：项目协作网络</strong><span>分身围绕项目任务协作，项目 memory 自动增长。</span></div>
+        <div class="card"><strong>阶段三：团队智能沉淀</strong><span>项目经验投影为团队 memory，新项目自动召回历史经验。</span></div>
+        <div class="card"><strong>阶段四：企业智能中枢</strong><span>接入更多系统，支持经营分析、风险预警和流程优化。</span></div>
+      </div>
+    </section>
+
+    <section class="slide" data-page="12">
+      <h2>结尾：让每个团队持续进化</h2>
+      <p class="quote">TwinMesh 不是替代员工，而是放大员工；不是替代协作，而是让协作可追踪；不是堆更多工具，而是让工具、知识和人形成网络。</p>
+      <p class="subtitle"><span class="accent">让每个员工都有分身，让每个项目留下记忆，让每个团队持续进化。</span></p>
+    </section>
+  </main>
+</body>
+</html>

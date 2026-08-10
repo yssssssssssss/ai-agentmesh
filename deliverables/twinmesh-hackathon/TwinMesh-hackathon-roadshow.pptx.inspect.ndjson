@@ -1,0 +1,287 @@
+{"kind":"deck","id":"pr/74y27g","name":"Deck"}
+{"kind":"layout","layoutId":"49e7ada4-98d0-4e22-b6f4-0b07d50f3ec2","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"b8f8bd58-2a56-49fb-b985-aafb5d3ca75c","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/igbvka","slide":1,"title":"01","textShapes":9}
+{"kind":"shape","id":"sh/ehg3ap8r","slide":1,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/1k7mlk72","slide":1,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/gjylcfqh","slide":1,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/rupkfa90","slide":1,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/6tw3658f","slide":1,"text":"ENTERPRISE DIGITAL TWIN COLLABORATION NETWORK","textPreview":"ENTERPRISE DIGITAL TWIN COLLABORATION NETWORK","textChars":45,"textLines":1,"bbox":[72,104,620,24]}
+{"kind":"textbox","id":"sh/tg72hkr6","slide":1,"text":"TwinMesh","textPreview":"TwinMesh","textChars":8,"textLines":1,"bbox":[72,164,760,86]}
+{"kind":"textbox","id":"sh/svyl8fql","slide":1,"text":"让每位员工拥有自己的数字分身","textPreview":"让每位员工拥有自己的数字分身","textChars":14,"textLines":1,"bbox":[72,250,880,70]}
+{"kind":"textbox","id":"sh/jq5kbq94","slide":1,"text":"可授权、可审计、可协作的企业员工数字分身网络，让知识、工具和人自动协同起来。","textPreview":"可授权、可审计、可协作的企业员工数字分身网络，让知识、工具和人自动协同起来。","textChars":38,"textLines":1,"bbox":[72,344,760,78]}
+{"kind":"shape","id":"sh/ipw3258j","slide":1,"bbox":[72,458,124,38]}
+{"kind":"textbox","id":"sh/8zetw7qd","slide":1,"text":"员工分身","textPreview":"员工分身","textChars":4,"textLines":1,"bbox":[72,466,124,18]}
+{"kind":"shape","id":"sh/90napc7i","slide":1,"bbox":[210,458,178,38]}
+{"kind":"textbox","id":"sh/mxcbux87","slide":1,"text":"通用 Agent 能力池","textPreview":"通用 Agent 能力池","textChars":12,"textLines":1,"bbox":[210,466,178,18]}
+{"kind":"shape","id":"sh/ny5sn2ps","slide":1,"bbox":[402,458,142,38]}
+{"kind":"textbox","id":"sh/0vutsnq1","slide":1,"text":"三级 Memory","textPreview":"三级 Memory","textChars":9,"textLines":1,"bbox":[402,466,142,18]}
+{"kind":"shape","id":"sh/lw3als7m","slide":1,"bbox":[558,458,146,38]}
+{"kind":"textbox","id":"sh/ytcbqx8v","slide":1,"text":"协作可追踪","textPreview":"协作可追踪","textChars":5,"textLines":1,"bbox":[558,466,146,18]}
+{"kind":"notes","id":"nt/igbvka","slide":1,"text":""}
+{"kind":"slide","id":"sl/ujo62d","slide":2,"title":"02","textShapes":11}
+{"kind":"shape","id":"sh/aho76907","slide":2,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/xkzqhoji","slide":2,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/cjqp8jix","slide":2,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/nexobe1g","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/2do7290v","slide":2,"text":"企业协作最大的浪费，是上下文不断丢失","textPreview":"企业协作最大的浪费，是上下文不断丢失","textChars":18,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"textbox","id":"sh/pgf6d4jm","slide":2,"text":"不是缺少聊天工具，而是知识、任务、工具结果和决策没有形成统一的组织记忆。","textPreview":"不是缺少聊天工具，而是知识、任务、工具结果和决策没有形成统一的组织记忆。","textChars":36,"textLines":1,"bbox":[72,130,1136,44]}
+{"kind":"shape","id":"sh/of6p4zi1","slide":2,"bbox":[72,188,535,142]}
+{"kind":"shape","id":"sh/fqdo7u1k","slide":2,"bbox":[72,188,7,142]}
+{"kind":"textbox","id":"sh/ep47yp0z","slide":2,"text":"信息分散","textPreview":"信息分散","textChars":4,"textLines":1,"bbox":[96,210,487,30]}
+{"kind":"textbox","id":"sh/knapoz6x","slide":2,"text":"项目背景散落在群聊、会议、文档、需求和业务系统里。","textPreview":"项目背景散落在群聊、会议、文档、需求和业务系统里。","textChars":25,"textLines":1,"bbox":[96,250,487,60]}
+{"kind":"shape","id":"sh/lojqx4ni","slide":2,"bbox":[635,188,535,142]}
+{"kind":"shape","id":"sh/yls7m9or","slide":2,"bbox":[635,188,7,142]}
+{"kind":"textbox","id":"sh/zm18vu5c","slide":2,"text":"重复同步","textPreview":"重复同步","textChars":4,"textLines":1,"bbox":[659,210,487,30]}
+{"kind":"textbox","id":"sh/cjqpkz61","slide":2,"text":"员工每天重复解释背景、找资料、催确认、写纪要。","textPreview":"员工每天重复解释背景、找资料、催确认、写纪要。","textChars":23,"textLines":1,"bbox":[659,250,487,60]}
+{"kind":"shape","id":"sh/xkzqt4nm","slide":2,"bbox":[72,358,535,142]}
+{"kind":"shape","id":"sh/ax87ipov","slide":2,"bbox":[72,358,7,142]}
+{"kind":"textbox","id":"sh/byh8ru5g","slide":2,"text":"经验流失","textPreview":"经验流失","textChars":4,"textLines":1,"bbox":[96,380,487,30]}
+{"kind":"textbox","id":"sh/gfu9wj65","slide":2,"text":"复盘文档写完就沉睡，换人后大量隐性知识断层。","textPreview":"复盘文档写完就沉睡，换人后大量隐性知识断层。","textChars":22,"textLines":1,"bbox":[96,420,487,60]}
+{"kind":"shape","id":"sh/hg3q5onq","slide":2,"bbox":[635,358,535,142]}
+{"kind":"shape","id":"sh/50fytkbi","slide":2,"bbox":[635,358,7,142]}
+{"kind":"textbox","id":"sh/4z6h0zux","slide":2,"text":"AI 碎片化","textPreview":"AI 碎片化","textChars":6,"textLines":1,"bbox":[659,380,487,30]}
+{"kind":"textbox","id":"sh/jyxgrutc","slide":2,"text":"AI 工具各自为战，输出不进入业务流程，也不沉淀组织知识。","textPreview":"AI 工具各自为战，输出不进入业务流程，也不沉淀组织知识。","textChars":29,"textLines":1,"bbox":[659,420,487,60]}
+{"kind":"notes","id":"nt/ujo62d","slide":2,"text":""}
+{"kind":"slide","id":"sl/c1alcf","slide":3,"title":"03","textShapes":9}
+{"kind":"shape","id":"sh/yp0zi5kn","slide":3,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/lsrydkje","slide":3,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/krihkf2t","slide":3,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/bmpg7a1c","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/algze5kr","slide":3,"text":"企业需要的不是更多机器人，而是可协作的员工数字分身","textPreview":"企业需要的不是更多机器人，而是可协作的员工数字分身","textChars":25,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"textbox","id":"sh/xo7y90j2","slide":3,"text":"员工是经验的最小载体，项目是上下文的最小容器，团队是组织经验复用的最小单元。","textPreview":"员工是经验的最小载体，项目是上下文的最小容器，团队是组织经验复用的最小单元。","textChars":38,"textLines":1,"bbox":[72,166,990,92]}
+{"kind":"shape","id":"sh/wnyhgv2h","slide":3,"bbox":[72,320,350,166]}
+{"kind":"shape","id":"sh/nypg3ql0","slide":3,"bbox":[72,320,7,166]}
+{"kind":"textbox","id":"sh/mxgzalkf","slide":3,"text":"员工","textPreview":"员工","textChars":2,"textLines":1,"bbox":[96,342,302,30]}
+{"kind":"textbox","id":"sh/4j6lwbyh","slide":3,"text":"偏好、经验、职责、判断标准，构成员工数字分身的个人底座。","textPreview":"偏好、经验、职责、判断标准，构成员工数字分身的个人底座。","textChars":28,"textLines":1,"bbox":[96,382,302,84]}
+{"kind":"shape","id":"sh/5kfmpgf2","slide":3,"bbox":[465,320,350,166]}
+{"kind":"shape","id":"sh/iho3u1gb","slide":3,"bbox":[465,320,7,166]}
+{"kind":"textbox","id":"sh/jix4n6xw","slide":3,"text":"项目","textPreview":"项目","textChars":2,"textLines":1,"bbox":[489,342,302,30]}
+{"kind":"textbox","id":"sh/wf6lsby5","slide":3,"text":"事实、资料、会议、决策、风险，构成业务上下文的中心。","textPreview":"事实、资料、会议、决策、风险，构成业务上下文的中心。","textChars":26,"textLines":1,"bbox":[489,382,302,84]}
+{"kind":"shape","id":"sh/hgfmlgfq","slide":3,"bbox":[858,320,350,166]}
+{"kind":"shape","id":"sh/udo3q1gf","slide":3,"bbox":[858,320,7,166]}
+{"kind":"textbox","id":"sh/vex4j6xk","slide":3,"text":"团队","textPreview":"团队","textChars":2,"textLines":1,"bbox":[882,342,302,30]}
+{"kind":"textbox","id":"sh/gbq54vyp","slide":3,"text":"方法论、最佳实践、复盘经验，构成可复用的组织能力。","textPreview":"方法论、最佳实践、复盘经验，构成可复用的组织能力。","textChars":25,"textLines":1,"bbox":[882,382,302,84]}
+{"kind":"notes","id":"nt/c1alcf","slide":3,"text":""}
+{"kind":"slide","id":"sl/3cdwj6","slide":4,"title":"04","textShapes":9}
+{"kind":"shape","id":"sh/ri9srmd8","slide":4,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/cjit0rut","slide":4,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/dkbatwve","slide":4,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/ylkb21cz","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/zmtsv6dk","slide":4,"text":"TwinMesh 用三件事把个人提效变成组织复利","textPreview":"TwinMesh 用三件事把个人提效变成组织复利","textChars":24,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"shape","id":"sh/0n2t4bup","slide":4,"bbox":[72,180,330,190]}
+{"kind":"shape","id":"sh/lobaxgva","slide":4,"bbox":[72,180,7,190]}
+{"kind":"textbox","id":"sh/upgrqxcf","slide":4,"text":"员工数字分身","textPreview":"员工数字分身","textChars":6,"textLines":1,"bbox":[96,202,282,30]}
+{"kind":"textbox","id":"sh/fqpsj2d0","slide":4,"text":"理解员工、代表员工处理上下文，在授权范围内发起协作和调用工具。","textPreview":"理解员工、代表员工处理上下文，在授权范围内发起协作和调用工具。","textChars":31,"textLines":1,"bbox":[96,242,282,108]}
+{"kind":"shape","id":"sh/f61svyhk","slide":4,"bbox":[475,180,330,190]}
+{"kind":"shape","id":"sh/e5sr2tgf","slide":4,"bbox":[475,180,7,190]}
+{"kind":"textbox","id":"sh/18jax8zq","slide":4,"text":"通用能力池","textPreview":"通用能力池","textChars":5,"textLines":1,"bbox":[499,202,282,30]}
+{"kind":"textbox","id":"sh/07a943y5","slide":4,"text":"调研、数据、文档、会议、风险和内部工具连接器作为共享能力。","textPreview":"调研、数据、文档、会议、风险和内部工具连接器作为共享能力。","textChars":29,"textLines":1,"bbox":[499,242,282,108]}
+{"kind":"shape","id":"sh/r2hsreho","slide":4,"bbox":[878,180,330,190]}
+{"kind":"shape","id":"sh/q18rytg3","slide":4,"bbox":[878,180,7,190]}
+{"kind":"textbox","id":"sh/d4zatozu","slide":4,"text":"三级 Memory","textPreview":"三级 Memory","textChars":9,"textLines":1,"bbox":[902,202,282,30]}
+{"kind":"textbox","id":"sh/s3q90jy9","slide":4,"text":"员工、项目、团队三层记忆，让经验从个人走向团队复用。","textPreview":"员工、项目、团队三层记忆，让经验从个人走向团队复用。","textChars":26,"textLines":1,"bbox":[902,242,282,108]}
+{"kind":"textbox","id":"sh/3ehsnehs","slide":4,"text":"核心转变：从“人找信息”变成“信息、工具和分身围绕人协作”。","textPreview":"核心转变：从“人找信息”变成“信息、工具和分身围绕人协作”。","textChars":30,"textLines":1,"bbox":[152,446,980,62]}
+{"kind":"notes","id":"nt/3cdwj6","slide":4,"text":""}
+{"kind":"slide","id":"sl/vi09bp","slide":5,"title":"05","textShapes":20}
+{"kind":"shape","id":"sh/2do7q5gj","slide":5,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/pgfq10zu","slide":5,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/of6psfyp","slide":5,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/fad8vqhs","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/up47mlg7","slide":5,"text":"能力架构让分身协作可控、可信、可沉淀","textPreview":"能力架构让分身协作可控、可信、可沉淀","textChars":18,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"textbox","id":"sh/hcfqx0zy","slide":5,"text":"关键不是让 Agent 自由发挥，而是在明确权限、任务和记忆治理下协作。","textPreview":"关键不是让 Agent 自由发挥，而是在明确权限、任务和记忆治理下协作。","textChars":36,"textLines":1,"bbox":[72,130,1136,44]}
+{"kind":"shape","id":"sh/gbmpovyd","slide":5,"bbox":[72,218,212.8,132]}
+{"kind":"textbox","id":"sh/z6h87uhc","slide":5,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[90,234,38,34]}
+{"kind":"textbox","id":"sh/y58rypgr","slide":5,"text":"员工","textPreview":"员工","textChars":2,"textLines":1,"bbox":[90,272,176.8,28]}
+{"kind":"textbox","id":"sh/4fe9sb2p","slide":5,"text":"提出问题、任务或项目需求","textPreview":"提出问题、任务或项目需求","textChars":12,"textLines":1,"bbox":[90,304,176.8,36]}
+{"kind":"shape","id":"sh/5gna1g3a","slide":5,"bbox":[302.8,218,212.8,132]}
+{"kind":"textbox","id":"sh/idwrq1kj","slide":5,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[320.8,234,38,34]}
+{"kind":"textbox","id":"sh/je5sz6l4","slide":5,"text":"数字分身","textPreview":"数字分身","textChars":4,"textLines":1,"bbox":[320.8,272,176.8,28]}
+{"kind":"textbox","id":"sh/wbu9ob2t","slide":5,"text":"理解身份、权限、偏好和上下文","textPreview":"理解身份、权限、偏好和上下文","textChars":14,"textLines":1,"bbox":[320.8,304,176.8,36]}
+{"kind":"shape","id":"sh/hcnqxg3e","slide":5,"bbox":[533.6,218,212.8,132]}
+{"kind":"textbox","id":"sh/u9crm14n","slide":5,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[551.6,234,38,34]}
+{"kind":"textbox","id":"sh/val8v6l8","slide":5,"text":"能力池","textPreview":"能力池","textChars":3,"textLines":1,"bbox":[551.6,272,176.8,28]}
+{"kind":"textbox","id":"sh/8nu9krmh","slide":5,"text":"调用调研、数据、文档、会议、风险工具","textPreview":"调用调研、数据、文档、会议、风险工具","textChars":18,"textLines":1,"bbox":[551.6,304,176.8,36]}
+{"kind":"shape","id":"sh/983qtw32","slide":5,"bbox":[764.4,218,212.8,132]}
+{"kind":"textbox","id":"sh/94v6xsvq","slide":5,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[782.4,234,38,34]}
+{"kind":"textbox","id":"sh/o3mponel","slide":5,"text":"协作网络","textPreview":"协作网络","textChars":4,"textLines":1,"bbox":[782.4,272,176.8,28]}
+{"kind":"textbox","id":"sh/n2dovid0","slide":5,"text":"分身之间结构化请求、证据和交接","textPreview":"分身之间结构化请求、证据和交接","textChars":15,"textLines":1,"bbox":[782.4,304,176.8,36]}
+{"kind":"shape","id":"sh/m147mdwf","slide":5,"bbox":[995.2,218,212.8,132]}
+{"kind":"textbox","id":"sh/1gv6t8vu","slide":5,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1013.2,234,38,34]}
+{"kind":"textbox","id":"sh/0f2pk3e9","slide":5,"text":"三级 Memory","textPreview":"三级 Memory","textChars":9,"textLines":1,"bbox":[1013.2,272,176.8,28]}
+{"kind":"textbox","id":"sh/zetorido","slide":5,"text":"候选确认后沉淀为组织知识","textPreview":"候选确认后沉淀为组织知识","textChars":12,"textLines":1,"bbox":[1013.2,304,176.8,36]}
+{"kind":"shape","id":"sh/edk7idw3","slide":5,"bbox":[72,428,1136,112]}
+{"kind":"shape","id":"sh/lwfq5cvy","slide":5,"bbox":[72,428,7,112]}
+{"kind":"textbox","id":"sh/kb6pw7ed","slide":5,"text":"治理底座","textPreview":"治理底座","textChars":4,"textLines":1,"bbox":[96,450,1088,30]}
+{"kind":"textbox","id":"sh/ih03q9cv","slide":5,"text":"权限、风险等级、人工确认、操作日志、引用链路贯穿全流程，保证分身代表员工但不越权。","textPreview":"权限、风险等级、人工确认、操作日志、引用链路贯穿全流程，保证分身代表员工但不越权。","textChars":41,"textLines":1,"bbox":[96,490,1088,30]}
+{"kind":"notes","id":"nt/vi09bp","slide":5,"text":""}
+{"kind":"slide","id":"sl/bvhkls","slide":6,"title":"06","textShapes":9}
+{"kind":"shape","id":"sh/md4vydcb","slide":6,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/9gfe9svm","slide":6,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/of6d0nu1","slide":6,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/fadc3ydk","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/e94vudcz","slide":6,"text":"三级 Memory 把聊天历史升级为组织知识资产","textPreview":"三级 Memory 把聊天历史升级为组织知识资产","textChars":24,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"shape","id":"sh/1cvu58vq","slide":6,"bbox":[72,172,350,220]}
+{"kind":"shape","id":"sh/0bmdw3u5","slide":6,"bbox":[72,172,7,220]}
+{"kind":"textbox","id":"sh/j6xwf2d4","slide":6,"text":"员工 Memory","textPreview":"员工 Memory","textChars":9,"textLines":1,"bbox":[96,194,302,30]}
+{"kind":"textbox","id":"sh/y5ov6xcj","slide":6,"text":"工作偏好、专业领域、历史项目、私人备忘，让分身越来越懂员工。","textPreview":"工作偏好、专业领域、历史项目、私人备忘，让分身越来越懂员工。","textChars":30,"textLines":1,"bbox":[96,234,302,138]}
+{"kind":"shape","id":"sh/krm1gju5","slide":6,"bbox":[465,172,350,220]}
+{"kind":"shape","id":"sh/5sv2pobq","slide":6,"bbox":[465,172,7,220]}
+{"kind":"textbox","id":"sh/ip4je9cz","slide":6,"text":"项目 Memory","textPreview":"项目 Memory","textChars":9,"textLines":1,"bbox":[489,194,302,30]}
+{"kind":"textbox","id":"sh/jqdknetk","slide":6,"text":"项目背景、需求变更、会议结论、调研结果、风险判断和阶段总结。","textPreview":"项目背景、需求变更、会议结论、调研结果、风险判断和阶段总结。","textChars":30,"textLines":1,"bbox":[489,234,302,138]}
+{"kind":"shape","id":"sh/w3m1czut","slide":6,"bbox":[858,172,350,220]}
+{"kind":"shape","id":"sh/x4v2l4be","slide":6,"bbox":[858,172,7,220]}
+{"kind":"textbox","id":"sh/a14japc3","slide":6,"text":"团队 Memory","textPreview":"团队 Memory","textChars":9,"textLines":1,"bbox":[882,194,302,30]}
+{"kind":"textbox","id":"sh/v2d0jut8","slide":6,"text":"跨项目可复用的方法论、风险模式、最佳实践、反例和适用边界。","textPreview":"跨项目可复用的方法论、风险模式、最佳实践、反例和适用边界。","textChars":29,"textLines":1,"bbox":[882,234,302,138]}
+{"kind":"textbox","id":"sh/8z218zux","slide":6,"text":"AI 输出默认只是候选内容，经过确认后才成为正式知识。","textPreview":"AI 输出默认只是候选内容，经过确认后才成为正式知识。","textChars":27,"textLines":1,"bbox":[190,464,900,54]}
+{"kind":"notes","id":"nt/bvhkls","slide":6,"text":""}
+{"kind":"slide","id":"sl/gr1iw0","slide":7,"title":"07","textShapes":19}
+{"kind":"shape","id":"sh/q5oretkz","slide":7,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/d8fq98jq","slide":7,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/s769g325","slide":7,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/fax8bi1w","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/e9oridkb","slide":7,"text":"典型 Demo：设计项目里的数字分身协作","textPreview":"典型 Demo：设计项目里的数字分身协作","textChars":20,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"textbox","id":"sh/1czqd8jm","slide":7,"text":"一个闭环证明价值：理解项目 → 找对人 → 调工具 → 产结论 → 沉淀记忆。","textPreview":"一个闭环证明价值：理解项目 → 找对人 → 调工具 → 产结论 → 沉淀记忆。","textChars":39,"textLines":1,"bbox":[72,130,1136,44]}
+{"kind":"shape","id":"sh/0bq9kn2h","slide":7,"bbox":[72,220,212.8,132]}
+{"kind":"textbox","id":"sh/neh8fi1s","slide":7,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[90,236,38,34]}
+{"kind":"textbox","id":"sh/2d8rmdk7","slide":7,"text":"设计师提问","textPreview":"设计师提问","textChars":5,"textLines":1,"bbox":[90,274,176.8,28]}
+{"kind":"textbox","id":"sh/knyxcrqt","slide":7,"text":"这次改版核心用户痛点是什么？","textPreview":"这次改版核心用户痛点是什么？","textChars":14,"textLines":1,"bbox":[90,306,176.8,36]}
+{"kind":"shape","id":"sh/lo7e5wre","slide":7,"bbox":[302.8,220,212.8,132]}
+{"kind":"textbox","id":"sh/y1gfah83","slide":7,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[320.8,236,38,34]}
+{"kind":"textbox","id":"sh/j2pw3m98","slide":7,"text":"读取上下文","textPreview":"读取上下文","textChars":5,"textLines":1,"bbox":[320.8,274,176.8,28]}
+{"kind":"textbox","id":"sh/8rixgbq5","slide":7,"text":"分身读取项目 memory 和 PRD","textPreview":"分身读取项目 memory 和 PRD","textChars":19,"textLines":1,"bbox":[320.8,306,176.8,36]}
+{"kind":"shape","id":"sh/tsre9grq","slide":7,"bbox":[533.6,220,212.8,132]}
+{"kind":"textbox","id":"sh/6pgfe18z","slide":7,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[551.6,236,38,34]}
+{"kind":"textbox","id":"sh/7qpw769k","slide":7,"text":"发起协作","textPreview":"发起协作","textChars":4,"textLines":1,"bbox":[551.6,274,176.8,28]}
+{"kind":"textbox","id":"sh/gvixkbq1","slide":7,"text":"向用研分身请求证据","textPreview":"向用研分身请求证据","textChars":9,"textLines":1,"bbox":[551.6,306,176.8,36]}
+{"kind":"shape","id":"sh/hwrydg7m","slide":7,"bbox":[764.4,220,212.8,132]}
+{"kind":"textbox","id":"sh/pcnexgzq","slide":7,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[782.4,236,38,34]}
+{"kind":"textbox","id":"sh/4bex4bi5","slide":7,"text":"调用工具","textPreview":"调用工具","textChars":4,"textLines":1,"bbox":[782.4,274,176.8,28]}
+{"kind":"textbox","id":"sh/3a5wv6hk","slide":7,"text":"用研分身调用调研 Agent","textPreview":"用研分身调用调研 Agent","textChars":14,"textLines":1,"bbox":[782.4,306,176.8,36]}
+{"kind":"shape","id":"sh/29wf210f","slide":7,"bbox":[995.2,220,212.8,132]}
+{"kind":"textbox","id":"sh/dg7e1gz2","slide":7,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1013.2,236,38,34]}
+{"kind":"textbox","id":"sh/cfyx8bih","slide":7,"text":"沉淀记忆","textPreview":"沉淀记忆","textChars":4,"textLines":1,"bbox":[1013.2,274,176.8,28]}
+{"kind":"textbox","id":"sh/repwzqhw","slide":7,"text":"结论确认后进入项目 memory","textPreview":"结论确认后进入项目 memory","textChars":16,"textLines":1,"bbox":[1013.2,306,176.8,36]}
+{"kind":"textbox","id":"sh/qdgf6l0b","slide":7,"text":"评委能看到的不是纯聊天，而是员工身份、项目上下文、分身协作、工具调用、memory 沉淀和来源链路。","textPreview":"评委能看到的不是纯聊天，而是员工身份、项目上下文、分身协作、工具调用、memory 沉淀和来源链路。","textChars":50,"textLines":1,"bbox":[72,438,1136,64]}
+{"kind":"notes","id":"nt/gr1iw0","slide":7,"text":""}
+{"kind":"slide","id":"sl/khfav3","slide":8,"title":"08","textShapes":10}
+{"kind":"shape","id":"sh/pwnqhkbe","slide":8,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/2tcr65sn","slide":8,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/nul8fat8","slide":8,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/cje9cfap","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/xknalkba","slide":8,"text":"TwinMesh 为公司带来可量化的协作收益","textPreview":"TwinMesh 为公司带来可量化的协作收益","textChars":22,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"shape","id":"sh/axwra5sz","slide":8,"bbox":[72,172,535,142]}
+{"kind":"shape","id":"sh/by58jat4","slide":8,"bbox":[72,172,7,142]}
+{"kind":"textbox","id":"sh/sna90val","slide":8,"text":"降低沟通成本","textPreview":"降低沟通成本","textChars":6,"textLines":1,"bbox":[96,194,487,30]}
+{"kind":"textbox","id":"sh/dojq90b6","slide":8,"text":"分身之间结构化协作，减少重复解释和跨角色来回确认。","textPreview":"分身之间结构化协作，减少重复解释和跨角色来回确认。","textChars":25,"textLines":1,"bbox":[96,234,487,60]}
+{"kind":"shape","id":"sh/h4fedgv6","slide":8,"bbox":[635,172,535,142]}
+{"kind":"shape","id":"sh/g36x4bul","slide":8,"bbox":[635,172,7,142]}
+{"kind":"textbox","id":"sh/f2xwb6d0","slide":8,"text":"缩短上手时间","textPreview":"缩短上手时间","textChars":6,"textLines":1,"bbox":[659,194,487,30]}
+{"kind":"textbox","id":"sh/uhof2lcf","slide":8,"text":"新人由分身生成项目上手包，快速理解历史决策和当前风险。","textPreview":"新人由分身生成项目上手包，快速理解历史决策和当前风险。","textChars":27,"textLines":1,"bbox":[659,234,487,60]}
+{"kind":"shape","id":"sh/p8zeh0v2","slide":8,"bbox":[72,342,535,142]}
+{"kind":"shape","id":"sh/476x8vuh","slide":8,"bbox":[72,342,7,142]}
+{"kind":"textbox","id":"sh/36xwfqdc","slide":8,"text":"提升沉淀质量","textPreview":"提升沉淀质量","textChars":6,"textLines":1,"bbox":[96,364,487,30]}
+{"kind":"textbox","id":"sh/25of6lcr","slide":8,"text":"会议、工具、调研结果进入项目上下文和候选 memory。","textPreview":"会议、工具、调研结果进入项目上下文和候选 memory。","textChars":28,"textLines":1,"bbox":[96,404,487,60]}
+{"kind":"shape","id":"sh/dczyl0ve","slide":8,"bbox":[635,342,535,142]}
+{"kind":"shape","id":"sh/cbqxcvut","slide":8,"bbox":[635,342,7,142]}
+{"kind":"textbox","id":"sh/cfyh8j25","slide":8,"text":"形成组织复利","textPreview":"形成组织复利","textChars":6,"textLines":1,"bbox":[659,364,487,30]}
+{"kind":"textbox","id":"sh/xg7iho3a","slide":8,"text":"项目经验投影为团队 memory，后续项目自动复用。","textPreview":"项目经验投影为团队 memory，后续项目自动复用。","textChars":26,"textLines":1,"bbox":[659,404,487,60]}
+{"kind":"notes","id":"nt/khfav3","slide":8,"text":""}
+{"kind":"slide","id":"sl/tcopgu","slide":9,"title":"09","textShapes":14}
+{"kind":"shape","id":"sh/4z6lofyx","slide":9,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/3yx4vaxc","slide":9,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/ixo3m5gr","slide":9,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/dozm14fe","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/snqlszyt","slide":9,"text":"保守估算：100 人团队每月可释放 1100 小时","textPreview":"保守估算：100 人团队每月可释放 1100 小时","textChars":25,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"shape","id":"sh/rmh4zux8","slide":9,"bbox":[72,172,520,210]}
+{"kind":"shape","id":"sh/qlo3qpg3","slide":9,"bbox":[72,172,7,210]}
+{"kind":"textbox","id":"sh/1szm54fq","slide":9,"text":"1100 小时 / 月","textPreview":"1100 小时 / 月","textChars":11,"textLines":1,"bbox":[96,194,472,30]}
+{"kind":"textbox","id":"sh/0rqlwzy5","slide":9,"text":"假设 100 人团队，每人每天节省 30 分钟，每月工作 22 天。","textPreview":"假设 100 人团队，每人每天节省 30 分钟，每月工作 22 天。","textChars":34,"textLines":1,"bbox":[96,234,472,128]}
+{"kind":"textbox","id":"sh/ydsfmpsb","slide":9,"text":"1100h","textPreview":"1100h","textChars":5,"textLines":1,"bbox":[114,228,260,70]}
+{"kind":"shape","id":"sh/ze1gvu9w","slide":9,"bbox":[668,172,540,210]}
+{"kind":"shape","id":"sh/kfaxofah","slide":9,"bbox":[668,172,7,210]}
+{"kind":"textbox","id":"sh/lgjyxkr2","slide":9,"text":"等效 6–7 个全职人力","textPreview":"等效 6–7 个全职人力","textChars":12,"textLines":1,"bbox":[692,194,492,30]}
+{"kind":"textbox","id":"sh/mhszqpsn","slide":9,"text":"更重要的是节省高价值脑力劳动：找资料、同步背景、整理结论、重复解释。","textPreview":"更重要的是节省高价值脑力劳动：找资料、同步背景、整理结论、重复解释。","textChars":34,"textLines":1,"bbox":[692,234,492,128]}
+{"kind":"textbox","id":"sh/7ilgzu98","slide":9,"text":"6–7 FTE","textPreview":"6–7 FTE","textChars":7,"textLines":1,"bbox":[712,228,300,70]}
+{"kind":"shape","id":"sh/8juhszat","slide":9,"bbox":[72,430,350,92]}
+{"kind":"shape","id":"sh/9k3y14ry","slide":9,"bbox":[72,430,7,92]}
+{"kind":"textbox","id":"sh/2l8fe5sj","slide":9,"text":"新人上手","textPreview":"新人上手","textChars":4,"textLines":1,"bbox":[96,452,302,30]}
+{"kind":"textbox","id":"sh/nmhgna9o","slide":9,"text":"降低 30%–50%","textPreview":"降低 30%–50%","textChars":10,"textLines":1,"bbox":[96,492,302,10]}
+{"kind":"shape","id":"sh/7ed4z2lk","slide":9,"bbox":[465,430,350,92]}
+{"kind":"shape","id":"sh/6dk36x4z","slide":9,"bbox":[465,430,7,92]}
+{"kind":"textbox","id":"sh/tgvm1c3a","slide":9,"text":"资料查找","textPreview":"资料查找","textChars":4,"textLines":1,"bbox":[489,452,302,30]}
+{"kind":"textbox","id":"sh/sfml87m5","slide":9,"text":"降低 30%–60%","textPreview":"降低 30%–60%","textChars":10,"textLines":1,"bbox":[489,492,302,10]}
+{"kind":"shape","id":"sh/jat4v2l8","slide":9,"bbox":[858,430,350,92]}
+{"kind":"shape","id":"sh/i9k32x4n","slide":9,"bbox":[858,430,7,92]}
+{"kind":"textbox","id":"sh/5cbmxs3e","slide":9,"text":"会议整理","textPreview":"会议整理","textChars":4,"textLines":1,"bbox":[882,452,302,30]}
+{"kind":"textbox","id":"sh/kb2l4nmt","slide":9,"text":"节省 50% 以上","textPreview":"节省 50% 以上","textChars":9,"textLines":1,"bbox":[882,492,302,10]}
+{"kind":"notes","id":"nt/tcopgu","slide":9,"text":""}
+{"kind":"slide","id":"sl/tu5d67","slide":10,"title":"10","textShapes":20}
+{"kind":"shape","id":"sh/hoza9ove","slide":10,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/ulory9c3","slide":10,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/fmxs7ed8","slide":10,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/sj69wzux","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/tkfa54vi","slide":10,"text":"普通 AI 助手回答问题，TwinMesh 参与协作并沉淀知识","textPreview":"普通 AI 助手回答问题，TwinMesh 参与协作并沉淀知识","textChars":31,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"textbox","id":"sh/6horu9cr","slide":10,"text":"维度","textPreview":"维度","textChars":2,"textLines":1,"bbox":[90,184,170,26]}
+{"kind":"textbox","id":"sh/7ixs3edc","slide":10,"text":"普通 AI 助手","textPreview":"普通 AI 助手","textChars":8,"textLines":1,"bbox":[260,184,420,26]}
+{"kind":"textbox","id":"sh/kf69szul","slide":10,"text":"TwinMesh","textPreview":"TwinMesh","textChars":8,"textLines":1,"bbox":[680,184,546,26]}
+{"kind":"shape","id":"sh/5gfa14v6","slide":10,"bbox":[72,166,1136,66]}
+{"kind":"shape","id":"sh/lg3e1o76","slide":10,"bbox":[72,232,1136,66]}
+{"kind":"textbox","id":"sh/0fux8j61","slide":10,"text":"身份","textPreview":"身份","textChars":2,"textLines":1,"bbox":[90,252,142,24]}
+{"kind":"textbox","id":"sh/zulwzepg","slide":10,"text":"泛用机器人","textPreview":"泛用机器人","textChars":5,"textLines":1,"bbox":[260,252,392,24]}
+{"kind":"textbox","id":"sh/ytcf69ov","slide":10,"text":"员工数字分身","textPreview":"员工数字分身","textChars":6,"textLines":1,"bbox":[680,252,518,24]}
+{"kind":"shape","id":"sh/dsjex47a","slide":10,"bbox":[72,298,1136,66]}
+{"kind":"textbox","id":"sh/crax4z6p","slide":10,"text":"上下文","textPreview":"上下文","textChars":3,"textLines":1,"bbox":[90,318,142,24]}
+{"kind":"textbox","id":"sh/rq1wvup4","slide":10,"text":"当前对话","textPreview":"当前对话","textChars":4,"textLines":1,"bbox":[260,318,392,24]}
+{"kind":"textbox","id":"sh/qpsf29oj","slide":10,"text":"员工 + 项目 + 团队 memory","textPreview":"员工 + 项目 + 团队 memory","textChars":19,"textLines":1,"bbox":[680,318,518,24]}
+{"kind":"shape","id":"sh/pojet47y","slide":10,"bbox":[72,364,1136,66]}
+{"kind":"textbox","id":"sh/4nax0z6t","slide":10,"text":"协作","textPreview":"协作","textChars":2,"textLines":1,"bbox":[90,384,142,24]}
+{"kind":"textbox","id":"sh/g7exgzyp","slide":10,"text":"人自己转述","textPreview":"人自己转述","textChars":5,"textLines":1,"bbox":[260,384,392,24]}
+{"kind":"textbox","id":"sh/h8nep4fu","slide":10,"text":"分身之间结构化协作","textPreview":"分身之间结构化协作","textChars":9,"textLines":1,"bbox":[680,384,518,24]}
+{"kind":"shape","id":"sh/u5cfepgj","slide":10,"bbox":[72,430,1136,66]}
+{"kind":"textbox","id":"sh/v65wnux4","slide":10,"text":"沉淀","textPreview":"沉淀","textChars":2,"textLines":1,"bbox":[90,450,142,24]}
+{"kind":"textbox","id":"sh/83uxcfyd","slide":10,"text":"聊天记录","textPreview":"聊天记录","textChars":4,"textLines":1,"bbox":[260,450,392,24]}
+{"kind":"textbox","id":"sh/t43elkfy","slide":10,"text":"候选 memory → 确认 → 组织知识","textPreview":"候选 memory → 确认 → 组织知识","textChars":21,"textLines":1,"bbox":[680,450,518,24]}
+{"kind":"shape","id":"sh/61cfapg7","slide":10,"bbox":[72,496,1136,66]}
+{"kind":"textbox","id":"sh/72lwjuxs","slide":10,"text":"价值","textPreview":"价值","textChars":2,"textLines":1,"bbox":[90,516,142,24]}
+{"kind":"textbox","id":"sh/czyxojeh","slide":10,"text":"单次提效","textPreview":"单次提效","textChars":4,"textLines":1,"bbox":[260,516,392,24]}
+{"kind":"textbox","id":"sh/d07yxof2","slide":10,"text":"组织智能复利","textPreview":"组织智能复利","textChars":6,"textLines":1,"bbox":[680,516,518,24]}
+{"kind":"notes","id":"nt/tu5d67","slide":10,"text":""}
+{"kind":"slide","id":"sl/l73b25","slide":11,"title":"11","textShapes":11}
+{"kind":"shape","id":"sh/p0vatgfy","slide":11,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/2d4ri1wn","slide":11,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/3edsr6x8","slide":11,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/c369ovep","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/d4faxgfa","slide":11,"text":"未来：从数字分身走向企业智能操作系统","textPreview":"未来：从数字分身走向企业智能操作系统","textChars":18,"textLines":1,"bbox":[72,54,1136,76]}
+{"kind":"shape","id":"sh/q14rmlwj","slide":11,"bbox":[72,168,535,132]}
+{"kind":"shape","id":"sh/b2dsvqx4","slide":11,"bbox":[72,168,7,132]}
+{"kind":"textbox","id":"sh/s729crel","slide":11,"text":"阶段一：个人分身","textPreview":"阶段一：个人分身","textChars":8,"textLines":1,"bbox":[96,190,487,30]}
+{"kind":"textbox","id":"sh/t8bqlwf6","slide":11,"text":"个人记忆、项目问答、工具调用。","textPreview":"个人记忆、项目问答、工具调用。","textChars":15,"textLines":1,"bbox":[96,230,487,50]}
+{"kind":"shape","id":"sh/xo7y1cze","slide":11,"bbox":[635,168,535,132]}
+{"kind":"shape","id":"sh/cnyx87it","slide":11,"bbox":[635,168,7,132]}
+{"kind":"textbox","id":"sh/bmpgz2h8","slide":11,"text":"阶段二：项目协作网络","textPreview":"阶段二：项目协作网络","textChars":10,"textLines":1,"bbox":[659,190,487,30]}
+{"kind":"textbox","id":"sh/a1gf6x0n","slide":11,"text":"分身围绕项目任务协作，项目 memory 自动增长。","textPreview":"分身围绕项目任务协作，项目 memory 自动增长。","textChars":26,"textLines":1,"bbox":[659,230,487,50]}
+{"kind":"shape","id":"sh/lsry5wza","slide":11,"bbox":[72,328,535,132]}
+{"kind":"shape","id":"sh/kryhcri5","slide":11,"bbox":[72,328,7,132]}
+{"kind":"textbox","id":"sh/zqpg3mhk","slide":11,"text":"阶段三：团队智能沉淀","textPreview":"阶段三：团队智能沉淀","textChars":10,"textLines":1,"bbox":[96,350,487,30]}
+{"kind":"textbox","id":"sh/ypgfah0z","slide":11,"text":"项目经验投影为团队 memory，新项目自动召回历史经验。","textPreview":"项目经验投影为团队 memory，新项目自动召回历史经验。","textChars":29,"textLines":1,"bbox":[96,390,487,50]}
+{"kind":"shape","id":"sh/twry9wzm","slide":11,"bbox":[635,328,535,132]}
+{"kind":"shape","id":"sh/8vihgry1","slide":11,"bbox":[635,328,7,132]}
+{"kind":"textbox","id":"sh/sba9sza9","slide":11,"text":"阶段四：企业智能中枢","textPreview":"阶段四：企业智能中枢","textChars":10,"textLines":1,"bbox":[659,350,487,30]}
+{"kind":"textbox","id":"sh/dcja14bu","slide":11,"text":"接入更多系统，支持经营分析、风险预警和流程优化。","textPreview":"接入更多系统，支持经营分析、风险预警和流程优化。","textChars":24,"textLines":1,"bbox":[659,390,487,50]}
+{"kind":"textbox","id":"sh/q98rqpsj","slide":11,"text":"每个员工的分身是节点，每个项目是上下文容器，每条 memory 是组织神经元。","textPreview":"每个员工的分身是节点，每个项目是上下文容器，每条 memory 是组织神经元。","textChars":39,"textLines":1,"bbox":[72,516,1136,40]}
+{"kind":"notes","id":"nt/l73b25","slide":11,"text":""}
+{"kind":"slide","id":"sl/4qqx45","slide":12,"title":"12","textShapes":6}
+{"kind":"shape","id":"sh/50na10n2","slide":12,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/ixwrqlob","slide":12,"bbox":[-160,-170,520,520]}
+{"kind":"shape","id":"sh/jy5szq5w","slide":12,"bbox":[960,-120,420,420]}
+{"kind":"textbox","id":"sh/wbu9ob65","slide":12,"text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[1168,664,50,24]}
+{"kind":"textbox","id":"sh/hw3axgnq","slide":12,"text":"TwinMesh 不是替代员工，而是放大员工；不是替代协作，而是让协作可追踪；不是堆更多工具，而是让工具、知识和人形成网络。","textPreview":"TwinMesh 不是替代员工，而是放大员工；不是替代协作，而是让协作可追踪；不是堆更多工具，而是让工具、知识和人形成网络。","textChars":62,"textLines":1,"bbox":[72,166,1000,150]}
+{"kind":"textbox","id":"sh/u9crmloz","slide":12,"text":"让每个员工都有分身，让每个项目留下记忆，让每个团队持续进化。","textPreview":"让每个员工都有分身，让每个项目留下记忆，让每个团队持续进化。","textChars":30,"textLines":1,"bbox":[72,386,980,70]}
+{"kind":"shape","id":"sh/valsvq5k","slide":12,"bbox":[72,506,130,38]}
+{"kind":"textbox","id":"sh/87u9kb69","slide":12,"text":"个人提效","textPreview":"个人提效","textChars":4,"textLines":1,"bbox":[72,514,130,18]}
+{"kind":"shape","id":"sh/983atg7u","slide":12,"bbox":[220,506,130,38]}
+{"kind":"textbox","id":"sh/x0byh4va","slide":12,"text":"项目沉淀","textPreview":"项目沉淀","textChars":4,"textLines":1,"bbox":[220,514,130,18]}
+{"kind":"shape","id":"sh/wz2hozu5","slide":12,"bbox":[368,506,130,38]}
+{"kind":"textbox","id":"sh/vytgfudk","slide":12,"text":"组织智能","textPreview":"组织智能","textChars":4,"textLines":1,"bbox":[368,514,130,18]}
+{"kind":"notes","id":"nt/4qqx45","slide":12,"text":""}
