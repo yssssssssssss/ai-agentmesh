@@ -10,12 +10,15 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import os
 
 from agentmesh.agents import PersonalAgent
 from agentmesh.models import now_utc
 from agentmesh.seed import list_users
 from agentmesh.store import SQLiteStore, store
+
+logger = logging.getLogger(__name__)
 
 
 def _bool_env(name: str) -> bool:
@@ -33,6 +36,7 @@ def _positive_int_env(name: str, default: int) -> int:
 MARKET_ENABLED = _bool_env("AGENTMESH_MARKET_ENABLED")
 MARKET_PUBLISH_INTERVAL_SECONDS = _positive_int_env("AGENTMESH_MARKET_PUBLISH_INTERVAL_SECONDS", 300)
 MARKET_SCOUT_INTERVAL_SECONDS = _positive_int_env("AGENTMESH_MARKET_SCOUT_INTERVAL_SECONDS", 300)
+MARKET_SCOUT_MAX_PER_RUN = _positive_int_env("AGENTMESH_MARKET_SCOUT_MAX_PER_RUN", 20)
 
 publish_worker_task: asyncio.Task | None = None
 publish_worker_state: dict[str, object] = {
@@ -55,6 +59,7 @@ def publish_all_signals(repository: SQLiteStore) -> int:
     for user in list_users(repository):
         if agent.publish_marketplace_signal(user) is not None:
             published += 1
+    logger.info("market publish: %d signals published", published)
     return published
 
 
@@ -100,15 +105,23 @@ scout_worker_state: dict[str, object] = {
 }
 
 
+# Persistent per-helper fingerprint sets so the scout doesn't re-evaluate unchanged needs
+# every tick (cost control). In-memory: resets on restart (one re-scan after restart is fine).
+_scout_seen: dict[str, set[str]] = {}
+
+
 def scout_all(repository: SQLiteStore) -> int:
     """Run every user's scout; return the total number of delegated answers triggered.
 
     This is the step function the scout worker drives each tick; it's the tested seam.
+    Dedups unchanged needs across ticks and caps matches per helper per run.
     """
     agent = PersonalAgent(repository)
     triggered = 0
     for user in list_users(repository):
-        triggered += len(agent.scout_and_match(user))
+        seen = _scout_seen.setdefault(user.id, set())
+        triggered += len(agent.scout_and_match(user, seen=seen, max_matches=MARKET_SCOUT_MAX_PER_RUN))
+    logger.info("market scout: %d answers triggered", triggered)
     return triggered
 
 

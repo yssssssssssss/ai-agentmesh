@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import NoReturn
@@ -60,6 +61,8 @@ from agentmesh.synthesis import (
     source_titles,
     synthesize_with_llm_result,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -1265,7 +1268,12 @@ class PersonalAgent:
 
     # ==== Autonomous market: agent-2 scouts, matches, triggers ④ answers ====
 
-    def scout_and_match(self, user: User) -> list[tuple[str, DelegatedAnswer]]:
+    def scout_and_match(
+        self,
+        user: User,
+        seen: set[str] | None = None,
+        max_matches: int | None = None,
+    ) -> list[tuple[str, DelegatedAnswer]]:
         """agent-2: scan MARKETPLACE_SIGNAL posts for needs `user` can solve.
 
         For each solvable need on another person's signal, `user` (the helper) grants that
@@ -1273,7 +1281,11 @@ class PersonalAgent:
         non-sensitive answers from your twin — and triggers `answer_for_peer(asker=needer,
         target=user, question=need)` so the helper's twin answers the need. Non-sensitive
         answers auto-resolve; high-sensitivity matches still hit the confirmation gate.
-        Returns (needer_id, answer) per triggered match.
+
+        Cost controls: pass ``seen`` (a caller-maintained fingerprint set) to skip needs
+        already evaluated on prior passes — only re-evaluated when the need text changes;
+        pass ``max_matches`` to cap the answers triggered per run. Returns (needer_id,
+        answer) per triggered match.
         """
         capabilities = self._capability_text(user)
         if not capabilities:
@@ -1287,7 +1299,14 @@ class PersonalAgent:
             if owner_id == user.id:  # never answer your own signal
                 continue
             need = self._extract_need(post.content)
-            if not need or not self._match_signal(need, capabilities, client):
+            if not need:
+                continue
+            fingerprint = f"{owner_id}:{need}"
+            if seen is not None:
+                if fingerprint in seen:  # unchanged need already evaluated — skip the LLM cost
+                    continue
+                seen.add(fingerprint)
+            if not self._match_signal(need, capabilities, client):
                 continue
             needer = self.repository.get_user(owner_id)
             if needer is None:
@@ -1298,7 +1317,14 @@ class PersonalAgent:
                 "marketplace_match", "user", needer.id,
                 {"helper": user.id, "status": answer.status.value},
             )
+            logger.info(
+                "market match: helper=%s needer=%s status=%s need=%r",
+                user.id, needer.id, answer.status.value, need[:60],
+            )
             results.append((needer.id, answer))
+            if max_matches is not None and len(results) >= max_matches:
+                logger.info("market scout: hit per-run cap (%d) for helper=%s", max_matches, user.id)
+                break
         return results
 
     def _match_signal(self, need: str, capabilities: str, client: ChatLLM | None) -> bool:
