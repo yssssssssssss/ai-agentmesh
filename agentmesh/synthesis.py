@@ -92,10 +92,17 @@ def synthesize_with_llm_result(
     return SynthesisResult(content=generated, llm_used=True)
 
 
-def chat_llm_client(repository: SQLiteStore, user: User, llm_client: ChatLLM | None = None) -> ChatLLM | None:
-    return llm_client or LLMClient.from_model_id(
+def chat_llm_client(
+    repository: SQLiteStore,
+    user: User,
+    llm_client: ChatLLM | None = None,
+    timeout_seconds: float | None = None,
+) -> ChatLLM | None:
+    if llm_client is not None:
+        return llm_client
+    return LLMClient.from_model_id(
         resolve_agent_model_id(repository, user),
-        timeout_seconds=llm_chat_timeout_seconds(),
+        timeout_seconds=timeout_seconds if timeout_seconds is not None else llm_chat_timeout_seconds(),
     )
 
 

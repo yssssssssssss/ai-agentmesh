@@ -140,3 +140,34 @@ def test_publish_all_signals_step_counts_users_with_material() -> None:
     assert published == 1
     assert len(_signal_posts()) == 1
 
+
+def test_market_llm_timeout_is_long_by_default() -> None:
+    from agentmesh.llm import llm_chat_timeout_seconds, market_llm_timeout_seconds
+
+    # market background calls must not inherit the short interactive-chat timeout
+    assert market_llm_timeout_seconds() >= 15
+    assert market_llm_timeout_seconds() > llm_chat_timeout_seconds()
+
+
+def test_publish_resolves_llm_with_the_market_timeout(monkeypatch) -> None:
+    import agentmesh.agents as agents_mod
+    from agentmesh.llm import market_llm_timeout_seconds
+
+    agent = _reset()
+    _add_memory("大促降级预案", "核心链路保底。", user_id=USER.id)
+
+    captured: dict[str, float | None] = {}
+
+    class _Client:
+        def complete(self, system_prompt: str, user_prompt: str) -> str:
+            return "能力：X\n可提供：Y\n需要：Z"
+
+    def fake_chat_llm_client(repository, user, llm_client=None, timeout_seconds=None):
+        captured["timeout"] = timeout_seconds
+        return _Client()
+
+    monkeypatch.setattr(agents_mod, "chat_llm_client", fake_chat_llm_client)
+    agent.publish_marketplace_signal(USER)
+
+    assert captured["timeout"] == market_llm_timeout_seconds()
+

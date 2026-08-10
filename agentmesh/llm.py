@@ -11,6 +11,7 @@ DEFAULT_MODEL_ID = "default"
 DEFAULT_LLM_TIMEOUT_SECONDS = 30.0
 DEFAULT_LLM_CONNECT_TIMEOUT_SECONDS = 5.0
 DEFAULT_CHAT_LLM_TIMEOUT_SECONDS = 2.5
+DEFAULT_MARKET_LLM_TIMEOUT_SECONDS = 30.0
 
 
 class LLMClient:
@@ -166,6 +167,14 @@ def llm_timeout_seconds() -> float:
 
 def llm_chat_timeout_seconds() -> float:
     return _positive_float_env("AGENTMESH_CHAT_LLM_TIMEOUT_SECONDS", DEFAULT_CHAT_LLM_TIMEOUT_SECONDS)
+
+
+def market_llm_timeout_seconds() -> float:
+    """Timeout for the autonomous market's background LLM calls (signal synthesis, delegated
+    answer, match confirm). Much longer than the interactive chat timeout — these run in
+    background workers, not on a user-facing latency budget, so they must not silently time
+    out and fall back to templates."""
+    return _positive_float_env("AGENTMESH_MARKET_LLM_TIMEOUT_SECONDS", DEFAULT_MARKET_LLM_TIMEOUT_SECONDS)
 
 
 def llm_connect_timeout_seconds() -> float:
