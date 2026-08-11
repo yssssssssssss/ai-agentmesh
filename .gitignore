@@ -14,3 +14,5 @@ data/*.sqlite3-*
 # Local-only tooling & throwaway artifacts
 .scratch/
 .claude/
+.worktrees/
+.superpowers/
