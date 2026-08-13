@@ -436,6 +436,7 @@ class MemoryItem(BaseModel):
     status: MemoryStatus = MemoryStatus.PROPOSED
     workspace_id: str | None = None
     project_id: str | None = None
+    team_id: str | None = None
     sources: list[Source] = Field(default_factory=list)
     metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=now_utc)

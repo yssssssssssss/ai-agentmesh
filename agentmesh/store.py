@@ -913,6 +913,9 @@ class SQLiteStore:
                 if item.scope == Scope.PROJECT and user_id and item.project_id:
                     if not self._user_can_access_project(user_id, item.project_id):
                         continue
+                if item.team_id and user_id and item.scope in (Scope.TEAM_ACCEPTED, Scope.TEAM_CANDIDATE):
+                    if not self._user_in_team(user_id, item.team_id):
+                        continue
                 results.append(
                     SearchResult(
                         id=item.id,
@@ -1111,6 +1114,13 @@ class SQLiteStore:
         if user and user.role in (UserRole.ADMIN, UserRole.TEAM_LEAD):
             return True
         return user_id in project.member_ids
+
+    def _user_in_team(self, user_id: str, team_id: str) -> bool:
+        user = self.get_user(user_id)
+        if user and user.role in (UserRole.ADMIN, UserRole.TEAM_LEAD):
+            return True
+        memberships = self.list_team_memberships(team_id=team_id, user_id=user_id)
+        return len(memberships) > 0
 
 
 store = SQLiteStore()
