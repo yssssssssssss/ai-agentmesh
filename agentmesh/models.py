@@ -6,7 +6,7 @@ from enum import StrEnum
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 def now_utc() -> datetime:
@@ -125,6 +125,8 @@ class User(BaseModel):
     role: str
     status: str = "active"
     personal_agent_id: str
+    oauth_provider: str | None = None
+    oauth_subject: str | None = None
     created_at: datetime = Field(default_factory=now_utc)
     updated_at: datetime = Field(default_factory=now_utc)
 
@@ -395,6 +397,7 @@ class BlackboardPost(BaseModel):
 class AutoBlackboardPostRequest(BaseModel):
     id: str = Field(default_factory=lambda: new_id("auto_bb"))
     task_id: str
+    submitted_by_user_id: str | None = None
     post_type: BlackboardPostType
     actor: str
     title: str
@@ -410,9 +413,22 @@ class AutoBlackboardPostRequest(BaseModel):
     blackboard_post_id: str | None = None
 
 
+class AutoBlackboardPostCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: str = Field(min_length=1, max_length=120)
+    post_type: BlackboardPostType
+    title: str = Field(min_length=1, max_length=200)
+    content: str = Field(min_length=1, max_length=4000)
+    scope: Scope = Scope.PROJECT
+    permission: str = Field(default="project_visible", min_length=1, max_length=80)
+    related_post_id: str | None = None
+
+
 class ActivityLog(BaseModel):
     id: str = Field(default_factory=lambda: new_id("act"))
     actor: str
+    user_id: str | None = None
     title: str
     summary: str
     category: str
@@ -447,6 +463,7 @@ class MemoryItem(BaseModel):
     memory_type: str
     scope: Scope
     status: MemoryStatus = MemoryStatus.PROPOSED
+    owner_user_id: str | None = None
     workspace_id: str | None = None
     project_id: str | None = None
     team_id: str | None = None
@@ -680,16 +697,13 @@ class DataSourceQueryRequest(BaseModel):
 
 
 class BlackboardPostCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     post_type: BlackboardPostType
     title: str = Field(min_length=1, max_length=200)
     content: str = Field(min_length=1, max_length=4000)
-    actor: str = Field(default="personal_agent", min_length=1, max_length=120)
     scope: Scope = Scope.PROJECT
     permission: str = Field(default="project_visible", min_length=1, max_length=80)
-    related_post_id: str | None = None
-    collaboration_stage: CollaborationStage = CollaborationStage.DISCUSSION
-    done_when: str | None = Field(default=None, max_length=240)
-    handoff: StructuredHandoffPacket | None = None
 
 
 class ExecutionLockAcquireRequest(BaseModel):

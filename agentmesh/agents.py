@@ -85,6 +85,11 @@ class RequestAlreadyFulfilledError(RuntimeError):
     """Raised when a blackboard request post has already produced evidence."""
 
 
+
+class ChatThreadNotFoundError(LookupError):
+    """Raised when a chat thread is missing or not visible to the current user."""
+
+
 @dataclass
 class ResearchFulfillment:
     task: Task
@@ -118,8 +123,9 @@ class PersonalAgent:
 
     def handle_chat(self, content: str, thread_id: str | None = None, user: User = USER) -> ChatResponse:
         actual_thread_id = thread_id or new_id("thread")
+        self._ensure_thread(actual_thread_id, content, user, allow_create=thread_id is None)
 
-        # 读取对话历史用于上下文
+        # Ownership is checked before any conversation context is loaded.
         history = self._get_thread_history(actual_thread_id)
 
         llm_client = chat_llm_client(self.repository, user, self.llm_client)
@@ -292,7 +298,7 @@ class PersonalAgent:
                 self._handle_acquisition_intent(task, skill_content, intent, user, state)
 
             if intent == Intent.REQUEST_RISK_REVIEW:
-                self._handle_risk_review(task, skill_content, state)
+                self._handle_risk_review(task, skill_content, state, user)
         except Exception as error:
             self._mark_task_failed(task, error)
             raise
@@ -326,12 +332,7 @@ class PersonalAgent:
             self.repository.add_retrieval_metrics(state.retrieval_metrics)
 
         state.activity_logs.append(
-            self._activity(
-                title="处理了一条用户请求",
-                summary=f"通过 {invocation.spec.command} 调用 {intent.value}，默认保留在个人上下文。",
-                category="personal",
-                scope=Scope.PRIVATE,
-            )
+            self._activity(title="处理了一条用户请求", summary=f"通过 {invocation.spec.command} 调用 {intent.value}，默认保留在个人上下文。", category="personal", scope=Scope.PRIVATE, user_id=user.id)
         )
 
         if task.status != TaskStatus.WAITING_EXTERNAL_AGENT:
@@ -444,12 +445,7 @@ class PersonalAgent:
         self.repository.add_blackboard_post(state.evidence_post)
         task.steps.append("received_data_agent_evidence")
         state.activity_logs.append(
-            self._activity(
-                title="请求 data_agent 查询指标",
-                summary="data_agent 已返回本地指标数据并写入 BBS。",
-                category="external_agent",
-                scope=Scope.PROJECT,
-            )
+            self._activity(title="请求 data_agent 查询指标", summary="data_agent 已返回本地指标数据并写入 BBS。", category="external_agent", scope=Scope.PROJECT, user_id=user.id)
         )
 
     def _handle_memory_search(self, task: Task, content: str, user: User, state: _ChatTurnState) -> None:
@@ -471,12 +467,7 @@ class PersonalAgent:
             state.synthesis_evidence_post = state.evidence_post
             task.steps.append("searched_memory")
             state.activity_logs.append(
-                self._activity(
-                    title="检索个人与团队记忆",
-                    summary=f"命中 {len(results)} 条个人、项目或团队记忆，未发起新的 BBS 求助。",
-                    category="personal",
-                    scope=Scope.PRIVATE,
-                )
+                self._activity(title="检索个人与团队记忆", summary=f"命中 {len(results)} 条个人、项目或团队记忆，未发起新的 BBS 求助。", category="personal", scope=Scope.PRIVATE, user_id=user.id)
             )
             return
 
@@ -492,12 +483,7 @@ class PersonalAgent:
         task.status = TaskStatus.WAITING_EXTERNAL_AGENT
         task.steps.extend(["searched_memory", "created_blackboard_request"])
         state.activity_logs.append(
-            self._activity(
-                title="记忆未命中，转入 BBS 求助",
-                summary="个人、项目和团队记忆中没有足够结果，已在项目 BBS 发帖等待补充。",
-                category="external_agent",
-                scope=Scope.PROJECT,
-            )
+            self._activity(title="记忆未命中，转入 BBS 求助", summary="个人、项目和团队记忆中没有足够结果，已在项目 BBS 发帖等待补充。", category="external_agent", scope=Scope.PROJECT, user_id=user.id)
         )
 
     def _search_team_brain(self, query: str, user: User) -> list[SearchResult]:
@@ -597,6 +583,8 @@ class PersonalAgent:
             )
 
         for item in self.repository.memory_items:
+            if not self.repository.memory_item_visible_to_user(item, user.id):
+                continue
             if item.workspace_id != WORKSPACE.id or item.project_id != PROJECT.id:
                 continue
             results.append(
@@ -739,12 +727,7 @@ class PersonalAgent:
         self._persist_sources(state.evidence_post.sources)
         self.repository.add_blackboard_post(state.evidence_post)
         state.activity_logs.append(
-            self._activity(
-                title="请求外接 Agent 补充资料",
-                summary=f"{state.evidence_post.actor} 已返回资料证据和来源。",
-                category="external_agent",
-                scope=Scope.PROJECT,
-            )
+            self._activity(title="请求外接 Agent 补充资料", summary=f"{state.evidence_post.actor} 已返回资料证据和来源。", category="external_agent", scope=Scope.PROJECT, user_id=user.id)
         )
 
     def _document_acquisition_result(self, request: AcquisitionRequest) -> AcquisitionResult | None:
@@ -801,7 +784,7 @@ class PersonalAgent:
                 )
         return fallback_results
 
-    def _handle_risk_review(self, task: Task, content: str, state: _ChatTurnState) -> None:
+    def _handle_risk_review(self, task: Task, content: str, state: _ChatTurnState, user: User) -> None:
         state.request_post = self._create_request_post(
             task,
             content,
@@ -816,12 +799,7 @@ class PersonalAgent:
         self.repository.add_blackboard_post(state.risk_post)
         task.steps.extend(["created_blackboard_request", "received_policy_risk_review"])
         state.activity_logs.append(
-            self._activity(
-                title="请求 risk_agent 检查风险",
-                summary="risk_agent 已返回策略规则评审结论，并放入收件箱。",
-                category="external_agent",
-                scope=Scope.PROJECT,
-            )
+            self._activity(title="请求 risk_agent 检查风险", summary="risk_agent 已返回策略规则评审结论，并放入收件箱。", category="external_agent", scope=Scope.PROJECT, user_id=user.id)
         )
 
     def fulfill_research_request(self, request_post: BlackboardPost, user: User) -> ResearchFulfillment:
@@ -886,12 +864,7 @@ class PersonalAgent:
             task.updated_at = now_utc()
             self.repository.save_task(task)
             activity_logs.append(
-                self._activity(
-                    title="BBS 求助资料被隔离",
-                    summary=f"{evidence_post.actor} 返回的资料疑似含提示词注入，已隔离并转人工审核。",
-                    category="external_agent",
-                    scope=Scope.PROJECT,
-                )
+                self._activity(title="BBS 求助资料被隔离", summary=f"{evidence_post.actor} 返回的资料疑似含提示词注入，已隔离并转人工审核。", category="external_agent", scope=Scope.PROJECT, user_id=user.id)
             )
             self._audit(
                 "fulfill_blackboard_request",
@@ -912,12 +885,7 @@ class PersonalAgent:
         self.repository.add_blackboard_post(evidence_post)
         task.steps.append("received_blackboard_evidence")
         activity_logs.append(
-            self._activity(
-                title="BBS 求助得到补充",
-                summary=f"{evidence_post.actor} 在项目 BBS 回帖补充了可引用证据。",
-                category="external_agent",
-                scope=Scope.PROJECT,
-            )
+            self._activity(title="BBS 求助得到补充", summary=f"{evidence_post.actor} 在项目 BBS 回帖补充了可引用证据。", category="external_agent", scope=Scope.PROJECT, user_id=user.id)
         )
         assistant_message, llm_used = self._finalize_research_evidence(task, request_post, evidence_post, user)
         self._audit(
@@ -1005,12 +973,7 @@ class PersonalAgent:
         if action == "release":
             task.steps.append("released_quarantined_research_evidence")
             activity_logs = [
-                self._activity(
-                    title="人工放行隔离资料",
-                    summary="审核确认外部资料安全，已放行用于回答合成并完成 BBS 求助。",
-                    category="external_agent",
-                    scope=Scope.PROJECT,
-                )
+                self._activity(title="人工放行隔离资料", summary="审核确认外部资料安全，已放行用于回答合成并完成 BBS 求助。", category="external_agent", scope=Scope.PROJECT, user_id=user.id)
             ]
             assistant_message, llm_used = self._finalize_research_evidence(task, request_post, evidence_post, user)
             self._audit(
@@ -1039,12 +1002,7 @@ class PersonalAgent:
         task.updated_at = now_utc()
         self.repository.save_task(task)
         activity_logs = [
-            self._activity(
-                title="人工丢弃隔离资料",
-                summary="审核确认外部资料存在风险，已丢弃证据并终止该 BBS 求助任务。",
-                category="external_agent",
-                scope=Scope.PROJECT,
-            )
+            self._activity(title="人工丢弃隔离资料", summary="审核确认外部资料存在风险，已丢弃证据并终止该 BBS 求助任务。", category="external_agent", scope=Scope.PROJECT, user_id=user.id)
         ]
         self._audit(
             "resolve_quarantined_research",
@@ -1517,6 +1475,7 @@ class PersonalAgent:
                     summary="转化目标优先时，首屏应优先保证核心入口密度。",
                     memory_type="method",
                     sources=state.synthesis_evidence_post.sources if state.synthesis_evidence_post else [],
+                    owner_user_id=user.id,
                 )
             )
             return "我已提取一条候选团队记忆，并放入记忆库审核，不会自动写入团队记忆。"
@@ -1624,10 +1583,21 @@ class PersonalAgent:
             done_when="个人 Agent 完成证据合成并返回用户",
         )
 
-    def _ensure_thread(self, thread_id: str, content: str, user: User) -> ChatThread:
+    def _ensure_thread(
+        self,
+        thread_id: str,
+        content: str,
+        user: User,
+        *,
+        allow_create: bool = False,
+    ) -> ChatThread:
         existing_thread = self.repository.get_chat_thread(thread_id)
         if existing_thread is not None:
+            if existing_thread.user_id != user.id:
+                raise ChatThreadNotFoundError(thread_id)
             return existing_thread
+        if not allow_create:
+            raise ChatThreadNotFoundError(thread_id)
         title = content.strip()[:60] or "新的团队大脑对话"
         return self.repository.add_chat_thread(
             ChatThread(
@@ -1659,9 +1629,17 @@ class PersonalAgent:
         result.reverse()
         return result
 
-    def _activity(self, title: str, summary: str, category: str, scope: Scope) -> ActivityLog:
+    def _activity(
+        self,
+        title: str,
+        summary: str,
+        category: str,
+        scope: Scope,
+        user_id: str,
+    ) -> ActivityLog:
         log = ActivityLog(
             actor=self.actor,
+            user_id=user_id,
             title=title,
             summary=summary,
             category=category,
@@ -1788,12 +1766,14 @@ class PersonalAgent:
         summary: str,
         memory_type: str,
         sources: list[Source],
+        owner_user_id: str,
     ) -> MemoryItem:
         item = MemoryItem(
             title=title,
             summary=summary,
             memory_type=memory_type,
             scope=Scope.TEAM_CANDIDATE,
+            owner_user_id=owner_user_id,
             workspace_id=WORKSPACE.id,
             project_id=PROJECT.id,
             sources=sources,

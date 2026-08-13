@@ -1,8 +1,4 @@
-"""Market observability route — exposes the autonomous-market workers' state and live counts.
-
-Mirrors the memory router's worker-state exposure. Read-only ops surface; no auth (like
-/health), returns non-sensitive counts only.
-"""
+"""Authenticated market observability and current-user participation routes."""
 
 from __future__ import annotations
 
@@ -28,7 +24,7 @@ def _counts() -> dict[str, int]:
 
 
 @router.get("/status")
-def market_status() -> dict[str, object]:
+def market_status(_: User = Depends(current_user)) -> dict[str, object]:
     return {
         "enabled": MARKET_ENABLED,
         "publish_worker": publish_worker_state,
@@ -50,7 +46,7 @@ def _parse_signal(content: str) -> dict[str, str]:
 
 
 @router.get("/board")
-def market_board() -> dict[str, object]:
+def market_board(_: User = Depends(current_user)) -> dict[str, object]:
     """Everything the dashboard needs in one fetch: workers, counts, signal cards, matches."""
     users_by_id = {user.id: user for user in list_users(store)}
     signals = []

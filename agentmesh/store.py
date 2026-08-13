@@ -100,6 +100,7 @@ def _extract_fts_doc(collection: str, item: BaseModel) -> _FTSDoc | None:
         scope = getattr(item, "scope", "")
         workspace_id = getattr(item, "workspace_id", "") or ""
         project_id = getattr(item, "project_id", "") or ""
+        user_id = getattr(item, "user_id", "") or ""
         created_at = _dt_str(getattr(item, "created_at", None))
     elif collection == "blackboard_posts":
         title = getattr(item, "title", "")
@@ -930,6 +931,10 @@ class SQLiteStore:
                 thread = threads_by_id.get(msg.thread_id)
                 if not self._thread_matches(thread, workspace_id, project_id):
                     continue
+                if msg.scope == Scope.PRIVATE and (
+                    user_id is None or thread is None or thread.user_id != user_id
+                ):
+                    continue
                 results.append(
                     SearchResult(
                         id=msg.id,
@@ -947,6 +952,8 @@ class SQLiteStore:
                     continue
                 log = self._get("activity_logs", record_id, ActivityLog)
                 if log is None:
+                    continue
+                if not self.activity_log_visible_to_user(log, user_id):
                     continue
                 results.append(
                     SearchResult(
@@ -989,12 +996,22 @@ class SQLiteStore:
                 item = self._get("memory_items", record_id, MemoryItem)
                 if item is None:
                     continue
-                if item.scope == Scope.PROJECT and user_id and item.project_id:
-                    if not self._user_can_access_project(user_id, item.project_id):
-                        continue
-                if item.team_id and user_id and item.scope in (Scope.TEAM_ACCEPTED, Scope.TEAM_CANDIDATE):
-                    if not self._user_in_team(user_id, item.team_id):
-                        continue
+                if not self.memory_item_visible_to_user(item, user_id):
+                    continue
+                if (
+                    item.scope == Scope.PROJECT
+                    and user_id
+                    and item.project_id
+                    and not self.user_can_access_project(user_id, item.project_id)
+                ):
+                    continue
+                if (
+                    item.team_id
+                    and user_id
+                    and item.scope in (Scope.TEAM_ACCEPTED, Scope.TEAM_CANDIDATE)
+                    and not self._user_in_team(user_id, item.team_id)
+                ):
+                    continue
                 results.append(
                     SearchResult(
                         id=item.id,
@@ -1183,7 +1200,7 @@ class SQLiteStore:
             return False
         return not (project_id is not None and item_project_id != project_id)
 
-    def _user_can_access_project(self, user_id: str, project_id: str) -> bool:
+    def user_can_access_project(self, user_id: str, project_id: str) -> bool:
         project = self.get_project(project_id)
         if project is None:
             return False
@@ -1193,6 +1210,39 @@ class SQLiteStore:
         if user and user.role in (UserRole.ADMIN, UserRole.TEAM_LEAD):
             return True
         return user_id in project.member_ids
+
+    def memory_item_visible_to_user(self, item: MemoryItem, user_id: str | None) -> bool:
+        if user_id is None:
+            return item.scope != Scope.PRIVATE
+        user = self.get_user(user_id)
+        if user is None:
+            return False
+        if item.workspace_id is not None and item.workspace_id != user.workspace_id:
+            return False
+        if item.scope == Scope.PRIVATE:
+            return item.owner_user_id == user.id
+        if item.scope == Scope.PROJECT:
+            return item.project_id is not None and self.user_can_access_project(user.id, item.project_id)
+        if item.scope == Scope.TEAM_CANDIDATE:
+            if item.owner_user_id == user.id:
+                return True
+            if user.role not in (UserRole.TEAM_LEAD, UserRole.ADMIN):
+                return False
+        return item.team_id is None or self._user_in_team(user.id, item.team_id)
+
+    def activity_log_visible_to_user(self, log: ActivityLog, user_id: str | None) -> bool:
+        if user_id is None:
+            return log.scope != Scope.PRIVATE
+        user = self.get_user(user_id)
+        if user is None:
+            return False
+        if log.workspace_id is not None and log.workspace_id != user.workspace_id:
+            return False
+        if log.scope == Scope.PRIVATE:
+            return log.user_id == user.id
+        if log.project_id is not None:
+            return self.user_can_access_project(user.id, log.project_id)
+        return True
 
     def _user_in_team(self, user_id: str, team_id: str) -> bool:
         user = self.get_user(user_id)

@@ -9,6 +9,7 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from agentmesh.models import (
+    AutoBlackboardPostCreateRequest,
     AutoBlackboardPostRequest,
     BlackboardHandoffRequest,
     BlackboardPost,
@@ -30,6 +31,12 @@ from agentmesh.models import (
     User,
     UserRole,
     now_utc,
+)
+from agentmesh.permissions import (
+    authorize_blackboard_action,
+    ensure_admin,
+    ensure_can_manage_agent,
+    ensure_can_release_execution_lock,
 )
 from agentmesh.routes.agents import agent_display_name
 from agentmesh.routes.deps import create_audit_event, current_user
@@ -391,6 +398,27 @@ def post_visible_to_user(post: BlackboardPost, task_posts: list[BlackboardPost],
     )
 
 
+def task_initiator_user_id(post: BlackboardPost) -> str | None:
+    task = store.get_task(post.task_id)
+    if task is not None:
+        thread = store.get_chat_thread(task.thread_id)
+        return thread.user_id if thread is not None else None
+    if post.task_id.startswith("manual_"):
+        return post.task_id.removeprefix("manual_")
+    return None
+
+
+def authorize_post_action(post: BlackboardPost, user: User, action: str) -> None:
+    task_posts = [item for item in store.blackboard_posts if item.task_id == post.task_id]
+    authorize_blackboard_action(
+        user,
+        post,
+        action,
+        visible=post_visible_to_user(post, task_posts, user),
+        task_initiator_user_id=task_initiator_user_id(post),
+    )
+
+
 @router.post("/posts/{post_id}/memory-candidate")
 def create_memory_candidate_from_blackboard_post(
     post_id: str,
@@ -399,9 +427,7 @@ def create_memory_candidate_from_blackboard_post(
     post = store.get_blackboard_post(post_id)
     if post is None:
         raise HTTPException(status_code=404, detail="Blackboard post not found")
-    task_posts = [item for item in store.blackboard_posts if item.task_id == post.task_id]
-    if not post_visible_to_user(post, task_posts, user):
-        raise HTTPException(status_code=403, detail="Not allowed to use this blackboard post")
+    authorize_post_action(post, user, "create memory from")
     if post.post_type not in {"evidence", "decision", "digest", "archive", "memory_candidate"}:
         raise HTTPException(status_code=400, detail="Blackboard post cannot become a memory candidate")
 
@@ -417,6 +443,7 @@ def create_memory_candidate_from_blackboard_post(
             summary=post.content,
             memory_type="bbs_evidence" if post.post_type == "evidence" else "bbs_decision",
             scope=Scope.TEAM_CANDIDATE,
+            owner_user_id=user.id,
             workspace_id=user.workspace_id,
             project_id=user.default_project_id,
             sources=[source, *post.sources],
@@ -446,9 +473,7 @@ def dispatch_blackboard_request(
     post = store.get_blackboard_post(post_id)
     if post is None:
         raise HTTPException(status_code=404, detail="Blackboard post not found")
-    task_posts = [item for item in store.blackboard_posts if item.task_id == post.task_id]
-    if not post_visible_to_user(post, task_posts, user):
-        raise HTTPException(status_code=403, detail="Not allowed to use this blackboard post")
+    authorize_post_action(post, user, "dispatch")
     if post.post_type != "request":
         raise HTTPException(status_code=400, detail="Only request posts can be dispatched")
 
@@ -462,8 +487,8 @@ def dispatch_blackboard_request(
 
     try:
         fulfillment = agent.fulfill_research_request(post, user)
-    except RequestAlreadyFulfilledError:
-        raise HTTPException(status_code=409, detail="Request has already been fulfilled")
+    except RequestAlreadyFulfilledError as error:
+        raise HTTPException(status_code=409, detail="Request has already been fulfilled") from error
 
     store.add_audit_event(
         create_audit_event(
@@ -490,7 +515,8 @@ def dispatch_blackboard_request(
 
 
 @router.get("/auto-posts", response_model=ItemsResponse)
-def auto_blackboard_posts(_: User = Depends(current_user)) -> ItemsResponse:
+def auto_blackboard_posts(user: User = Depends(current_user)) -> ItemsResponse:
+    ensure_admin(user)
     return ItemsResponse(items=list(reversed(store.auto_blackboard_post_requests)))
 
 
@@ -501,22 +527,29 @@ def auto_blackboard_worker_status(_: User = Depends(current_user)) -> dict[str, 
 
 @router.post("/auto-posts", response_model=ItemResponse)
 def enqueue_auto_blackboard_post(
-    request: AutoBlackboardPostRequest,
+    request: AutoBlackboardPostCreateRequest,
     user: User = Depends(current_user),
 ) -> ItemResponse:
-    if request.actor == "personal_agent":
-        reader = store.get_agent(user.personal_agent_id) or next(
-            (item for item in AGENTS if item.id == user.personal_agent_id),
-            None,
-        )
-        actor = reader.name if reader else request.actor
-        request = request.model_copy(update={"actor": actor})
-    return ItemResponse(item=store.enqueue_auto_blackboard_post(request))
+    task = store.get_task(request.task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    thread = store.get_chat_thread(task.thread_id)
+    if user.role not in {UserRole.TEAM_LEAD, UserRole.ADMIN} and (
+        thread is None or thread.user_id != user.id
+    ):
+        raise HTTPException(status_code=403, detail="Not allowed to enqueue for this task")
+    queued = AutoBlackboardPostRequest(
+        **request.model_dump(),
+        actor=user.personal_agent_id,
+        submitted_by_user_id=user.id,
+    )
+    return ItemResponse(item=store.enqueue_auto_blackboard_post(queued))
 
 
 @router.post("/auto-posts/drain", response_model=DrainAutoPostsResponse)
-def drain_auto_blackboard_posts_endpoint(_: User = Depends(current_user)) -> DrainAutoPostsResponse:
-    return drain_queued_auto_blackboard_posts("manual_drain")
+def drain_auto_blackboard_posts_endpoint(user: User = Depends(current_user)) -> DrainAutoPostsResponse:
+    ensure_admin(user)
+    return drain_queued_auto_blackboard_posts(user.id)
 
 
 @router.get("/research-dispatch/worker")
@@ -525,12 +558,14 @@ def research_dispatch_worker_status(_: User = Depends(current_user)) -> dict[str
 
 
 @router.post("/research-dispatch/drain")
-def drain_research_dispatch_endpoint(_: User = Depends(current_user)) -> dict[str, object]:
-    return drain_dispatchable_research_requests("manual_drain")
+def drain_research_dispatch_endpoint(user: User = Depends(current_user)) -> dict[str, object]:
+    ensure_admin(user)
+    return drain_dispatchable_research_requests(user.id)
 
 
 @router.post("/auto-posts/{request_id}/review", response_model=ItemResponse)
 def review_auto_blackboard_post(request_id: str, user: User = Depends(current_user)) -> ItemResponse:
+    ensure_admin(user)
     request = next((item for item in store.auto_blackboard_post_requests if item.id == request_id), None)
     if request is None:
         raise HTTPException(status_code=404, detail="Auto blackboard post not found")
@@ -553,15 +588,11 @@ def create_blackboard_post(
         BlackboardPost(
             task_id=f"manual_{user.id}",
             post_type=request.post_type,
-            actor=request.actor,
+            actor=user.personal_agent_id,
             title=request.title,
             content=request.content,
             scope=request.scope,
             permission=request.permission,
-            related_post_id=request.related_post_id,
-            collaboration_stage=request.collaboration_stage,
-            done_when=request.done_when,
-            handoff=request.handoff,
         )
     )
     return ItemResponse(item=post)
@@ -576,11 +607,19 @@ def acquire_blackboard_execution_lock(
     post = store.get_blackboard_post(post_id)
     if post is None:
         raise HTTPException(status_code=404, detail="Blackboard post not found")
+    authorize_post_action(post, user, "lock")
+    owner_agent = store.get_agent(request.owner_agent_id) or next(
+        (item for item in AGENTS if item.id == request.owner_agent_id),
+        None,
+    )
+    if owner_agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    ensure_can_manage_agent(user, owner_agent, store.permission_policy_rules)
     active_lock = post.execution_lock if post.execution_lock and post.execution_lock.active else None
     if active_lock and active_lock.owner_agent_id != request.owner_agent_id:
         raise HTTPException(status_code=409, detail=f"{active_lock.owner_label} already owns execution")
 
-    owner_label = request.owner_label or agent_display_name(request.owner_agent_id)
+    owner_label = agent_display_name(request.owner_agent_id)
     lock = ExecutionLock(owner_agent_id=request.owner_agent_id, owner_label=owner_label)
     post.execution_lock = lock
     post.current_owner_agent_id = request.owner_agent_id
@@ -612,6 +651,8 @@ def release_blackboard_execution_lock(
     post = store.get_blackboard_post(post_id)
     if post is None:
         raise HTTPException(status_code=404, detail="Blackboard post not found")
+    authorize_post_action(post, user, "unlock")
+    ensure_can_release_execution_lock(user, post)
     if post.execution_lock and post.execution_lock.active:
         post.execution_lock.released_at = now_utc()
         post.execution_lock.released_reason = request.reason
@@ -642,6 +683,8 @@ def create_blackboard_handoff(
     parent = store.get_blackboard_post(post_id)
     if parent is None:
         raise HTTPException(status_code=404, detail="Blackboard post not found")
+    authorize_post_action(parent, user, "handoff")
+    ensure_can_release_execution_lock(user, parent)
     packet = StructuredHandoffPacket(
         goal=request.goal,
         current_result=request.current_result,
@@ -696,11 +739,8 @@ def mark_blackboard_post_read(post_id: str, user: User = Depends(current_user)) 
     post = next((item for item in store.blackboard_posts if item.id == post_id), None)
     if post is None:
         raise HTTPException(status_code=404, detail="Blackboard post not found")
-    reader = store.get_agent(user.personal_agent_id) or next(
-        (item for item in AGENTS if item.id == user.personal_agent_id),
-        None,
-    )
-    reader_id = reader.name if reader else user.personal_agent_id
+    authorize_post_action(post, user, "read")
+    reader_id = user.personal_agent_id
     if reader_id not in post.read_by_agents:
         post.read_by_agents.append(reader_id)
         store.add_blackboard_post(post)
@@ -713,8 +753,20 @@ def reply_blackboard_post(
     request: BlackboardPostCreateRequest,
     user: User = Depends(current_user),
 ) -> ItemResponse:
-    parent = next((item for item in store.blackboard_posts if item.id == post_id), None)
+    parent = store.get_blackboard_post(post_id)
     if parent is None:
         raise HTTPException(status_code=404, detail="Blackboard post not found")
-    reply = request.model_copy(update={"related_post_id": post_id})
-    return create_blackboard_post(reply, user)
+    authorize_post_action(parent, user, "reply to")
+    post = store.add_blackboard_post(
+        BlackboardPost(
+            task_id=parent.task_id,
+            post_type=request.post_type,
+            actor=user.personal_agent_id,
+            title=request.title,
+            content=request.content,
+            scope=parent.scope,
+            permission=parent.permission,
+            related_post_id=parent.id,
+        )
+    )
+    return ItemResponse(item=post)

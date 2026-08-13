@@ -15,7 +15,7 @@ from agentmesh.models import (
 )
 from agentmesh.permissions import ensure_admin
 from agentmesh.routes.deps import current_user
-from agentmesh.seed import PROJECT, WORKSPACE, list_projects, list_workspaces
+from agentmesh.seed import WORKSPACE, list_projects, list_workspaces
 from agentmesh.store import store
 
 router = APIRouter(prefix="/api", tags=["workspace"])
@@ -33,10 +33,14 @@ def health() -> dict[str, str]:
 
 
 @router.get("/activity/today")
-def activity_today(_: User = Depends(current_user)) -> dict[str, object]:
+def activity_today(user: User = Depends(current_user)) -> dict[str, object]:
     return {
-        "personal": store.list_personal_activity(),
-        "external": store.list_external_activity(),
+        "personal": [
+            log for log in store.list_personal_activity() if store.activity_log_visible_to_user(log, user.id)
+        ],
+        "external": [
+            log for log in store.list_external_activity() if store.activity_log_visible_to_user(log, user.id)
+        ],
     }
 
 
@@ -77,12 +81,25 @@ def search_items(
     allowed_scopes = SEARCH_VISIBILITY_SCOPES.get(visibility)
     if allowed_scopes is None:
         raise HTTPException(status_code=400, detail="Unsupported search visibility")
+    resolved_workspace_id = workspace_id or user.workspace_id
+    if resolved_workspace_id != WORKSPACE.id or resolved_workspace_id != user.workspace_id:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    resolved_project_id = project_id or user.default_project_id
+    project = store.get_project(resolved_project_id)
+    if (
+        project is None
+        or project.workspace_id != resolved_workspace_id
+        or not store.user_can_access_project(user.id, resolved_project_id)
+    ):
+        raise HTTPException(status_code=404, detail="Project not found")
+
     return {
         "items": store.search(
             q,
             allowed_scopes,
-            workspace_id=workspace_id or WORKSPACE.id,
-            project_id=project_id or PROJECT.id,
+            workspace_id=resolved_workspace_id,
+            project_id=resolved_project_id,
             user_id=user.id,
             max_results=limit,
             max_chars=max_chars,

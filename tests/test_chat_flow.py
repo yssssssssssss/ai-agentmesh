@@ -19,6 +19,7 @@ from agentmesh.models import (
     MemoryItem,
     MemoryLayer,
     MemoryStatus,
+    Project,
     Scope,
     Source,
     ToolDefinition,
@@ -453,7 +454,6 @@ def test_blackboard_evidence_can_be_promoted_to_memory_candidate() -> None:
             "post_type": "evidence",
             "title": "声音设计规范证据",
             "content": "北极星玩具频道声音设计应避免自动播放，优先使用可关闭的反馈音。",
-            "actor": "research_agent",
         },
     )
     evidence_post = evidence_response.json()["item"]
@@ -551,7 +551,6 @@ def test_non_request_post_cannot_be_dispatched() -> None:
             "post_type": "evidence",
             "title": "人工补充证据",
             "content": "北极星玩具频道声音设计应避免自动播放。",
-            "actor": "research_agent",
         },
     )
     evidence_post = evidence_response.json()["item"]
@@ -712,6 +711,7 @@ def test_resolve_injection_review_rejects_non_injection_item() -> None:
 def test_research_dispatch_drain_completes_waiting_task() -> None:
     clear_store()
     client = authenticated_client()
+    admin_client = authenticated_client(ADMIN.id)
     search_response = client.post(
         "/api/chat/messages",
         json={"content": "$memory.search 北极星玩具频道声音设计规范"},
@@ -720,7 +720,7 @@ def test_research_dispatch_drain_completes_waiting_task() -> None:
     assert payload["task"]["status"] == "waiting_external_agent"
     thread_id = payload["thread_id"]
 
-    drain_response = client.post("/api/blackboard/research-dispatch/drain")
+    drain_response = admin_client.post("/api/blackboard/research-dispatch/drain")
 
     assert drain_response.status_code == 200
     result = drain_response.json()
@@ -734,21 +734,23 @@ def test_research_dispatch_drain_completes_waiting_task() -> None:
 def test_research_dispatch_drain_is_idempotent() -> None:
     clear_store()
     client = authenticated_client()
+    admin_client = authenticated_client(ADMIN.id)
     client.post(
         "/api/chat/messages",
         json={"content": "$memory.search 北极星玩具频道声音设计规范"},
     )
 
-    first = client.post("/api/blackboard/research-dispatch/drain")
+    first = admin_client.post("/api/blackboard/research-dispatch/drain")
     assert first.json()["dispatched"] == 1
 
-    second = client.post("/api/blackboard/research-dispatch/drain")
+    second = admin_client.post("/api/blackboard/research-dispatch/drain")
     assert second.json()["dispatched"] == 0
 
 
 def test_research_dispatch_drain_skips_tool_approval_gated() -> None:
     clear_store()
     client = authenticated_client()
+    admin_client = authenticated_client(ADMIN.id)
     response = client.post(
         "/api/chat/messages",
         json={"content": "$research.request 批量抓取竞品全站页面"},
@@ -757,7 +759,7 @@ def test_research_dispatch_drain_skips_tool_approval_gated() -> None:
     task = store.get_task(payload["task"]["id"])
     assert "requested_tool_call_approval" in task.steps
 
-    drain = client.post("/api/blackboard/research-dispatch/drain")
+    drain = admin_client.post("/api/blackboard/research-dispatch/drain")
     assert drain.json()["dispatched"] == 0
 
 
@@ -782,12 +784,13 @@ def test_research_dispatch_drain_quarantines_injected_content() -> None:
     chat_module.agent = PersonalAgent(store, llm_client=None, acquisition_agent=FakeAcquisitionAgent())
     try:
         client = authenticated_client()
+        admin_client = authenticated_client(ADMIN.id)
         client.post(
             "/api/chat/messages",
             json={"content": "$memory.search 北极星玩具频道声音设计规范"},
         )
 
-        drain = client.post("/api/blackboard/research-dispatch/drain")
+        drain = admin_client.post("/api/blackboard/research-dispatch/drain")
         assert drain.json()["dispatched"] == 1
 
         task = store.tasks[-1]
@@ -1269,25 +1272,26 @@ def test_high_risk_tool_call_requires_approval_before_acquisition() -> None:
 def test_blackboard_execution_lock_rejects_silent_takeover_and_release_moves_to_review() -> None:
     clear_store()
     client = authenticated_client()
+    admin_client = authenticated_client(ADMIN.id)
     chat_response = client.post("/api/chat/messages", json={"content": "$research.request 查一下 618 家电会场相似经验"})
     post_id = chat_response.json()["request_post"]["id"]
 
-    acquire_response = client.post(
+    acquire_response = admin_client.post(
         f"/api/blackboard/posts/{post_id}/lock",
-        json={"owner_agent_id": "research_agent", "owner_label": "research_agent"},
+        json={"owner_agent_id": "agent_research"},
     )
-    conflict_response = client.post(
+    conflict_response = admin_client.post(
         f"/api/blackboard/posts/{post_id}/lock",
-        json={"owner_agent_id": "risk_agent", "owner_label": "risk_agent"},
+        json={"owner_agent_id": "agent_risk"},
     )
-    release_response = client.post(
+    release_response = admin_client.post(
         f"/api/blackboard/posts/{post_id}/unlock",
         json={"reason": "ready_for_review"},
     )
 
     assert acquire_response.status_code == 200
     assert acquire_response.json()["item"]["collaboration_stage"] == "execution"
-    assert acquire_response.json()["item"]["execution_lock"]["owner_agent_id"] == "research_agent"
+    assert acquire_response.json()["item"]["execution_lock"]["owner_agent_id"] == "agent_research"
     assert conflict_response.status_code == 409
     assert release_response.status_code == 200
     assert release_response.json()["item"]["collaboration_stage"] == "review"
@@ -1297,11 +1301,12 @@ def test_blackboard_execution_lock_rejects_silent_takeover_and_release_moves_to_
 def test_agent_runtime_state_reflects_blackboard_execution_lock() -> None:
     clear_store()
     client = authenticated_client()
+    admin_client = authenticated_client(ADMIN.id)
     chat_response = client.post("/api/chat/messages", json={"content": "$research.request 查一下 618 家电会场相似经验"})
     post_id = chat_response.json()["request_post"]["id"]
-    client.post(
+    admin_client.post(
         f"/api/blackboard/posts/{post_id}/lock",
-        json={"owner_agent_id": "research_agent", "owner_label": "research_agent"},
+        json={"owner_agent_id": "agent_research"},
     )
 
     agents_response = client.get("/api/agents")
@@ -1319,7 +1324,7 @@ def test_agent_runtime_state_reflects_blackboard_execution_lock() -> None:
     )
     assert card["stage"] == "execution"
     assert card["owner"] == "research_agent"
-    assert card["active_lock"]["owner_agent_id"] == "research_agent"
+    assert card["active_lock"]["owner_agent_id"] == "agent_research"
     assert card["post_count"] == 2
     assert card["initiator_user_id"] == USER.id
     assert card["initiated_by_current_user"] is True
@@ -1376,21 +1381,22 @@ def test_task_cards_mark_personal_agent_claims() -> None:
 def test_blackboard_handoff_creates_structured_decision_post_and_updates_task_owner() -> None:
     clear_store()
     client = authenticated_client()
+    admin_client = authenticated_client(ADMIN.id)
     chat_response = client.post("/api/chat/messages", json={"content": "$research.request 查一下 618 家电会场相似经验"})
     post_id = chat_response.json()["request_post"]["id"]
     task_id = chat_response.json()["task"]["id"]
-    client.post(
+    admin_client.post(
         f"/api/blackboard/posts/{post_id}/lock",
-        json={"owner_agent_id": "research_agent", "owner_label": "research_agent"},
+        json={"owner_agent_id": "agent_research"},
     )
 
-    handoff_response = client.post(
+    handoff_response = admin_client.post(
         f"/api/blackboard/posts/{post_id}/handoff",
         json={
             "goal": "补齐风险判断",
             "current_result": "已找到相似项目证据。",
             "done_when": "输出素材授权风险结论",
-            "next_owner_agent_id": "risk_agent",
+            "next_owner_agent_id": "agent_risk",
             "blockers": ["缺少素材授权原文"],
             "requires_input_from": ["designer"],
         },
@@ -1399,8 +1405,8 @@ def test_blackboard_handoff_creates_structured_decision_post_and_updates_task_ow
     assert handoff_response.status_code == 200
     payload = handoff_response.json()["item"]
     assert payload["post_type"] == "handoff"
-    assert payload["handoff"]["next_owner_agent_id"] == "risk_agent"
-    assert payload["current_owner_agent_id"] == "risk_agent"
+    assert payload["handoff"]["next_owner_agent_id"] == "agent_risk"
+    assert payload["current_owner_agent_id"] == "agent_risk"
     task_card = next(
         item
         for item in client.get("/api/blackboard/task-cards").json()["items"]
@@ -1408,7 +1414,7 @@ def test_blackboard_handoff_creates_structured_decision_post_and_updates_task_ow
     )
     task = store.get_task(task_id)
     assert task is not None
-    assert task.current_owner_agent_id == "risk_agent"
+    assert task.current_owner_agent_id == "agent_risk"
     assert task.done_when == "输出素材授权风险结论"
     assert "created_structured_handoff" in task.steps
     assert "research_agent" in task_card["upstream_agents"]
@@ -2262,11 +2268,20 @@ def test_search_filters_results_by_project_id() -> None:
     )
     current_thread_id = current_response.json()["thread_id"]
 
+    other_project = store.save_project(
+        Project(
+            id="prj_other_project",
+            workspace_id=WORKSPACE.id,
+            name="另一个项目",
+            goal="验证项目检索隔离",
+            member_ids=[USER.id],
+        )
+    )
     other_thread = store.add_chat_thread(
         ChatThread(
             id="thread_other_project",
             workspace_id=WORKSPACE.id,
-            project_id="prj_other_project",
+            project_id=other_project.id,
             user_id=USER.id,
             title="另一个项目",
         )
@@ -2285,6 +2300,7 @@ def test_search_filters_results_by_project_id() -> None:
             summary="这条首屏经验不应该混入当前项目搜索。",
             memory_type="method",
             scope=Scope.TEAM_CANDIDATE,
+            owner_user_id=USER.id,
             project_id=other_thread.project_id,
             workspace_id=WORKSPACE.id,
         )
@@ -2930,11 +2946,12 @@ def test_auto_blackboard_queue_drains_into_bbs_posts() -> None:
         )
     )
     client = authenticated_client()
+    admin_client = authenticated_client(ADMIN.id)
 
-    queued_response = client.get("/api/blackboard/auto-posts")
-    first_drain_response = client.post("/api/blackboard/auto-posts/drain")
-    review_response = client.post(f"/api/blackboard/auto-posts/{store.auto_blackboard_post_requests[0].id}/review")
-    drain_response = client.post("/api/blackboard/auto-posts/drain")
+    queued_response = admin_client.get("/api/blackboard/auto-posts")
+    first_drain_response = admin_client.post("/api/blackboard/auto-posts/drain")
+    review_response = admin_client.post(f"/api/blackboard/auto-posts/{store.auto_blackboard_post_requests[0].id}/review")
+    drain_response = admin_client.post("/api/blackboard/auto-posts/drain")
     board_response = client.get("/api/blackboard")
 
     assert queued_response.status_code == 200
@@ -2974,7 +2991,6 @@ def test_blackboard_post_create_read_and_reply_api() -> None:
             "post_type": "digest",
             "title": "今日进展",
             "content": "Agent 自动整理了今日资料。",
-            "actor": "personal_agent",
         },
     )
     post = create_response.json()["item"]
@@ -2985,14 +3001,14 @@ def test_blackboard_post_create_read_and_reply_api() -> None:
             "post_type": "decision",
             "title": "收到",
             "content": "继续跟进。",
-            "actor": "personal_agent",
         },
     )
 
     assert create_response.status_code == 200
     assert post["post_type"] == "digest"
+    assert post["actor"] == USER.personal_agent_id
     assert read_response.status_code == 200
-    assert "我的个人 Agent" in read_response.json()["item"]["read_by_agents"]
+    assert USER.personal_agent_id in read_response.json()["item"]["read_by_agents"]
     assert reply_response.status_code == 200
     assert reply_response.json()["item"]["related_post_id"] == post["id"]
     assert len(store.blackboard_posts) == 2

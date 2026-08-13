@@ -11,6 +11,10 @@ if TEST_DB_PATH.exists():
     TEST_DB_PATH.unlink()
 
 os.environ["AGENTMESH_DB_PATH"] = str(TEST_DB_PATH)
+os.environ["AGENTMESH_DEMO_MODE"] = "1"
+os.environ["AGENTMESH_EMBEDDING_ENABLED"] = "false"
+os.environ["AGENTMESH_EMBEDDING_API_URL"] = ""
+os.environ["AGENTMESH_EMBEDDING_API_KEY"] = ""
 
 for key in (
     "AI_API_URL",

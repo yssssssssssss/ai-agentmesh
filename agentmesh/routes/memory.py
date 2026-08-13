@@ -16,7 +16,6 @@ from agentmesh.models import (
     GroupMemorySummaryRequest,
     ItemResponse,
     ItemsResponse,
-    LearnedSkill,
     MemoryCreateRequest,
     MemoryItem,
     MemoryLayer,
@@ -25,7 +24,6 @@ from agentmesh.models import (
     MemoryUpdateRequest,
     ProjectArchiveRequest,
     ProjectMemorySummaryRequest,
-    RetrievalMetrics,
     Scope,
     SkillStatus,
     User,
@@ -36,7 +34,6 @@ from agentmesh.models import (
 )
 from agentmesh.permissions import ensure_can_update_memory
 from agentmesh.routes.deps import current_user
-from agentmesh.seed import PROJECT, WORKSPACE
 from agentmesh.store import store
 
 router = APIRouter(prefix="/api/memory", tags=["memory"])
@@ -75,15 +72,20 @@ def memory_items(user: User = Depends(current_user)) -> ItemsResponse:
 
 
 @router.post("", response_model=ItemResponse)
-def create_memory_item(request: MemoryCreateRequest, _: User = Depends(current_user)) -> ItemResponse:
+def create_memory_item(request: MemoryCreateRequest, user: User = Depends(current_user)) -> ItemResponse:
+    if request.scope == Scope.TEAM_ACCEPTED:
+        raise HTTPException(status_code=403, detail="Team memory must be reviewed before acceptance")
+    scope = Scope.TEAM_CANDIDATE if request.scope == Scope.PROJECT else request.scope
     item = store.add_memory_item(
         MemoryItem(
             title=request.title,
             summary=request.summary,
             memory_type=request.memory_type,
-            scope=request.scope,
-            workspace_id=request.workspace_id or WORKSPACE.id,
-            project_id=request.project_id or PROJECT.id,
+            scope=scope,
+            status=MemoryStatus.PROPOSED,
+            owner_user_id=user.id,
+            workspace_id=user.workspace_id,
+            project_id=user.default_project_id,
         )
     )
     return ItemResponse(item=item)
@@ -142,6 +144,7 @@ def memory_overview(
 
 @router.post("/user", response_model=ItemResponse)
 def create_user_memory_item(request: UserMemoryCreateRequest, user: User = Depends(current_user)) -> ItemResponse:
+    project_id = _resolve_user_project_id(user, request.project_id)
     item = UserMemoryItem(
         user_id=user.id,
         layer=request.layer,
@@ -151,7 +154,7 @@ def create_user_memory_item(request: UserMemoryCreateRequest, user: User = Depen
         memory_type=request.memory_type,
         memory_date=request.memory_date or now_utc().date(),
         workspace_id=user.workspace_id,
-        project_id=request.project_id or user.default_project_id,
+        project_id=project_id,
     )
     return ItemResponse(item=store.add_user_memory_item(item))
 
@@ -254,16 +257,21 @@ def share_user_memory_to_project(item_id: str, user: User = Depends(current_user
         raise HTTPException(status_code=400, detail="Memory has no associated project")
 
     project = store.get_project(source_item.project_id)
-    if project is None:
+    if (
+        project is None
+        or project.workspace_id != user.workspace_id
+        or not store.user_can_access_project(user.id, source_item.project_id)
+    ):
         raise HTTPException(status_code=404, detail="Project not found")
 
     shared = MemoryItem(
         title=source_item.title,
         summary=source_item.summary,
         memory_type=source_item.memory_type,
-        scope=Scope.PROJECT,
-        status=MemoryStatus.ACCEPTED,
-        workspace_id=source_item.workspace_id,
+        scope=Scope.TEAM_CANDIDATE,
+        status=MemoryStatus.PROPOSED,
+        owner_user_id=user.id,
+        workspace_id=user.workspace_id,
         project_id=source_item.project_id,
         sources=source_item.sources,
     )
@@ -288,13 +296,12 @@ def update_memory_item(
     item = store.get_memory_item(item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Memory item not found")
-    ensure_can_update_memory(user, request.status, request.scope, store.permission_policy_rules)
-    if request.status is not None:
+    ensure_can_update_memory(user, item, request.status, request.scope, store.permission_policy_rules)
+    if request.status == MemoryStatus.ACCEPTED or request.scope == Scope.TEAM_ACCEPTED:
+        item.status = MemoryStatus.ACCEPTED
+        item.scope = Scope.TEAM_ACCEPTED
+    elif request.status is not None:
         item.status = request.status
-        if request.status == MemoryStatus.ACCEPTED and request.scope is None:
-            item.scope = Scope.TEAM_ACCEPTED
-    if request.scope is not None:
-        item.scope = request.scope
     store.save_memory_item(item)
     return ItemResponse(item=item)
 
@@ -302,7 +309,11 @@ def update_memory_item(
 def _resolve_user_project_id(user: User, requested_project_id: str | None) -> str:
     project_id = requested_project_id or user.default_project_id
     project = store.get_project(project_id)
-    if project is None or project.workspace_id != user.workspace_id:
+    if (
+        project is None
+        or project.workspace_id != user.workspace_id
+        or not store.user_can_access_project(user.id, project_id)
+    ):
         raise HTTPException(status_code=404, detail="Project not found")
     return project_id
 
@@ -430,7 +441,7 @@ def _project_name(project_id: str) -> str:
 def _visible_memory_items(user: User) -> list[MemoryItem]:
     items: list[MemoryItem] = []
     for item in store.memory_items:
-        if item.scope == Scope.PRIVATE:
+        if item.scope == Scope.PRIVATE and item.owner_user_id != user.id:
             continue
         if item.scope == Scope.TEAM_CANDIDATE and user.role not in {UserRole.TEAM_LEAD, UserRole.ADMIN}:
             continue

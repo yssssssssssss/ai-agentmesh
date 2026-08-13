@@ -4,12 +4,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Response, UploadFile
 
+from agentmesh.chunker import chunk_text
 from agentmesh.documents import CompositeDocumentParser, DocumentIngestionRequest, UnsupportedDocumentTypeError
 from agentmesh.models import (
     DocumentParseJob,
     DocumentRecord,
     DocumentUpdateRequest,
     MemoryLayer,
+    Scope,
+    Source,
     User,
     UserMemoryItem,
     UserRole,
@@ -24,6 +27,10 @@ router = APIRouter(prefix="/api/documents", tags=["documents"])
 MAX_SYNC_UPLOAD_BYTES = 1024 * 1024
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 document_parser = CompositeDocumentParser()
+
+
+def document_visible_to_user(document: DocumentRecord | DocumentParseJob, user: User) -> bool:
+    return user.role == UserRole.ADMIN or document.uploaded_by == user.id
 
 
 @router.post("/upload")
@@ -66,9 +73,11 @@ async def upload_document(
 
 @router.get("/jobs")
 def document_jobs(user: User = Depends(current_user)) -> dict[str, object]:
-    jobs = list(reversed(store.document_parse_jobs))
-    if user.role != UserRole.ADMIN:
-        jobs = [job for job in jobs if job.uploaded_by == user.id]
+    jobs = [
+        job
+        for job in reversed(store.document_parse_jobs)
+        if document_visible_to_user(job, user)
+    ]
     return {"items": jobs}
 
 
@@ -77,7 +86,7 @@ def document_job_detail(job_id: str, user: User = Depends(current_user)) -> dict
     job = store.get_document_parse_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Document parse job not found")
-    if user.role != UserRole.ADMIN and job.uploaded_by != user.id:
+    if not document_visible_to_user(job, user):
         raise HTTPException(status_code=404, detail="Document parse job not found")
     return {"item": job}
 
@@ -133,18 +142,24 @@ def parse_document_request(request: DocumentIngestionRequest) -> DocumentRecord:
             sources=[document.source],
         )
     )
+    import_document_chunks(document)
     return document
 
 
 @router.get("")
-def documents(_: User = Depends(current_user)) -> dict[str, object]:
-    return {"items": list(reversed(store.documents))}
+def documents(user: User = Depends(current_user)) -> dict[str, object]:
+    items = [
+        document
+        for document in reversed(store.documents)
+        if document_visible_to_user(document, user)
+    ]
+    return {"items": items}
 
 
 @router.get("/{document_id}")
-def document_detail(document_id: str, _: User = Depends(current_user)) -> dict[str, object]:
+def document_detail(document_id: str, user: User = Depends(current_user)) -> dict[str, object]:
     document = store.get_document(document_id)
-    if document is None:
+    if document is None or not document_visible_to_user(document, user):
         raise HTTPException(status_code=404, detail="Document not found")
     return {"item": document}
 
@@ -152,10 +167,8 @@ def document_detail(document_id: str, _: User = Depends(current_user)) -> dict[s
 @router.patch("/{document_id}")
 def update_document(document_id: str, request: DocumentUpdateRequest, user: User = Depends(current_user)) -> dict[str, object]:
     document = store.get_document(document_id)
-    if document is None:
+    if document is None or not document_visible_to_user(document, user):
         raise HTTPException(status_code=404, detail="Document not found")
-    if user.role != UserRole.ADMIN and document.uploaded_by != user.id:
-        raise HTTPException(status_code=403, detail="Not allowed to update this document")
     document.text = request.text
     document.metadata["edited_by"] = user.id
     document.metadata["edited_at"] = now_utc().isoformat()
@@ -167,3 +180,53 @@ def summarize_document_text(text: str) -> str:
     if not normalized:
         return "文档没有解析出可用正文。"
     return normalized[:1200]
+
+
+def import_document_chunks(document: DocumentRecord) -> list[UserMemoryItem]:
+    """Chunk document text and write each chunk as a long-term memory item."""
+    chunks = chunk_text(document.text)
+    items: list[UserMemoryItem] = []
+    for i, chunk in enumerate(chunks):
+        item = store.add_user_memory_item(
+            UserMemoryItem(
+                user_id=document.uploaded_by,
+                layer=MemoryLayer.LONG_TERM,
+                title=f"{document.title} [{i + 1}/{len(chunks)}]",
+                summary=chunk,
+                source_kind="document_import",
+                memory_type="document_chunk",
+                memory_date=now_utc().date(),
+                scope=Scope.PRIVATE,
+                workspace_id=document.workspace_id,
+                project_id=document.project_id,
+                sources=[
+                    Source(
+                        title=document.file_name,
+                        source_type="document",
+                        reference=f"document://{document.id}#chunk_{i}",
+                    )
+                ],
+            )
+        )
+        items.append(item)
+    return items
+
+
+@router.post("/{document_id}/import-to-memory")
+def import_document_to_memory(
+    document_id: str,
+    user: User = Depends(current_user),
+) -> dict[str, object]:
+    """Manually trigger chunk import for an existing document."""
+    document = store.get_document(document_id)
+    if document is None or not document_visible_to_user(document, user):
+        raise HTTPException(status_code=404, detail="Document not found")
+    existing = [
+        item for item in store.user_memory_items
+        if item.source_kind == "document_import"
+        and any(f"document://{document_id}" in s.reference for s in item.sources)
+    ]
+    if existing:
+        return {"status": "already_imported", "chunk_count": len(existing)}
+    items = import_document_chunks(document)
+    return {"status": "imported", "chunk_count": len(items)}

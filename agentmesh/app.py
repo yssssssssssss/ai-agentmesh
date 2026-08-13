@@ -38,15 +38,36 @@ from agentmesh.routes.memory import start_daily_memory_worker, stop_daily_memory
 from agentmesh.routes.risk import router as risk_router
 from agentmesh.routes.users import router as users_router
 from agentmesh.routes.workspace import router as workspace_router
-from agentmesh.seed import ensure_demo_data, ensure_graph_demo_data, ensure_initial_blackboard_data, ensure_seed_data
-from agentmesh.store import store
+from agentmesh.seed import (
+    demo_mode_enabled,
+    ensure_base_workspace_data,
+    ensure_demo_data,
+    ensure_demo_seed_data,
+    ensure_graph_demo_data,
+    ensure_initial_blackboard_data,
+)
+from agentmesh.store import SQLiteStore, store
 from agentmesh.tools import ensure_tool_seed_data
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
+def initialize_application_data(repository: SQLiteStore) -> None:
+    ensure_base_workspace_data(repository)
+    ensure_tool_seed_data(repository, granted_by="system")
+    ensure_model_seed_data(repository)
+    ensure_risk_policy_seed_data(repository)
+    ensure_permission_policy_seed_data(repository)
+    if not demo_mode_enabled():
+        return
+    ensure_demo_seed_data(repository)
+    ensure_initial_blackboard_data(repository)
+    ensure_demo_data(repository)
+    ensure_graph_demo_data(repository)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    initialize_application_data(store)
     await start_auto_post_worker()
     await start_daily_memory_worker()
     await start_research_dispatch_worker()
@@ -62,15 +83,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AgentMesh", version="0.1.0", lifespan=lifespan)
 
-# 初始化种子数据
-ensure_seed_data(store)
-ensure_initial_blackboard_data(store)
-ensure_demo_data(store)
-ensure_graph_demo_data(store)
-ensure_tool_seed_data(store, granted_by="system")
-ensure_model_seed_data(store)
-ensure_risk_policy_seed_data(store)
-ensure_permission_policy_seed_data(store)
 
 # 注册路由模块
 app.include_router(auth_router)
@@ -96,11 +108,6 @@ def index() -> FileResponse:
 @app.get("/app.html")
 def app_page() -> FileResponse:
     return FileResponse(ROOT_DIR / "app.html")
-
-
-@app.get("/market.html")
-def market_page() -> FileResponse:
-    return FileResponse(ROOT_DIR / "market.html")
 
 
 static_dir = ROOT_DIR / "static"
