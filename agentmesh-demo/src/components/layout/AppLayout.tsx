@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { Menu, X } from 'lucide-react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { ProfileDrawer } from './ProfileDrawer'
@@ -21,8 +22,19 @@ export function useLayoutUI() {
 export function AppLayout() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [navigationOpen, setNavigationOpen] = useState(false)
   const { pathname } = useLocation()
   const fullBleed = pathname.startsWith('/workspace')
+
+  useEffect(() => setNavigationOpen(false), [pathname])
+  useEffect(() => {
+    if (!navigationOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setNavigationOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [navigationOpen])
 
   const ui = useMemo<LayoutUIValue>(
     () => ({
@@ -34,20 +46,56 @@ export function AppLayout() {
 
   return (
     <LayoutUIContext.Provider value={ui}>
-      <div className="flex h-screen overflow-hidden bg-canvas">
-        <Sidebar onOpenSettings={ui.openSettings} onOpenProfile={ui.openProfile} />
-        {fullBleed ? (
-          // 工作台自管理布局与滚动（子导航 / 对话区 / 右侧面板）
-          <main className="min-w-0 flex-1 overflow-hidden">
-            <Outlet />
-          </main>
-        ) : (
-          <main className="flex-1 overflow-y-auto">
-            <div className="mx-auto min-h-full w-full max-w-[1320px] px-8 py-8 2xl:max-w-[1440px]">
+      <div data-testid="app-shell" className="flex h-screen overflow-hidden bg-canvas">
+        {navigationOpen ? (
+          <button
+            type="button"
+            aria-label="关闭导航遮罩"
+            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+            onClick={() => setNavigationOpen(false)}
+          />
+        ) : null}
+        <div
+          className={`fixed inset-y-0 left-0 z-50 transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 ${
+            navigationOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <Sidebar onOpenSettings={ui.openSettings} onOpenProfile={ui.openProfile} />
+          <button
+            type="button"
+            aria-label="关闭导航"
+            onClick={() => setNavigationOpen(false)}
+            className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint-400/50 lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="flex h-14 shrink-0 items-center border-b border-white/[0.06] bg-base px-4 lg:hidden">
+            <button
+              type="button"
+              aria-label="打开导航"
+              onClick={() => setNavigationOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint-400/50"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <span className="ml-3 text-sm font-semibold text-slate-100">AgentMesh</span>
+          </header>
+
+          {fullBleed ? (
+            <main className="min-h-0 min-w-0 flex-1 overflow-hidden">
               <Outlet />
-            </div>
-          </main>
-        )}
+            </main>
+          ) : (
+            <main className="min-h-0 flex-1 overflow-y-auto">
+              <div className="mx-auto min-h-full w-full max-w-[1320px] px-4 py-4 md:px-8 md:py-8 2xl:max-w-[1440px]">
+                <Outlet />
+              </div>
+            </main>
+          )}
+        </div>
       </div>
 
       <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />

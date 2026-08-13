@@ -293,6 +293,13 @@ class Source(BaseModel):
     created_at: datetime = Field(default_factory=now_utc)
 
 
+class DocumentJobStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class DocumentRecord(BaseModel):
     id: str = Field(default_factory=lambda: new_id("doc"))
     title: str
@@ -304,7 +311,11 @@ class DocumentRecord(BaseModel):
     project_id: str
     uploaded_by: str
     metadata: dict[str, str] = Field(default_factory=dict)
+    version: int = Field(default=1, ge=1)
+    expected_chunks: int = Field(default=0, ge=0)
+    completed_chunks: int = Field(default=0, ge=0)
     created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
 
 
 class DocumentUpdateRequest(BaseModel):
@@ -318,9 +329,13 @@ class DocumentParseJob(BaseModel):
     workspace_id: str
     project_id: str
     uploaded_by: str
-    status: str = "queued"
+    status: DocumentJobStatus = DocumentJobStatus.QUEUED
     document_id: str | None = None
+    version: int = Field(default=1, ge=1)
+    expected_chunks: int = Field(default=0, ge=0)
+    completed_chunks: int = Field(default=0, ge=0)
     error: str | None = None
+    error_type: str | None = None
     created_at: datetime = Field(default_factory=now_utc)
     updated_at: datetime = Field(default_factory=now_utc)
 

@@ -1,6 +1,7 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '../../lib/cn'
+import { useDialogFocus } from './useDialogFocus'
 
 interface DrawerProps {
   open: boolean
@@ -24,16 +25,17 @@ export function Drawer({
   footer,
   width = 460,
 }: DrawerProps) {
+  const dialogRef = useRef<HTMLElement>(null)
+  const titleId = useId()
+  useDialogFocus(open, dialogRef, onClose)
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKey)
+    const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      document.body.style.overflow = previousOverflow
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
@@ -41,8 +43,12 @@ export function Drawer({
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/55 backdrop-blur-sm animate-fade-in" onClick={onClose} />
       <aside
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : '对话框'}
+        tabIndex={-1}
         className={cn(
           'absolute right-0 top-0 flex h-full flex-col border-l border-white/[0.08] bg-surface-2 shadow-pop animate-slide-in',
         )}
@@ -56,12 +62,14 @@ export function Drawer({
               </span>
             )}
             <div>
-              {title && <h2 className="text-[17px] font-semibold text-white">{title}</h2>}
+              {title && <h2 id={titleId} className="text-[17px] font-semibold text-white">{title}</h2>}
               {subtitle && <p className="mt-0.5 text-sm text-slate-400">{subtitle}</p>}
             </div>
           </div>
           <button
             onClick={onClose}
+            type="button"
+            data-autofocus
             className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white"
             aria-label="关闭"
           >

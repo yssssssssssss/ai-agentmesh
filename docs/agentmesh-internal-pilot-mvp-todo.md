@@ -41,8 +41,8 @@
 | Wave | Tasks | Status | Gate |
 | --- | --- | --- | --- |
 | Wave 1 | M1 + M2 + M3 | approved_external_rotation_pending | R1 Security Boundary |
-| Wave 2 | M4 | pending | 与 Wave 3 合并审查 |
-| Wave 3 | M5 + M6 | pending | R2 Availability + React Foundation |
+| Wave 2 | M4 | approved | R2 Availability + React Foundation |
+| Wave 3 | M5 + M6 | approved | R2 Availability + React Foundation |
 | Wave 4 | M7 + M8 + M9 | pending | R3 Browser Main Flows |
 | Wave 5 | M10 | pending | Final Gate 前置 |
 | Wave 6 | M11 | pending | Final Release Gate |
@@ -390,9 +390,9 @@ cd ..
 | M1 | M1SafeConfig | feat/internal-pilot-mvp-stabilization | code_complete_external_action_pending | 74841d2 | 425 pytest; Ruff pass; key rotation external |
 | M2 | M2UserIsolation | feat/internal-pilot-mvp-stabilization | done | 74841d2 | 425 pytest; Ruff pass; R1 approved |
 | M3 | M3Governance | feat/internal-pilot-mvp-stabilization | done | 74841d2 | 425 pytest; Ruff pass; R1 approved |
-| M4 |  |  | pending |  |  |
-| M5 |  |  | pending |  |  |
-| M6 |  |  | pending |  |  |
+| M4 | M4ProviderObservability | feat/internal-pilot-mvp-stabilization | done |  | Provider contracts; 461 full pytest; R2 approved |
+| M5 | M5IngestionStability | feat/internal-pilot-mvp-stabilization | done |  | Ingestion/concurrency regressions; 461 full pytest; R2 approved |
+| M6 | M6ReactFoundation | feat/internal-pilot-mvp-stabilization | done |  | 7 Vitest; build pass; 11 Playwright; R2 approved |
 | M7 |  |  | pending |  |  |
 | M8 |  |  | pending |  |  |
 | M9 |  |  | pending |  |  |
@@ -404,6 +404,6 @@ cd ..
 | Gate | Scope | Reviewer | Status | Evidence |
 | --- | --- | --- | --- | --- |
 | R1 | M1-M3 Security Boundary | R1AuthIsolation + R1GovernanceReview | approved | 425 pytest; Ruff pass; secret scan clean |
-| R2 | M4-M6 Availability + React Foundation |  | pending |  |
+| R2 | M4-M6 Availability + React Foundation | R2FoundationReview + R2ReReview | approved | 8 findings resolved; 461 pytest; Ruff; 7 Vitest; build; 11 Playwright |
 | R3 | M7-M9 Browser Main Flows |  | pending |  |
 | Final | M10-M11 Release |  | pending |  |

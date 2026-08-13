@@ -117,7 +117,9 @@ class PersonalAgent:
     ):
         self.repository = repository
         self.acquisition_agent = acquisition_agent or MockAcquisitionAgent()
-        self.data_agent = data_agent or MockDataAgent()
+        self.data_agent = data_agent or MockDataAgent(repository=repository)
+        if self.data_agent.repository is None:
+            self.data_agent.repository = repository
         self.risk_agent = RiskAgent(repository)
         self.llm_client = llm_client
 

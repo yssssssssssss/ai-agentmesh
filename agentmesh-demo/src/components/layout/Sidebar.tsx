@@ -9,10 +9,11 @@ import {
   Settings,
   ChevronRight,
   ChevronDown,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '../../lib/cn'
 import { useDemo } from '../../store/DemoContext'
-import { CURRENT_USER } from '../../data/mockData'
+import { useAuth } from '../../features/auth/AuthProvider'
 import { Avatar } from '../ui/Avatar'
 import { DigitalHumanMark } from '../ui/DigitalHumanMark'
 import { ConversationNav } from '../workspace/ConversationNav'
@@ -32,6 +33,7 @@ interface SidebarProps {
 
 export function Sidebar({ onOpenSettings, onOpenProfile }: SidebarProps) {
   const { pendingCount } = useDemo()
+  const { user, bootstrap, logout, logoutError } = useAuth()
   const { pathname } = useLocation()
   const isWorkspace = pathname.startsWith('/workspace')
 
@@ -53,7 +55,7 @@ export function Sidebar({ onOpenSettings, onOpenProfile }: SidebarProps) {
       </div>
 
       {/* 一级导航（AI 工作台 展开历史对话子导航） */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+      <nav aria-label="主导航" className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
         {NAV.map((item) => {
           const Icon = item.icon
           const badge =
@@ -124,33 +126,51 @@ export function Sidebar({ onOpenSettings, onOpenProfile }: SidebarProps) {
         })}
       </nav>
 
-      {/* 底部：空间 + 用户 + 设置 */}
       <div className="border-t border-white/[0.06] p-3">
         <div className="mb-2 flex items-center gap-2 rounded-[10px] bg-surface-1 px-3 py-2">
           <span className="h-2 w-2 rounded-full bg-mint-400" />
           <span className="text-xs text-slate-400">当前空间</span>
-          <span className="ml-auto text-xs font-medium text-slate-200">{CURRENT_USER.space}</span>
+          <span className="ml-auto truncate text-xs font-medium text-slate-200">{bootstrap?.workspace.name}</span>
         </div>
 
         <button
+          type="button"
           onClick={onOpenProfile}
-          className="flex w-full items-center gap-3 rounded-[10px] px-2 py-2 text-left transition-colors hover:bg-white/[0.04]"
+          aria-label="打开个人资料"
+          className="flex min-h-10 w-full items-center gap-3 rounded-[10px] px-2 py-2 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint-400/50"
         >
-          <Avatar name={CURRENT_USER.name} size="md" tone="mint" />
-          <div className="min-w-0 flex-1 leading-tight">
-            <div className="truncate text-sm font-medium text-slate-100">{CURRENT_USER.name}</div>
-            <div className="truncate text-xs text-slate-500">{CURRENT_USER.role}</div>
-          </div>
+          <Avatar name={user?.name ?? ''} size="md" tone="mint" />
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="block truncate text-sm font-medium text-slate-100">{user?.name}</span>
+            <span className="block truncate text-xs text-slate-500">{user?.role}</span>
+          </span>
           <ChevronRight className="h-4 w-4 text-slate-600" />
         </button>
 
+        {user?.role === 'admin' ? (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="mt-1 flex min-h-10 w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint-400/50"
+          >
+            <Settings className="h-[18px] w-[18px]" />
+            设置
+          </button>
+        ) : null}
+
         <button
-          onClick={onOpenSettings}
-          className="mt-1 flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-200"
+          type="button"
+          onClick={() => void logout().catch(() => undefined)}
+          className="mt-1 flex min-h-10 w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint-400/50"
         >
-          <Settings className="h-[18px] w-[18px]" />
-          设置
+          <LogOut className="h-[18px] w-[18px]" />
+          {logoutError ? '重试退出' : '退出登录'}
         </button>
+        {logoutError ? (
+          <p role="alert" className="mt-2 rounded-lg bg-rose/10 px-3 py-2 text-xs leading-5 text-rose">
+            {logoutError}
+          </p>
+        ) : null}
       </div>
     </aside>
   )

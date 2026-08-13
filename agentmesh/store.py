@@ -50,6 +50,7 @@ from agentmesh.models import (
     UserRole,
     Workspace,
 )
+from agentmesh.vector_index import VectorIndex, VectorState, VectorStatus, VectorWork
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
@@ -115,6 +116,11 @@ def _extract_fts_doc(collection: str, item: BaseModel) -> _FTSDoc | None:
         project_id = getattr(item, "project_id", "") or ""
         created_at = _dt_str(getattr(item, "created_at", None))
     elif collection == "user_memory_items":
+        if (
+            getattr(item, "source_kind", "") in {"document_import", "document_upload"}
+            and getattr(item, "status", "active") != "active"
+        ):
+            return None
         title = getattr(item, "title", "")
         summary = getattr(item, "summary", "")
         memory_type = getattr(item, "memory_type", "")
@@ -187,6 +193,7 @@ class SQLiteStore:
         configured_path = db_path or os.getenv("AGENTMESH_DB_PATH") or DEFAULT_DB_PATH
         self.db_path = Path(configured_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.vector_index = VectorIndex(self.db_path)
         self._init_schema()
         self._backfill_fts()
         self._backfill_vec()
@@ -246,14 +253,17 @@ class SQLiteStore:
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_records_vec_collection ON records_vec(collection)"
         )
+        VectorIndex.ensure_schema(connection)
 
     def reset(self) -> None:
         with self._connect() as connection:
             connection.execute("DELETE FROM records")
             connection.execute("DELETE FROM records_fts")
             connection.execute("DELETE FROM records_vec")
+            connection.execute("DELETE FROM vector_states")
 
     def _upsert(self, collection: str, item: BaseModel) -> None:
+        work: VectorWork | None = None
         with self._connect() as connection:
             connection.execute(
                 """
@@ -265,40 +275,34 @@ class SQLiteStore:
                 (collection, item.id, item.model_dump_json()),
             )
             self._sync_fts(connection, collection, item)
-            self._sync_vec(connection, collection, item)
+            doc = _extract_fts_doc(collection, item)
+            if doc is not None:
+                work = self.vector_index.prepare(
+                    connection,
+                    collection,
+                    item.id,
+                    f"{doc.title} {doc.body}".strip(),
+                )
+            elif collection in _FTS_COLLECTIONS:
+                self.vector_index.mark_stale(connection, collection, item.id)
+
+        if work is not None:
+            from agentmesh.embedding import EMBEDDING_ENABLED
+
+            if EMBEDDING_ENABLED:
+                self.vector_index.process(work)
 
     def _sync_fts(self, connection: sqlite3.Connection, collection: str, item: BaseModel) -> None:
+        connection.execute(
+            "DELETE FROM records_fts WHERE collection = ? AND record_id = ?",
+            (collection, item.id),
+        )
         doc = _extract_fts_doc(collection, item)
         if doc is None:
             return
-        connection.execute(
-            "DELETE FROM records_fts WHERE collection = ? AND record_id = ?",
-            (doc.collection, doc.record_id),
-        )
         connection.execute(
             "INSERT INTO records_fts(collection, record_id, title, body, scope, workspace_id, project_id, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (doc.collection, doc.record_id, doc.title, doc.body, doc.scope, doc.workspace_id, doc.project_id, doc.user_id, doc.created_at),
-        )
-
-    def _sync_vec(self, connection: sqlite3.Connection, collection: str, item: BaseModel) -> None:
-        doc = _extract_fts_doc(collection, item)
-        if doc is None:
-            return
-        text = f"{doc.title} {doc.body}".strip()
-        if not text:
-            return
-        from agentmesh.embedding import embed_text, serialize_embedding
-
-        embedding = embed_text(text)
-        if embedding is None:
-            return
-        connection.execute(
-            "DELETE FROM records_vec WHERE collection = ? AND record_id = ?",
-            (doc.collection, doc.record_id),
-        )
-        connection.execute(
-            "INSERT INTO records_vec(collection, record_id, embedding) VALUES (?, ?, ?)",
-            (doc.collection, doc.record_id, serialize_embedding(embedding)),
         )
 
     def _backfill_fts(self) -> None:
@@ -325,34 +329,44 @@ class SQLiteStore:
                 self._sync_fts(connection, collection, item)
 
     def _backfill_vec(self) -> None:
-        """Backfill missing vector embeddings. Skips records that already have embeddings."""
+        """Register existing vectors and prepare missing work without provider calls in a transaction."""
         from agentmesh.embedding import EMBEDDING_ENABLED
 
-        if not EMBEDDING_ENABLED:
-            return
+        pending: list[VectorWork] = []
         with self._connect() as connection:
             placeholders = ",".join(f"'{c}'" for c in _FTS_COLLECTIONS)
-            missing = connection.execute(
+            rows = connection.execute(
                 f"""
-                SELECT r.collection, r.id, r.payload FROM records r
-                WHERE r.collection IN ({placeholders})
-                  AND NOT EXISTS (
-                    SELECT 1 FROM records_vec rv
-                    WHERE rv.collection = r.collection AND rv.record_id = r.id
-                  )
+                SELECT r.collection, r.id, r.payload,
+                       CASE WHEN rv.record_id IS NULL THEN 0 ELSE 1 END AS has_vector
+                FROM records r
+                LEFT JOIN records_vec rv
+                  ON rv.collection = r.collection AND rv.record_id = r.id
+                LEFT JOIN vector_states vs
+                  ON vs.collection = r.collection AND vs.record_id = r.id
+                WHERE r.collection IN ({placeholders}) AND vs.record_id IS NULL
                 ORDER BY r.created_order
-                LIMIT 100
                 """
             ).fetchall()
-            if not missing:
-                return
-            for row in missing:
-                collection = row["collection"]
-                model_cls = _FTS_COLLECTION_MODELS.get(collection)
+            for row in rows:
+                model_cls = _FTS_COLLECTION_MODELS.get(row["collection"])
                 if model_cls is None:
                     continue
                 item = model_cls.model_validate_json(row["payload"])
-                self._sync_vec(connection, collection, item)
+                doc = _extract_fts_doc(row["collection"], item)
+                if doc is None:
+                    continue
+                text = f"{doc.title} {doc.body}".strip()
+                if row["has_vector"]:
+                    self.vector_index.adopt_ready(connection, row["collection"], row["id"], text)
+                    continue
+                work = self.vector_index.prepare(connection, row["collection"], row["id"], text)
+                if work is not None:
+                    pending.append(work)
+
+        if EMBEDDING_ENABLED:
+            for work in pending[:100]:
+                self.vector_index.process(work)
 
     def _get(self, collection: str, item_id: str, model: type[ModelT]) -> ModelT | None:
         with self._connect() as connection:
@@ -718,9 +732,68 @@ class SQLiteStore:
         self._upsert("documents", document)
         return document
 
+    def save_document_if_version(self, document: DocumentRecord, expected_version: int) -> bool:
+        """Save ingestion progress only while the persisted document version is unchanged."""
+        work: VectorWork | None = None
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT payload FROM records WHERE collection = ? AND id = ?",
+                ("documents", document.id),
+            ).fetchone()
+            if row is None or DocumentRecord.model_validate_json(row["payload"]).version != expected_version:
+                connection.rollback()
+                return False
+            connection.execute(
+                "UPDATE records SET payload = ? WHERE collection = ? AND id = ?",
+                (document.model_dump_json(), "documents", document.id),
+            )
+            self._sync_fts(connection, "documents", document)
+            searchable = _extract_fts_doc("documents", document)
+            if searchable is not None:
+                work = self.vector_index.prepare(
+                    connection,
+                    "documents",
+                    document.id,
+                    f"{searchable.title} {searchable.body}".strip(),
+                )
+
+        if work is not None:
+            from agentmesh.embedding import EMBEDDING_ENABLED
+
+            if EMBEDDING_ENABLED:
+                self.vector_index.process(work)
+        return True
+
     def save_document_parse_job(self, job: DocumentParseJob) -> DocumentParseJob:
         self._upsert("document_parse_jobs", job)
         return job
+
+    def save_document_parse_job_if_document_version(
+        self,
+        job: DocumentParseJob,
+        document_id: str,
+        version: int,
+    ) -> bool:
+        """Finalize a parse job only while its document version is still current."""
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT payload FROM records WHERE collection = ? AND id = ?",
+                ("documents", document_id),
+            ).fetchone()
+            if row is None or DocumentRecord.model_validate_json(row["payload"]).version != version:
+                connection.rollback()
+                return False
+            connection.execute(
+                """
+                INSERT INTO records(collection, id, payload)
+                VALUES (?, ?, ?)
+                ON CONFLICT(collection, id) DO UPDATE SET payload = excluded.payload
+                """,
+                ("document_parse_jobs", job.id, job.model_dump_json()),
+            )
+        return True
 
     def add_audit_event(self, event: AuditEvent) -> AuditEvent:
         self._upsert("audit_events", event)
@@ -787,6 +860,12 @@ class SQLiteStore:
     def get_document(self, document_id: str) -> DocumentRecord | None:
         return self._get("documents", document_id, DocumentRecord)
 
+
+    def get_vector_state(self, collection: str, record_id: str) -> VectorStatus | None:
+        return self.vector_index.status(collection, record_id)
+
+    def count_ready_vectors(self, collection: str, record_id: str) -> int:
+        return self.vector_index.count_ready(collection, record_id)
     def get_document_parse_job(self, job_id: str) -> DocumentParseJob | None:
         return self._get("document_parse_jobs", job_id, DocumentParseJob)
 
@@ -1032,7 +1111,7 @@ class SQLiteStore:
                 if not self._project_fields_match(row_workspace_id, row_project_id, workspace_id, project_id):
                     continue
                 item = self._get("user_memory_items", record_id, UserMemoryItem)
-                if item is None:
+                if item is None or item.status != "active":
                     continue
                 results.append(
                     SearchResult(
@@ -1141,10 +1220,13 @@ class SQLiteStore:
             SELECT rv.collection, rv.record_id, rv.embedding,
                    rf.scope, rf.workspace_id, rf.project_id, rf.user_id, rf.created_at
             FROM records_vec rv
-            JOIN records_fts rf ON rv.collection = rf.collection AND rv.record_id = rf.record_id
-            WHERE rf.scope IN ({placeholders})
+            JOIN vector_states vs
+              ON vs.collection = rv.collection AND vs.record_id = rv.record_id
+            JOIN records_fts rf
+              ON rv.collection = rf.collection AND rv.record_id = rf.record_id
+            WHERE rf.scope IN ({placeholders}) AND vs.state = ?
             """,
-            scope_values,
+            [*scope_values, VectorState.READY.value],
         ).fetchall()
         scored: list[tuple[float, dict]] = []
         for row in rows:

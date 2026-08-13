@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 from unittest.mock import MagicMock
 
@@ -5,6 +6,7 @@ import httpx
 from fastapi.testclient import TestClient
 
 import agentmesh.routes.agents as agents_module
+import agentmesh.routes.documents as documents_module
 from agentmesh.acquisition import AcquisitionRequest, AcquisitionResult, MockAcquisitionAgent
 from agentmesh.agents import PersonalAgent
 from agentmesh.app import app
@@ -93,7 +95,7 @@ def test_auth_login_me_logout_and_unauthorized_write() -> None:
 def test_app_page_route_serves_workspace_shell() -> None:
     client = TestClient(app)
 
-    response = client.get("/app.html")
+    response = client.get("/legacy/app.html")
 
     assert response.status_code == 200
     assert "AgentMesh Chat Workspace" in response.text
@@ -2179,17 +2181,24 @@ def test_uploaded_document_is_searchable_and_becomes_memory_candidate() -> None:
     assert any(source["source_type"] == "document" for source in chat_response.json()["evidence_post"]["sources"])
 
 
-def test_large_document_upload_uses_async_parse_job() -> None:
+def test_large_document_upload_uses_async_parse_job(monkeypatch) -> None:
     clear_store()
+    monkeypatch.setattr(documents_module, "MAX_SYNC_UPLOAD_BYTES", 32)
     client = authenticated_client()
-    content = ("# 大文件 Brief\n\n首屏入口效率优先。\n" + "补充内容。\n" * 120000).encode()
+    content = ("# 异步 Brief\n\n首屏入口效率优先。\n" + "补充内容。\n" * 20).encode()
 
     upload_response = client.post(
         "/api/documents/upload",
         files={"file": ("large.md", content, "text/markdown")},
     )
     job_id = upload_response.json()["job"]["id"]
-    job_response = client.get(f"/api/documents/jobs/{job_id}")
+    deadline = time.monotonic() + 10
+    while True:
+        job_response = client.get(f"/api/documents/jobs/{job_id}")
+        if job_response.json()["item"]["status"] in {"completed", "failed"}:
+            break
+        assert time.monotonic() < deadline
+        time.sleep(0.01)
     memory_response = client.get(
         "/api/memory/user",
         params={"layer": "short_term", "memory_type": "document_summary"},
@@ -2675,7 +2684,10 @@ def test_tool_registry_and_personal_agent_tool_grants() -> None:
     tools = tools_response.json()["items"]
     assert {tool["id"] for tool in tools} >= {"tool_memory_search", "tool_web_research", "tool_risk_review"}
     assert my_tools_response.status_code == 200
-    assert [tool["id"] for tool in my_tools_response.json()["items"]] == ["tool_memory_search"]
+    assert {tool["id"] for tool in my_tools_response.json()["items"]} == {
+        "tool_memory_search",
+        "tool_data_query",
+    }
     assert update_response.status_code == 200
     assert {tool["id"] for tool in update_response.json()["items"]} == {"tool_memory_search", "tool_document_upload"}
 

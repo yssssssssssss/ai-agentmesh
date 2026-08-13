@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from agentmesh.agents import ChatThreadNotFoundError, PersonalAgent
 from agentmesh.chat_skills import list_chat_skills
+from agentmesh.data_authorization import DataQueryAuthorizationError
 from agentmesh.models import ChatRequest, ChatResponse, ChatThread, ChatThreadCreateRequest, ItemsResponse, User
 from agentmesh.o2 import build_acquisition_agent
 from agentmesh.routes.deps import current_user
@@ -41,3 +42,5 @@ def create_chat_message(request: ChatRequest, user: User = Depends(current_user)
         return agent.handle_chat(content=request.content, thread_id=request.thread_id, user=user)
     except ChatThreadNotFoundError as error:
         raise HTTPException(status_code=404, detail="Chat thread not found") from error
+    except DataQueryAuthorizationError as error:
+        raise HTTPException(status_code=error.status_code, detail=error.detail) from error

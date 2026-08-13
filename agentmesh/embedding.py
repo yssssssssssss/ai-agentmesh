@@ -6,8 +6,11 @@ import logging
 import os
 import struct
 from dataclasses import dataclass
+from time import monotonic
 
 import httpx
+
+from agentmesh.provider_status import ProviderStatus, ProviderTelemetry, build_provider_status
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +54,7 @@ EMBEDDING_DIMENSIONS = _config.dimensions
 EMBEDDING_ENABLED = _config.enabled
 
 _client: httpx.Client | None = None
+_telemetry = ProviderTelemetry()
 
 
 def _get_client() -> httpx.Client:
@@ -63,6 +67,7 @@ def _get_client() -> httpx.Client:
 def embed_text(text: str) -> list[float] | None:
     if not EMBEDDING_ENABLED or not EMBEDDING_API_URL or not EMBEDDING_API_KEY or not text.strip():
         return None
+    started = monotonic()
     try:
         response = _get_client().post(
             EMBEDDING_API_URL,
@@ -74,10 +79,27 @@ def embed_text(text: str) -> list[float] | None:
         )
         response.raise_for_status()
         data = response.json()
-        return data["data"][0]["embedding"]
-    except Exception:
-        logger.warning("Embedding API call failed")
+        embedding = data["data"][0]["embedding"]
+        if not isinstance(embedding, list) or not embedding:
+            raise ValueError("Embedding response did not contain a vector")
+        _telemetry.success((monotonic() - started) * 1000)
+        return embedding
+    except Exception as error:
+        _telemetry.failure(error, (monotonic() - started) * 1000)
+        logger.warning("Embedding API call failed: %s", _telemetry.snapshot().last_error)
         return None
+
+
+def embedding_provider_status() -> ProviderStatus:
+    configured = bool(EMBEDDING_ENABLED and EMBEDDING_API_URL and EMBEDDING_API_KEY)
+    observation = _telemetry.snapshot()
+    return build_provider_status(
+        name="embedding",
+        configured=configured,
+        ready=configured and observation.last_error is None,
+        telemetry=_telemetry,
+        error=None if configured else "not_configured",
+    )
 
 
 def embed_texts(texts: list[str]) -> list[list[float] | None]:

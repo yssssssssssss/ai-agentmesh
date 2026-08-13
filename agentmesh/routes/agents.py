@@ -14,6 +14,7 @@ from agentmesh.models import (
     AgentToolsUpdateRequest,
     AgentUpdateRequest,
     BlackboardPost,
+    BootstrapState,
     CollaborationStage,
     ItemsResponse,
     O2SyncResponse,
@@ -93,8 +94,8 @@ def agents_with_runtime_state() -> list[Agent]:
     return hydrated
 
 
-@router.get("/bootstrap")
-def bootstrap(user: User = Depends(current_user)):
+@router.get("/bootstrap", response_model=BootstrapState)
+def bootstrap(user: User = Depends(current_user)) -> BootstrapState:
     state = bootstrap_state(store, user)
     return state.model_copy(update={"agents": agents_with_runtime_state()})
 

@@ -12,6 +12,7 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { CURRENT_USER, DIGITAL_PROFILE, CONFIGURED_SKILLS, UNDERSTANDINGS } from '../../data/mockData'
 import { useDemo } from '../../store/DemoContext'
+import { useAuth } from '../../features/auth/AuthProvider'
 
 interface ProfileDrawerProps {
   open: boolean
@@ -20,14 +21,15 @@ interface ProfileDrawerProps {
 
 export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
   const { understandings, setUnderstanding } = useDemo()
+  const { user, bootstrap } = useAuth()
 
   return (
     <Drawer
       open={open}
       onClose={onClose}
       icon={<Bot className="h-5 w-5" />}
-      title={`${CURRENT_USER.name}的数字人`}
-      subtitle={`${CURRENT_USER.space} · ${CURRENT_USER.role}`}
+      title={`${user?.name ?? CURRENT_USER.name}的数字人`}
+      subtitle={`${bootstrap?.workspace.name ?? CURRENT_USER.space} · ${user?.role ?? CURRENT_USER.role}`}
       width={480}
     >
       <div className="space-y-6">
