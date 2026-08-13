@@ -48,6 +48,18 @@ def _user(
         oauth_subject=oauth_subject,
     )
     store.save_user(user)
+    project = store.get_project(PROJECT_ID)
+    if project is None:
+        project = Project(
+            id=PROJECT_ID,
+            workspace_id=WORKSPACE_ID,
+            name="MVP governance",
+            goal="Exercise project governance",
+            member_ids=[user.id],
+        )
+    elif user.id not in project.member_ids:
+        project.member_ids.append(user.id)
+    store.save_project(project)
     store.save_agent(
         Agent(
             id=user.personal_agent_id,
@@ -317,6 +329,7 @@ def test_visible_foreign_post_cannot_be_unlocked_by_regular_user() -> None:
 
 def test_task_initiator_can_lock_reply_handoff_unlock_and_read() -> None:
     initiator = _user("usr_initiator")
+    recipient = _user("usr_recipient")
     post = _task_post(initiator)
     client = _client(initiator)
 
@@ -333,7 +346,7 @@ def test_task_initiator_can_lock_reply_handoff_unlock_and_read() -> None:
             "goal": "Continue",
             "current_result": "Evidence collected",
             "done_when": "Reviewed",
-            "next_owner_agent_id": "agent_research",
+            "next_owner_agent_id": recipient.personal_agent_id,
         },
     )
     unlock = client.post(f"/api/blackboard/posts/{post.id}/unlock", json={"reason": "review"})

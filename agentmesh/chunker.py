@@ -46,10 +46,7 @@ def chunk_text(
             if overlap > 0 and len(current) > overlap:
                 tail = current[-overlap:]
                 candidate = tail + "\n" + para
-                if len(candidate) <= max_chunk_size:
-                    current = candidate
-                else:
-                    current = para
+                current = candidate if len(candidate) <= max_chunk_size else para
             else:
                 current = para
         else:

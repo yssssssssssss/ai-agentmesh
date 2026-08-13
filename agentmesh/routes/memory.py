@@ -18,7 +18,10 @@ from agentmesh.models import (
     ItemsResponse,
     MemoryCreateRequest,
     MemoryItem,
+    MemoryItemsResponse,
+    MemoryItemView,
     MemoryLayer,
+    MemoryOverviewResponse,
     MemoryRelation,
     MemoryStatus,
     MemoryUpdateRequest,
@@ -32,7 +35,7 @@ from agentmesh.models import (
     UserRole,
     now_utc,
 )
-from agentmesh.permissions import ensure_can_update_memory
+from agentmesh.permissions import ACTION_ACCEPT_TEAM_MEMORY, ensure_can_update_memory, has_permission
 from agentmesh.routes.deps import current_user
 from agentmesh.store import store
 
@@ -66,9 +69,10 @@ daily_summary_worker_state: dict[str, object] = {
 }
 
 
-@router.get("", response_model=ItemsResponse)
-def memory_items(user: User = Depends(current_user)) -> ItemsResponse:
-    return ItemsResponse(items=_visible_memory_items(user))
+@router.get("", response_model=MemoryItemsResponse)
+def memory_items(user: User = Depends(current_user)) -> MemoryItemsResponse:
+    items = [memory_item_view(item, user) for item in _visible_memory_items(user)]
+    return MemoryItemsResponse(items=items)
 
 
 @router.post("", response_model=ItemResponse)
@@ -102,13 +106,13 @@ def user_memory_items(
     return ItemsResponse(items=store.list_user_memory_items(user.id, layer, project_id, memory_date, memory_type))
 
 
-@router.get("/overview")
+@router.get("/overview", response_model=MemoryOverviewResponse)
 def memory_overview(
     project_id: str | None = Query(default=None, min_length=1, max_length=120),
     memory_date: dt_date | None = Query(default=None),
     memory_type: str | None = Query(default=None, min_length=1, max_length=80),
     user: User = Depends(current_user),
-) -> dict[str, object]:
+) -> MemoryOverviewResponse:
     resolved_project_id = _resolve_user_project_id(user, project_id)
     sections = {
         "short": store.list_user_memory_items(
@@ -132,14 +136,17 @@ def memory_overview(
             None,
             memory_type,
         ),
-        "team": _visible_team_memory_items(user, resolved_project_id, memory_type),
+        "team": [
+            memory_item_view(item, user)
+            for item in _visible_team_memory_items(user, resolved_project_id, memory_type)
+        ],
     }
-    return {
-        "project_id": resolved_project_id,
-        "sections": sections,
-        "counts": {key: len(items) for key, items in sections.items()},
-        "daily_summary_worker": daily_summary_worker_state,
-    }
+    return MemoryOverviewResponse(
+        project_id=resolved_project_id,
+        sections=sections,
+        counts={key: len(items) for key, items in sections.items()},
+        daily_summary_worker=daily_summary_worker_state,
+    )
 
 
 @router.post("/user", response_model=ItemResponse)
@@ -436,6 +443,17 @@ def _daily_summary_exists(user_id: str, project_id: str, target_date: dt_date) -
 def _project_name(project_id: str) -> str:
     project = store.get_project(project_id)
     return project.name if project is not None else project_id
+
+
+def memory_item_view(item: MemoryItem, user: User) -> MemoryItemView:
+    actions = []
+    if (
+        item.status == MemoryStatus.PROPOSED
+        and item.scope == Scope.TEAM_CANDIDATE
+        and has_permission(user, ACTION_ACCEPT_TEAM_MEMORY, store.permission_policy_rules)
+    ):
+        actions.append("accept")
+    return MemoryItemView(**item.model_dump(), allowed_actions=actions)
 
 
 def _visible_memory_items(user: User) -> list[MemoryItem]:

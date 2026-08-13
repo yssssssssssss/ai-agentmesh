@@ -96,7 +96,6 @@ def provider_metadata(
     fallback_reason: str | None = None,
 ) -> dict[str, str]:
     return {
-        "provider": actual_provider,
         "requested_provider": requested_provider,
         "actual_provider": actual_provider,
         "mode": mode,

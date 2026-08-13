@@ -1,44 +1,27 @@
-import { Sparkles, Share2, FolderClock } from 'lucide-react'
+import { RadioTower } from 'lucide-react'
+
+import type { MarketSignal } from '../../features/collaboration/api'
 import { Avatar } from '../ui/Avatar'
-import { Button } from '../ui/Button'
-import type { RecommendedPeer } from '../../data/mockData'
+import { Badge } from '../ui/Badge'
 
-interface PeerCardProps {
-  peer: RecommendedPeer
-  onCollab: () => void
-}
-
-export function PeerCard({ peer, onCollab }: PeerCardProps) {
+export function PeerCard({ signal }: { signal: MarketSignal }) {
   return (
-    <div className="card-base flex flex-col p-5">
-      <div className="flex items-center gap-3">
-        <Avatar name={peer.name} tone={peer.tone} size="lg" />
-        <div>
-          <h3 className="text-base font-semibold text-white">{peer.name}</h3>
-          <p className="text-xs text-slate-500">擅长 · {peer.domain}</p>
+    <article className="card-base p-4">
+      <div className="flex items-start gap-3">
+        <Avatar name={signal.owner_name} tone="collab" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-100">{signal.owner_name}</h3>
+            <Badge tone={signal.participating ? 'mint' : 'neutral'}>{signal.participating ? '已参与' : '未参与'}</Badge>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">{signal.capability || '未声明能力'}</p>
         </div>
+        <RadioTower className="h-4 w-4 text-collab" />
       </div>
-
-      <div className="mt-4 space-y-2.5 text-sm">
-        <div className="flex items-center gap-2 text-slate-300">
-          <Share2 className="h-4 w-4 text-mint-300" />
-          可共享经验 <span className="font-semibold text-white tabular-nums">{peer.shareable}</span> 条
-        </div>
-        <div className="flex items-center gap-2 text-slate-300">
-          <FolderClock className="h-4 w-4 text-knowledge" />
-          最近帮助：{peer.recentProject}
-        </div>
-      </div>
-
-      <Button
-        variant="secondary"
-        block
-        className="mt-4"
-        icon={<Sparkles className="h-4 w-4" />}
-        onClick={onCollab}
-      >
-        发起协作
-      </Button>
-    </div>
+      <dl className="mt-4 space-y-2 text-sm">
+        <div><dt className="text-xs text-slate-500">可提供</dt><dd className="mt-0.5 text-slate-300">{signal.offer || '暂无'}</dd></div>
+        <div><dt className="text-xs text-slate-500">需要</dt><dd className="mt-0.5 text-slate-300">{signal.need || '暂无'}</dd></div>
+      </dl>
+    </article>
   )
 }

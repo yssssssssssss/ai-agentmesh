@@ -1,68 +1,52 @@
-import { Bot, Brain, Wrench, Users, FileText, SlidersHorizontal } from 'lucide-react'
-import { DigitalHumanMark } from '../ui/DigitalHumanMark'
+import { Bot, CircleDot, Cpu } from 'lucide-react'
+
+import type { Agent } from '../../features/digital-self/api'
 import { Badge } from '../ui/Badge'
-import { Button } from '../ui/Button'
-import { CURRENT_USER, DIGITAL_PROFILE } from '../../data/mockData'
-import { useLayoutUI } from '../layout/AppLayout'
+import { SectionCard } from '../ui/Card'
 
-export function IdentityCard() {
-  const { openProfile } = useLayoutUI()
+interface IdentityCardProps {
+  agent?: Agent
+  loading: boolean
+  error: boolean
+}
 
-  const metrics = [
-    { icon: Brain, label: '已掌握个人经验', value: `${DIGITAL_PROFILE.personalKnowledge} 条` },
-    { icon: Wrench, label: '已配置团队 Skill', value: `${DIGITAL_PROFILE.teamSkills} 个` },
-    { icon: Users, label: '本月数字分身协作', value: `${DIGITAL_PROFILE.monthlyCollab} 次` },
-  ]
-
+export function IdentityCard({ agent, loading, error }: IdentityCardProps) {
+  const capabilities = agent?.capabilities ?? []
   return (
-    <section className="card-base p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <DigitalHumanMark size={60} />
+    <SectionCard title="当前数字人" icon={<Bot className="h-4 w-4" />} desc="身份与运行状态均来自服务端。">
+      {loading ? <p className="text-sm text-slate-500">正在加载数字人…</p> : null}
+      {error ? <p role="alert" className="text-sm text-rose">数字人资源暂时不可用。</p> : null}
+      {!loading && !error && !agent ? <p className="text-sm text-slate-500">当前账号尚未绑定数字人。</p> : null}
+      {agent ? (
+        <div className="grid gap-4 md:grid-cols-[1.3fr_1fr]">
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-white">{CURRENT_USER.name}的数字人</h2>
-              <Badge tone="mint" icon={<Bot className="h-3 w-3" />}>
-                {CURRENT_USER.space} · {CURRENT_USER.role}
-              </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-semibold text-white">{agent.name}</h2>
+              <Badge tone={agent.status === 'online' ? 'mint' : 'neutral'} dot>{agent.status}</Badge>
             </div>
-            <p className="mt-1.5 text-sm text-slate-400">
-              主要领域：{CURRENT_USER.domains.join(' · ')}
-            </p>
-            <div className="mt-2 inline-flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-1.5 text-xs text-slate-300">
-              <span className="text-slate-500">当前项目</span>
-              <span className="font-medium text-slate-100">{CURRENT_USER.project}</span>
-            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-400">{agent.description}</p>
+            {capabilities.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {capabilities.map((capability) => <Badge key={capability}>{capability}</Badge>)}
+              </div>
+            ) : <p className="mt-3 text-xs text-slate-500">尚未声明能力。</p>}
           </div>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Button variant="subtle" size="sm" icon={<FileText className="h-4 w-4" />} onClick={openProfile}>
-            查看完整档案
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={<SlidersHorizontal className="h-4 w-4" />}
-            onClick={openProfile}
-          >
-            调整数字人理解
-          </Button>
-        </div>
-      </div>
-
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        {metrics.map((m) => (
-          <div key={m.label} className="flex items-center gap-3 rounded-[12px] bg-surface-2 px-4 py-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-mint-400/10 text-mint-300">
-              <m.icon className="h-[18px] w-[18px]" />
-            </span>
+          <dl className="space-y-3 rounded-[12px] border border-white/[0.06] bg-surface-2 p-4 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <dt className="flex items-center gap-2 text-slate-500"><CircleDot className="h-4 w-4" />运行态</dt>
+              <dd className="font-medium text-slate-200">{agent.runtime_status}</dd>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt className="flex items-center gap-2 text-slate-500"><Cpu className="h-4 w-4" />模型</dt>
+              <dd className="font-medium text-slate-200">{agent.model_id ?? '未配置'}</dd>
+            </div>
             <div>
-              <div className="text-[15px] font-semibold text-white">{m.value}</div>
-              <div className="text-xs text-slate-500">{m.label}</div>
+              <dt className="text-slate-500">当前任务</dt>
+              <dd className="mt-1 text-slate-200">{agent.current_task_title ?? '当前没有运行中的任务'}</dd>
             </div>
-          </div>
-        ))}
-      </div>
-    </section>
+          </dl>
+        </div>
+      ) : null}
+    </SectionCard>
   )
 }

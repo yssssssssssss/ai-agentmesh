@@ -21,6 +21,7 @@ export default defineConfig({
         AGENTMESH_DB_PATH: '/tmp/agentmesh-playwright.sqlite3',
         AGENTMESH_DEMO_MODE: '1',
         AGENTMESH_EMBEDDING_ENABLED: 'false',
+        AGENTMESH_DOCUMENT_SYNC_THRESHOLD_BYTES: '128',
       },
     },
     {

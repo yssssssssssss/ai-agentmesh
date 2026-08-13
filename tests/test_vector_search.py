@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from agentmesh.models import MemoryItem, MemoryStatus, Scope
+from agentmesh.models import MemoryItem, Scope
 from agentmesh.store import SQLiteStore
 
 
@@ -43,7 +43,7 @@ class TestVectorSearchIntegration:
         import sqlite3
 
         with patch("agentmesh.embedding.EMBEDDING_ENABLED", False):
-            s = SQLiteStore(db_path=db_path)
+            SQLiteStore(db_path=db_path)
         conn = sqlite3.connect(db_path)
         tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         table_names = [t[0] for t in tables]

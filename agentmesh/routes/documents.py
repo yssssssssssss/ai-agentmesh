@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 
 from agentmesh.documents import CompositeDocumentParser, DocumentIngestionRequest, UnsupportedDocumentTypeError
@@ -22,7 +24,7 @@ from agentmesh.store import store
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
-MAX_SYNC_UPLOAD_BYTES = 1024 * 1024
+MAX_SYNC_UPLOAD_BYTES = int(os.getenv("AGENTMESH_DOCUMENT_SYNC_THRESHOLD_BYTES", str(1024 * 1024)))
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 document_parser = CompositeDocumentParser()
 ingestion_service = DocumentIngestionService(repository=store, parser=document_parser)

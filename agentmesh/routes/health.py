@@ -11,18 +11,19 @@ from agentmesh.datasources import data_api_provider_status, default_data_source_
 from agentmesh.documents import CompositeDocumentParser
 from agentmesh.embedding import embedding_provider_status
 from agentmesh.llm import llm_provider_status, llm_timeout_config, model_config_from_env
-from agentmesh.models import User
+from agentmesh.models import ProviderHealthCheckResponse, User
 from agentmesh.o2 import O2CommandRunner, maybe_register_o2_data_connector, o2_research_provider_status
-from agentmesh.provider_status import ProviderStatus, redact_url
-from agentmesh.routes.deps import current_user
+from agentmesh.permissions import ACTION_VIEW_PROVIDER_HEALTH
+from agentmesh.provider_status import ProviderStatus, build_provider_status
+from agentmesh.routes.deps import require_permission
 from agentmesh.web_research import web_research_provider_status
 
 router = APIRouter(prefix="/api/health", tags=["health"])
 
 
-def _status_payload(status: ProviderStatus, *, provider: str | None = None) -> dict[str, object]:
+def _status_payload(status: ProviderStatus, *, name: str | None = None) -> dict[str, object]:
     payload: dict[str, object] = status.model_dump(mode="json")
-    payload["provider"] = provider or status.name
+    payload["name"] = name or status.name
     if not status.configured:
         payload["status"] = "not_configured"
     elif status.ready:
@@ -43,8 +44,7 @@ def _llm_status() -> dict[str, object]:
     if config is not None:
         payload.update(
             {
-                "status": "configured" if status.ready else "degraded",
-                "base_url": redact_url(config["base_url"]),
+                "status": "configured",
                 "model": config["model_name"],
                 "label": config.get("label", ""),
                 "api_style": config.get("api_style", "chat_completions"),
@@ -68,7 +68,7 @@ def _web_provider_status() -> dict[str, object]:
 def _o2_status() -> dict[str, object]:
     runner = O2CommandRunner()
     status = o2_research_provider_status(runner)
-    payload = _status_payload(status, provider="o2")
+    payload = _status_payload(status, name="o2")
     research_enabled = os.getenv("AGENTMESH_O2_RESEARCH_ENABLED", "").lower() in {"1", "true", "yes", "on"}
     data_enabled = os.getenv("AGENTMESH_O2_DATA_ENABLED", "").lower() in {"1", "true", "yes", "on"}
     payload.update(
@@ -84,11 +84,19 @@ def _o2_status() -> dict[str, object]:
 
 
 def _data_connectors_status() -> dict[str, object]:
-    status = data_api_provider_status()
-    payload = _status_payload(status, provider="data_connectors")
+    data_api_status = data_api_provider_status()
     registry = default_data_source_registry()
     maybe_register_o2_data_connector(registry)
     connectors = registry.list_connectors()
+    status = ProviderStatus(
+        name="data_connectors",
+        configured=bool(connectors),
+        ready=bool(connectors),
+        mode="real" if data_api_status.ready else "fallback",
+        last_error=data_api_status.last_error,
+        latency_ms=data_api_status.latency_ms,
+    )
+    payload = _status_payload(status)
     payload.update({"status": "ready" if connectors else "empty", "count": len(connectors), "connectors": connectors})
     return payload
 
@@ -103,20 +111,31 @@ def _document_parser_status() -> dict[str, object]:
     except ImportError:
         pdf_available = False
     ocr_available = shutil.which(os.getenv("AGENTMESH_TESSERACT_COMMAND", "tesseract")) is not None
-    return {
-        "provider": "document_parser",
-        "status": "ready" if pdf_available and ocr_available else "partial",
-        "supported_extensions": supported,
-        "pdf_available": pdf_available,
-        "word_available": True,
-        "slide_available": True,
-        "ocr_available": ocr_available,
-        "message": "支持 UTF-8 文本、Markdown、PDF、Word、PPT 和图片 OCR。",
-    }
+    payload = _status_payload(
+        build_provider_status(
+            name="document_parser",
+            configured=True,
+            ready=True,
+            mode="real",
+        )
+    )
+    payload.update(
+        {
+            "supported_extensions": supported,
+            "pdf_available": pdf_available,
+            "word_available": True,
+            "slide_available": True,
+            "ocr_available": ocr_available,
+            "message": "支持 UTF-8 文本、Markdown、PDF、Word、PPT 和图片 OCR。",
+        }
+    )
+    return payload
 
 
-@router.get("/providers")
-def provider_health_check(_: User = Depends(current_user)) -> dict[str, object]:
+@router.get("/providers", response_model=ProviderHealthCheckResponse)
+def provider_health_check(
+    _: User = Depends(require_permission(ACTION_VIEW_PROVIDER_HEALTH)),
+) -> ProviderHealthCheckResponse:
     """Return secret-safe provider readiness for authenticated users."""
 
     providers = [
@@ -125,9 +144,10 @@ def provider_health_check(_: User = Depends(current_user)) -> dict[str, object]:
         _web_provider_status(),
         _data_connectors_status(),
         _llm_status(),
+        _document_parser_status(),
     ]
     all_ready = all(bool(item["ready"]) for item in providers)
-    return {
-        "overall": "healthy" if all_ready else "degraded",
-        "providers": [*providers, _document_parser_status()],
-    }
+    return ProviderHealthCheckResponse(
+        overall="healthy" if all_ready else "degraded",
+        providers=providers,
+    )

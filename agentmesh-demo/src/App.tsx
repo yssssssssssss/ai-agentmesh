@@ -4,6 +4,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { Button } from './components/ui/Button'
 import { useAuth } from './features/auth/AuthProvider'
 import { LoginPage } from './features/auth/LoginPage'
+import { AdminPage } from './features/admin/AdminPage'
 import { DigitalSelf } from './pages/DigitalSelf'
 import { Workspace } from './pages/Workspace'
 import { Insights } from './pages/Insights'
@@ -33,23 +34,6 @@ function FullPageStatus({
   )
 }
 
-function AdminPlaceholder() {
-  const { user } = useAuth()
-  if (user?.role !== 'admin') {
-    return (
-      <FullPageStatus title="无权访问" message="此区域仅对管理员开放。">
-        <Button onClick={() => window.history.back()}>返回</Button>
-      </FullPageStatus>
-    )
-  }
-  return (
-    <section className="py-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-mint-300">Admin</p>
-      <h1 className="mt-3 text-3xl font-semibold text-slate-100">管理空间</h1>
-      <p className="mt-3 text-sm text-slate-400">管理能力将在后续业务接入阶段开放。</p>
-    </section>
-  )
-}
 
 function AuthenticatedRoutes() {
   return (
@@ -61,7 +45,7 @@ function AuthenticatedRoutes() {
         <Route path="/insights/*" element={<Insights />} />
         <Route path="/knowledge/*" element={<Knowledge />} />
         <Route path="/collaboration/*" element={<Collaboration />} />
-        <Route path="/admin/*" element={<AdminPlaceholder />} />
+        <Route path="/admin/*" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/digital-self" replace />} />
       </Route>
     </Routes>

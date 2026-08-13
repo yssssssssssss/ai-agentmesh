@@ -301,7 +301,6 @@ class O2DataSourceConnector(DataSourceConnector):
                     mode="real",
                     latency_ms=(monotonic() - started) * 1000,
                 ),
-                "provider": "o2",
                 "cli": self.cli_name,
             },
         )

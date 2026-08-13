@@ -1,18 +1,8 @@
-import {
-  Bot,
-  Brain,
-  Sparkles,
-  Users,
-  Check,
-  Pencil,
-  Wrench,
-} from 'lucide-react'
-import { Drawer } from '../ui/Drawer'
-import { Badge } from '../ui/Badge'
-import { Button } from '../ui/Button'
-import { CURRENT_USER, DIGITAL_PROFILE, CONFIGURED_SKILLS, UNDERSTANDINGS } from '../../data/mockData'
-import { useDemo } from '../../store/DemoContext'
+import { Bot, BriefcaseBusiness, CircleUserRound, ShieldCheck } from 'lucide-react'
+
 import { useAuth } from '../../features/auth/AuthProvider'
+import { Badge } from '../ui/Badge'
+import { Drawer } from '../ui/Drawer'
 
 interface ProfileDrawerProps {
   open: boolean
@@ -20,106 +10,38 @@ interface ProfileDrawerProps {
 }
 
 export function ProfileDrawer({ open, onClose }: ProfileDrawerProps) {
-  const { understandings, setUnderstanding } = useDemo()
   const { user, bootstrap } = useAuth()
-
+  const agent = bootstrap?.agents.find((item) => item.id === user?.personal_agent_id)
+  const capabilities = bootstrap?.capabilities ?? []
   return (
     <Drawer
       open={open}
       onClose={onClose}
-      icon={<Bot className="h-5 w-5" />}
-      title={`${user?.name ?? CURRENT_USER.name}的数字人`}
-      subtitle={`${bootstrap?.workspace.name ?? CURRENT_USER.space} · ${user?.role ?? CURRENT_USER.role}`}
+      icon={<CircleUserRound className="h-5 w-5" />}
+      title={user?.name ?? '个人资料'}
+      subtitle={bootstrap ? `${bootstrap.workspace.name} · ${bootstrap.project.name}` : '账号信息'}
       width={480}
     >
-      <div className="space-y-6">
-        {/* 概览指标 */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { icon: Brain, label: '个人经验', value: DIGITAL_PROFILE.personalKnowledge },
-            { icon: Wrench, label: '团队 Skill', value: DIGITAL_PROFILE.teamSkills },
-            { icon: Users, label: '本月协作', value: DIGITAL_PROFILE.monthlyCollab },
-          ].map((s) => (
-            <div key={s.label} className="rounded-[12px] border border-white/[0.06] bg-surface-1 p-3 text-center">
-              <s.icon className="mx-auto h-4 w-4 text-mint-300" />
-              <div className="mt-1.5 text-xl font-semibold text-white tabular-nums">{s.value}</div>
-              <div className="text-[11px] text-slate-500">{s.label}</div>
-            </div>
-          ))}
+      {!user || !bootstrap ? <p className="text-sm text-slate-500">账号信息暂时不可用。</p> : (
+        <div className="space-y-6">
+          <section className="rounded-[12px] border border-white/[0.06] bg-surface-1 p-4">
+            <div className="flex items-center gap-3"><CircleUserRound className="h-5 w-5 text-mint-300" /><div><h3 className="font-semibold text-white">{user.name}</h3><p className="mt-1 text-xs text-slate-500">账号 ID：{user.id}</p></div></div>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm"><div><dt className="text-xs text-slate-500">角色</dt><dd className="mt-1 text-slate-200">{user.role}</dd></div><div><dt className="text-xs text-slate-500">状态</dt><dd className="mt-1 text-slate-200">{user.status}</dd></div></dl>
+          </section>
+          <section>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-200"><BriefcaseBusiness className="h-4 w-4 text-mint-300" />当前上下文</h3>
+            <dl className="mt-3 space-y-2 rounded-[12px] border border-white/[0.06] bg-surface-1 p-4 text-sm"><div className="flex justify-between gap-4"><dt className="text-slate-500">工作空间</dt><dd className="text-right text-slate-200">{bootstrap.workspace.name}</dd></div><div className="flex justify-between gap-4"><dt className="text-slate-500">项目</dt><dd className="text-right text-slate-200">{bootstrap.project.name}</dd></div></dl>
+          </section>
+          <section>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-200"><Bot className="h-4 w-4 text-mint-300" />个人 Agent</h3>
+            {agent ? <div className="mt-3 rounded-[12px] border border-white/[0.06] bg-surface-1 p-4"><div className="flex flex-wrap items-center gap-2"><span className="font-medium text-white">{agent.name}</span><Badge>{agent.status}</Badge><Badge>{agent.runtime_status}</Badge></div><p className="mt-2 text-sm leading-6 text-slate-400">{agent.description}</p></div> : <p className="mt-3 text-sm text-slate-500">当前账号尚未绑定可见 Agent。</p>}
+          </section>
+          <section>
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-200"><ShieldCheck className="h-4 w-4 text-mint-300" />管理能力</h3>
+            {capabilities.length > 0 ? <div className="mt-3 flex flex-wrap gap-2">{capabilities.map((capability) => <Badge key={capability}>{capability}</Badge>)}</div> : <p className="mt-3 text-sm text-slate-500">当前账号没有管理能力。</p>}
+          </section>
         </div>
-
-        {/* 主要领域 */}
-        <section>
-          <h3 className="mb-2.5 text-sm font-semibold text-slate-200">主要领域</h3>
-          <div className="flex flex-wrap gap-2">
-            {CURRENT_USER.domains.map((d) => (
-              <Badge key={d} tone="knowledge">
-                {d}
-              </Badge>
-            ))}
-          </div>
-        </section>
-
-        {/* 已配置 Skill */}
-        <section>
-          <h3 className="mb-2.5 flex items-center gap-2 text-sm font-semibold text-slate-200">
-            <Wrench className="h-4 w-4 text-mint-300" />
-            已配置团队 Skill
-          </h3>
-          <div className="space-y-2">
-            {CONFIGURED_SKILLS.map((sk) => (
-              <div
-                key={sk.name}
-                className="rounded-[10px] border border-white/[0.06] bg-surface-1 px-3.5 py-2.5"
-              >
-                <div className="text-sm font-medium text-slate-100">{sk.name}</div>
-                <div className="mt-0.5 text-xs text-slate-500">{sk.desc}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 调整数字人理解 */}
-        <section>
-          <h3 className="mb-2.5 flex items-center gap-2 text-sm font-semibold text-slate-200">
-            <Sparkles className="h-4 w-4 text-mint-300" />
-            调整数字人理解
-          </h3>
-          <div className="space-y-2">
-            {UNDERSTANDINGS.map((u) => {
-              const status = understandings[u.id]
-              return (
-                <div
-                  key={u.id}
-                  className="flex items-center gap-3 rounded-[10px] border border-white/[0.06] bg-surface-1 px-3.5 py-2.5"
-                >
-                  <p className="flex-1 text-sm text-slate-300">{u.text}</p>
-                  {status === 'confirmed' ? (
-                    <Badge tone="mint" icon={<Check className="h-3 w-3" />}>
-                      已确认
-                    </Badge>
-                  ) : status === 'ignored' ? (
-                    <Badge tone="neutral">已忽略</Badge>
-                  ) : (
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setUnderstanding(u.id, 'confirmed')}>
-                        确认
-                      </Button>
-                      <button
-                        onClick={() => setUnderstanding(u.id, 'modified')}
-                        className="rounded-lg p-1.5 text-slate-500 hover:bg-white/[0.06] hover:text-slate-200"
-                        aria-label="修改"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      </div>
+      )}
     </Drawer>
   )
 }

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import sqlite3
 from dataclasses import dataclass
@@ -22,7 +23,10 @@ from agentmesh.models import (
     BlackboardPost,
     BlackboardPostType,
     ChatMessage,
+    ChatResponse,
     ChatThread,
+    ChatTurnReceipt,
+    ChatTurnReceiptStatus,
     ConsentGrant,
     ContributionPoint,
     DocumentParseJob,
@@ -49,6 +53,7 @@ from agentmesh.models import (
     UserMemoryItem,
     UserRole,
     Workspace,
+    now_utc,
 )
 from agentmesh.vector_index import VectorIndex, VectorState, VectorStatus, VectorWork
 
@@ -56,6 +61,20 @@ ModelT = TypeVar("ModelT", bound=BaseModel)
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DB_PATH = ROOT_DIR / "data" / "agentmesh.sqlite3"
+
+class BriefConfirmationError(RuntimeError):
+    def __init__(self, code: str, detail: str):
+        super().__init__(detail)
+        self.code = code
+        self.detail = detail
+
+
+@dataclass(slots=True)
+class BriefConfirmationResult:
+    inbox_item: InboxItem
+    document: DocumentRecord
+    memory_item: MemoryItem
+
 
 # --- FTS5 infrastructure ---
 
@@ -598,8 +617,67 @@ class SQLiteStore:
         self._upsert("market_participation", record)
         return record
 
+    @staticmethod
+    def chat_turn_receipt_id(user_id: str, client_turn_id: str) -> str:
+        digest = hashlib.sha256(f"{user_id}\0{client_turn_id}".encode()).hexdigest()
+        return f"chat_turn_{digest}"
+
+    def get_chat_turn_receipt(self, user_id: str, client_turn_id: str) -> ChatTurnReceipt | None:
+        receipt_id = self.chat_turn_receipt_id(user_id, client_turn_id)
+        return self._get("chat_turn_receipts", receipt_id, ChatTurnReceipt)
+
+    def claim_chat_turn_receipt(self, receipt: ChatTurnReceipt) -> tuple[ChatTurnReceipt, bool]:
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT payload FROM records WHERE collection = ? AND id = ?",
+                ("chat_turn_receipts", receipt.id),
+            ).fetchone()
+            if row is not None:
+                return ChatTurnReceipt.model_validate_json(row["payload"]), False
+            connection.execute(
+                "INSERT INTO records(collection, id, payload) VALUES (?, ?, ?)",
+                ("chat_turn_receipts", receipt.id, receipt.model_dump_json()),
+            )
+        return receipt, True
+
+    def finish_chat_turn_receipt(
+        self,
+        receipt: ChatTurnReceipt,
+        *,
+        status: ChatTurnReceiptStatus,
+        response: ChatResponse | None = None,
+        error_code: str | None = None,
+    ) -> ChatTurnReceipt:
+        if status == ChatTurnReceiptStatus.PROCESSING:
+            raise ValueError("A chat turn receipt cannot finish in processing state")
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT payload FROM records WHERE collection = ? AND id = ?",
+                ("chat_turn_receipts", receipt.id),
+            ).fetchone()
+            if row is None:
+                raise ValueError("Chat turn receipt not found")
+            current = ChatTurnReceipt.model_validate_json(row["payload"])
+            if current.status != ChatTurnReceiptStatus.PROCESSING:
+                return current
+            current.status = status
+            current.response = response
+            current.error_code = error_code
+            current.updated_at = now_utc()
+            connection.execute(
+                "UPDATE records SET payload = ? WHERE collection = ? AND id = ?",
+                (current.model_dump_json(), "chat_turn_receipts", current.id),
+            )
+        return current
+
     def add_chat_message(self, message: ChatMessage) -> ChatMessage:
         self._upsert("chat_messages", message)
+        thread = self.get_chat_thread(message.thread_id)
+        if thread is not None:
+            thread.updated_at = now_utc()
+            self._upsert("chat_threads", thread)
         return message
 
     def save_workspace(self, workspace: Workspace) -> Workspace:
@@ -732,6 +810,130 @@ class SQLiteStore:
         self._upsert("documents", document)
         return document
 
+    def confirm_brief(
+        self,
+        item_id: str,
+        owner_user_id: str,
+        text: str,
+        expected_document_version: int,
+    ) -> BriefConfirmationResult:
+        """Atomically edit and confirm one owned Brief draft."""
+        vector_work: list[VectorWork] = []
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            inbox_row = connection.execute(
+                "SELECT payload FROM records WHERE collection = ? AND id = ?",
+                ("inbox_items", item_id),
+            ).fetchone()
+            if inbox_row is None:
+                raise BriefConfirmationError("not_found", "Inbox item not found")
+            item = InboxItem.model_validate_json(inbox_row["payload"])
+            if item.user_id != owner_user_id:
+                raise BriefConfirmationError("forbidden", "Only the Inbox owner can confirm this Brief")
+
+            document_id = item.metadata.get("document_id")
+            if (
+                item.item_type != "decision_review"
+                or item.metadata.get("artifact_type") != "brief_draft"
+                or not document_id
+            ):
+                raise BriefConfirmationError("invalid", "Inbox item is not a Brief draft")
+            if item.status != "open" or item.metadata.get("confirmed_memory_id"):
+                raise BriefConfirmationError("conflict", "Brief draft is no longer open")
+
+            document_row = connection.execute(
+                "SELECT payload FROM records WHERE collection = ? AND id = ?",
+                ("documents", document_id),
+            ).fetchone()
+            if document_row is None:
+                raise BriefConfirmationError("not_found", "Brief draft document not found")
+            document = DocumentRecord.model_validate_json(document_row["payload"])
+            if (
+                document.uploaded_by != owner_user_id
+                or document.workspace_id != item.workspace_id
+                or document.project_id != item.project_id
+            ):
+                raise BriefConfirmationError("forbidden", "Brief draft document is not owned by the Inbox owner")
+            if document.version != expected_document_version:
+                raise BriefConfirmationError("conflict", "Brief draft document version is stale")
+
+            now = now_utc()
+            document.text = text
+            document.version += 1
+            document.expected_chunks = 0
+            document.completed_chunks = 0
+            document.updated_at = now
+            document.metadata["edited_by"] = owner_user_id
+            document.metadata["edited_at"] = now.isoformat()
+            memory = MemoryItem(
+                title=f"候选团队记忆：{document.title}",
+                summary=" ".join(text.split())[:800] or "用户已确认 Brief 草稿，可进入团队候选记忆审核。",
+                memory_type="brief_decision",
+                scope=Scope.TEAM_CANDIDATE,
+                owner_user_id=owner_user_id,
+                workspace_id=item.workspace_id,
+                project_id=item.project_id,
+                sources=[document.source],
+                metadata={
+                    "document_id": document.id,
+                    "document_version": str(document.version),
+                    "artifact_type": "brief_draft",
+                    "inbox_item_id": item.id,
+                },
+            )
+            item.status = "resolved"
+            item.acknowledged_at = item.acknowledged_at or now
+            item.resolved_at = now
+            item.updated_at = now
+            item.snooze_until = None
+            item.metadata["confirmed_memory_id"] = memory.id
+            item.metadata["confirmed_document_id"] = document.id
+            audit = AuditEvent(
+                actor=owner_user_id,
+                action="confirm_brief_draft",
+                target_type="inbox_item",
+                target_id=item.id,
+                metadata={
+                    "document_id": document.id,
+                    "document_version": document.version,
+                    "memory_id": memory.id,
+                },
+            )
+
+            for collection, record in (
+                ("documents", document),
+                ("memory_items", memory),
+                ("inbox_items", item),
+                ("audit_events", audit),
+            ):
+                connection.execute(
+                    """
+                    INSERT INTO records(collection, id, payload)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(collection, id) DO UPDATE SET payload = excluded.payload
+                    """,
+                    (collection, record.id, record.model_dump_json()),
+                )
+                self._sync_fts(connection, collection, record)
+                searchable = _extract_fts_doc(collection, record)
+                if searchable is not None:
+                    work = self.vector_index.prepare(
+                        connection,
+                        collection,
+                        record.id,
+                        f"{searchable.title} {searchable.body}".strip(),
+                    )
+                    if work is not None:
+                        vector_work.append(work)
+
+        if vector_work:
+            from agentmesh.embedding import EMBEDDING_ENABLED
+
+            if EMBEDDING_ENABLED:
+                for work in vector_work:
+                    self.vector_index.process(work)
+        return BriefConfirmationResult(inbox_item=item, document=document, memory_item=memory)
+
     def save_document_if_version(self, document: DocumentRecord, expected_version: int) -> bool:
         """Save ingestion progress only while the persisted document version is unchanged."""
         work: VectorWork | None = None
@@ -845,6 +1047,20 @@ class SQLiteStore:
     def get_chat_thread(self, thread_id: str) -> ChatThread | None:
         return self._get("chat_threads", thread_id, ChatThread)
 
+    def list_user_chat_threads(
+        self,
+        user_id: str,
+        *,
+        workspace_id: str | None = None,
+        project_id: str | None = None,
+    ) -> list[ChatThread]:
+        items = [thread for thread in self.chat_threads if thread.user_id == user_id]
+        if workspace_id is not None:
+            items = [thread for thread in items if thread.workspace_id == workspace_id]
+        if project_id is not None:
+            items = [thread for thread in items if thread.project_id == project_id]
+        return sorted(items, key=lambda thread: (thread.updated_at, thread.id), reverse=True)
+
     def get_task(self, task_id: str) -> Task | None:
         return self._get("tasks", task_id, Task)
 
@@ -935,7 +1151,8 @@ class SQLiteStore:
         return [grant for grant in self.agent_tool_grants if grant.agent_id == agent_id]
 
     def list_thread_messages(self, thread_id: str) -> list[ChatMessage]:
-        return [message for message in self.chat_messages if message.thread_id == thread_id]
+        items = [message for message in self.chat_messages if message.thread_id == thread_id]
+        return sorted(items, key=lambda message: (message.created_at, message.id))
 
     def list_user_memory_items(
         self,
@@ -1287,9 +1504,6 @@ class SQLiteStore:
         if project is None:
             return False
         if not project.member_ids:
-            return True
-        user = self.get_user(user_id)
-        if user and user.role in (UserRole.ADMIN, UserRole.TEAM_LEAD):
             return True
         return user_id in project.member_ids
 

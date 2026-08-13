@@ -8,6 +8,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from agentmesh.provider_status import ProviderStatus
+
 
 def now_utc() -> datetime:
     return datetime.now(UTC)
@@ -285,6 +287,20 @@ class ChatThread(BaseModel):
     updated_at: datetime = Field(default_factory=now_utc)
 
 
+class ChatWorkflowTrace(BaseModel):
+    intent: Intent
+    confidence: float
+    source: str
+    selected_workflow: str
+    persisted: bool
+    llm_used: bool
+    requested_provider: str | None = None
+    actual_provider: str | None = None
+    provider_mode: str | None = Field(default=None, pattern="^(real|fallback)$")
+    latency_ms: float | None = Field(default=None, ge=0)
+    fallback_reason: str | None = None
+
+
 class Source(BaseModel):
     id: str = Field(default_factory=lambda: new_id("src"))
     title: str
@@ -368,7 +384,17 @@ class ChatMessage(BaseModel):
     content: str
     scope: Scope = Scope.PRIVATE
     sources: list[Source] = Field(default_factory=list)
+    workflow_trace: ChatWorkflowTrace | None = None
     created_at: datetime = Field(default_factory=now_utc)
+
+
+class ChatThreadListResponse(BaseModel):
+    items: list[ChatThread]
+
+
+class ChatThreadDetailResponse(BaseModel):
+    thread: ChatThread
+    messages: list[ChatMessage]
 
 
 class Task(BaseModel):
@@ -398,6 +424,7 @@ class BlackboardPost(BaseModel):
     permission: str
     status: str = "published"
     sources: list[Source] = Field(default_factory=list)
+    metadata: dict[str, str] = Field(default_factory=dict)
     read_by_agents: list[str] = Field(default_factory=list)
     related_post_id: str | None = None
     collaboration_stage: CollaborationStage = CollaborationStage.DISCUSSION
@@ -514,6 +541,8 @@ class AuditEvent(BaseModel):
     action: str
     target_type: str
     target_id: str
+    workspace_id: str | None = None
+    project_id: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=now_utc)
 
@@ -606,6 +635,7 @@ class DelegatedAnswer(BaseModel):
 class ChatRequest(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
     thread_id: str | None = None
+    client_turn_id: str = Field(default_factory=lambda: new_id("turn"), min_length=1, max_length=120)
 
 
 class LoginRequest(BaseModel):
@@ -657,6 +687,12 @@ class InboxUpdateRequest(BaseModel):
     status: str | None = Field(default=None, min_length=1, max_length=40)
     ttl_minutes: int | None = Field(default=None, ge=1, le=7 * 24 * 60)
     snooze_until: datetime | None = None
+
+class BriefConfirmRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    text: str = Field(min_length=1, max_length=100_000)
+    expected_document_version: int = Field(ge=1)
 
 
 class MemoryCreateRequest(BaseModel):
@@ -836,6 +872,7 @@ class BootstrapState(BaseModel):
     team_memberships: list[TeamMembership] = Field(default_factory=list)
     agents: list[Agent]
     metrics: BootstrapMetrics
+    capabilities: list[str] = Field(default_factory=list)
 
 
 class RetrievalMetrics(BaseModel):
@@ -880,14 +917,6 @@ class LearnedSkill(BaseModel):
     updated_at: datetime = Field(default_factory=now_utc)
 
 
-class ChatWorkflowTrace(BaseModel):
-    intent: Intent
-    confidence: float
-    source: str
-    selected_workflow: str
-    persisted: bool
-    llm_used: bool
-    fallback_reason: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -903,6 +932,69 @@ class ChatResponse(BaseModel):
     memory_items: list[MemoryItem]
     user_memory_items: list[UserMemoryItem] = Field(default_factory=list)
     workflow_trace: ChatWorkflowTrace | None = None
+
+
+class ChatTurnReceiptStatus(StrEnum):
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class ChatTurnReceipt(BaseModel):
+    id: str
+    client_turn_id: str = Field(min_length=1, max_length=120)
+    user_id: str
+    workspace_id: str
+    project_id: str
+    requested_thread_id: str | None = None
+    thread_id: str
+    content: str = Field(min_length=1, max_length=4000)
+    status: ChatTurnReceiptStatus = ChatTurnReceiptStatus.PROCESSING
+    response: ChatResponse | None = None
+    error_code: str | None = None
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
+
+
+class ChatTurnReceiptView(BaseModel):
+    client_turn_id: str
+    status: ChatTurnReceiptStatus
+    thread_id: str
+    response: ChatResponse | None = None
+
+
+class InboxItemView(InboxItem):
+    """Visible Inbox item with server-derived commands."""
+
+    allowed_actions: list[str] = Field(default_factory=list)
+
+
+class MemoryItemView(MemoryItem):
+    """Visible governed memory with server-derived commands."""
+
+    allowed_actions: list[str] = Field(default_factory=list)
+
+
+class BlackboardPostView(BlackboardPost):
+    """Visible Blackboard post with server-derived commands."""
+
+    allowed_actions: list[str] = Field(default_factory=list)
+
+
+class InboxItemsResponse(BaseModel):
+    items: list[InboxItemView]
+
+
+class MemoryItemsResponse(BaseModel):
+    items: list[MemoryItemView]
+
+
+class BlackboardPostsResponse(BaseModel):
+    items: list[BlackboardPostView]
+    total: int
+    page: int
+    page_size: int
+    has_next: bool
 
 
 # --- API Response Wrappers ---
@@ -954,7 +1046,7 @@ class ActivityTodayResponse(BaseModel):
 class BlackboardTaskCard(BaseModel):
     """黑板任务卡片。"""
     task: Task
-    latest_post: BlackboardPost | None = None
+    latest_post: BlackboardPostView | None = None
     stage: CollaborationStage | None = None
     owner: str | None = None
     done_when: str | None = None
@@ -965,11 +1057,21 @@ class BlackboardTaskCard(BaseModel):
     claimed_by_personal_agent: bool = False
     upstream_agents: list[str] = Field(default_factory=list)
     downstream_agents: list[str] = Field(default_factory=list)
+    target_post_id: str | None = None
+    allowed_actions: list[str] = Field(default_factory=list)
 
 
 class BlackboardTaskCardsResponse(BaseModel):
     """黑板任务卡片列表响应。"""
     items: list[BlackboardTaskCard]
+
+
+class BlackboardTaskDetail(BaseModel):
+    """One visible task card and its filtered Blackboard timeline."""
+
+    task_card: BlackboardTaskCard
+    posts: list[BlackboardPostView]
+
 
 
 class DataAgentQueryResponse(BaseModel):
@@ -990,7 +1092,76 @@ class DrainAutoPostsResponse(BaseModel):
     items: list[AutoBlackboardPostRequest]
 
 
+class ProviderDiagnostic(ProviderStatus):
+    """Canonical secret-safe provider status with optional non-sensitive diagnostics."""
+
+    model_config = ConfigDict(extra="allow")
+
+
 class ProviderHealthCheckResponse(BaseModel):
     """Provider 健康检查响应。"""
+
     overall: str
-    providers: list[dict[str, Any]]
+    providers: list[ProviderDiagnostic]
+
+
+class MemoryOverviewSections(BaseModel):
+    short: list[UserMemoryItem]
+    project: list[UserMemoryItem]
+    archive: list[UserMemoryItem]
+    team: list[MemoryItemView]
+
+
+class MemoryOverviewCounts(BaseModel):
+    short: int
+    project: int
+    archive: int
+    team: int
+
+
+class MemoryOverviewResponse(BaseModel):
+    project_id: str
+    sections: MemoryOverviewSections
+    counts: MemoryOverviewCounts
+    daily_summary_worker: dict[str, Any] = Field(default_factory=dict)
+
+
+class UsersResponse(BaseModel):
+    items: list[User]
+
+
+class UserItemResponse(BaseModel):
+    item: User
+
+
+class AgentsResponse(BaseModel):
+    items: list[Agent]
+
+
+class ModelsResponse(BaseModel):
+    items: list[ModelDefinition]
+
+
+class ToolsResponse(BaseModel):
+    items: list[ToolDefinition]
+
+
+class PermissionPoliciesResponse(BaseModel):
+    items: list[PermissionPolicyRule]
+
+
+class RiskPoliciesResponse(BaseModel):
+    items: list[RiskPolicyRule]
+
+
+class O2LoginStatus(BaseModel):
+    available: bool
+    logged_in: bool
+
+
+class O2StatusResponse(BaseModel):
+    installed: bool
+    binary: str
+    version: str | None = None
+    login: O2LoginStatus
+    setup_checks: list[dict[str, Any]] = Field(default_factory=list)

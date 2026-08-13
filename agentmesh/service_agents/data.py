@@ -46,6 +46,7 @@ class MockDataAgent:
             scope=Scope.PROJECT,
             permission="project_visible",
             sources=[result.source],
+            metadata=result.metadata,
             read_by_agents=["personal_agent"],
             related_post_id=request_post.id,
             collaboration_stage=CollaborationStage.REVIEW,

@@ -178,8 +178,8 @@ def test_private_activity_is_owner_only_in_feed_and_search() -> None:
         )
     )
 
-    owner_feed = owner_client.get("/api/activity/today").json()["personal"]
-    other_feed = other_client.get("/api/activity/today").json()["personal"]
+    owner_feed = owner_client.get("/api/activity/today", params={"project_id": PROJECT.id}).json()["personal"]
+    other_feed = other_client.get("/api/activity/today", params={"project_id": PROJECT.id}).json()["personal"]
     owner_search = owner_client.get("/api/search", params={"q": "m2-private-activity-marker"}).json()["items"]
     other_search = other_client.get("/api/search", params={"q": "m2-private-activity-marker"}).json()["items"]
 

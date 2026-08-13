@@ -49,6 +49,7 @@ from agentmesh.models import (
     new_id,
     now_utc,
 )
+from agentmesh.provider_status import provider_metadata
 from agentmesh.risk import RiskDecision, assess_external_content, assess_tool_request
 from agentmesh.seed import PROJECT, USER, WORKSPACE
 from agentmesh.service_agents import MockDataAgent, RiskAgent
@@ -79,6 +80,11 @@ class _ChatTurnState:
     user_memory_items: list[UserMemoryItem] = field(default_factory=list)
     pending_tool_approval: bool = False
     retrieval_metrics: RetrievalMetrics | None = None
+    requested_provider: str | None = None
+    actual_provider: str | None = None
+    provider_mode: str | None = None
+    provider_latency_ms: float | None = None
+    provider_fallback_reason: str | None = None
 
 
 class RequestAlreadyFulfilledError(RuntimeError):
@@ -145,7 +151,9 @@ class PersonalAgent:
                     invocation, content, actual_thread_id, user, history,
                     intent_source="llm", confidence=confidence,
                 )
+            started = time.perf_counter()
             chat_result = self._general_chat_answer(content, user, history, llm_client)
+            latency_ms = (time.perf_counter() - started) * 1000 if llm_client is not None else None
             return self._persist_private_chat_turn(
                 content=content,
                 assistant_content=chat_result.content,
@@ -154,6 +162,10 @@ class PersonalAgent:
                 selected_workflow="chat",
                 source="chat",
                 llm_used=chat_result.llm_used,
+                requested_provider=self._llm_provider_label(user, llm_client),
+                actual_provider=self._llm_provider_label(user, llm_client) if chat_result.llm_used else "local_fallback",
+                provider_mode="real" if chat_result.llm_used else "fallback",
+                latency_ms=latency_ms,
                 fallback_reason=chat_result.fallback_reason,
             )
 
@@ -306,8 +318,10 @@ class PersonalAgent:
             raise
 
         assistant_content = self._assistant_content_for_turn(intent, skill_content, state, user)
+        synthesis_latency_ms: float | None = None
 
         if not state.pending_tool_approval and intent not in {Intent.ASK_SYSTEM_INFO, Intent.GENERATE_BRIEF}:
+            synthesis_started = time.perf_counter()
             synthesis = self._synthesize_with_llm(
                 fallback_content=assistant_content,
                 user_content=skill_content,
@@ -319,10 +333,12 @@ class PersonalAgent:
                 user=user,
                 history=history,
             )
+            synthesis_latency_ms = (time.perf_counter() - synthesis_started) * 1000
             assistant_content = synthesis.content
             workflow_trace.llm_used = synthesis.llm_used
-            workflow_trace.fallback_reason = synthesis.fallback_reason
+            workflow_trace.fallback_reason = state.provider_fallback_reason or synthesis.fallback_reason
 
+        self._apply_trace_provenance(workflow_trace, state, user, synthesis_latency_ms)
         if state.retrieval_metrics is not None:
             state.retrieval_metrics.llm_used = workflow_trace.llm_used if workflow_trace else False
             state.retrieval_metrics.results_cited = self._count_cited_sources(
@@ -353,6 +369,7 @@ class PersonalAgent:
                 content=assistant_content,
                 scope=Scope.PRIVATE,
                 sources=self._assistant_sources(state.evidence_post, state.risk_post),
+                workflow_trace=workflow_trace,
             )
         )
         self._audit("return_chat_response", "chat_message", assistant_message.id, {"task_id": task.id})
@@ -385,14 +402,37 @@ class PersonalAgent:
         selected_workflow: str,
         source: str,
         llm_used: bool,
+        requested_provider: str | None = None,
+        actual_provider: str | None = None,
+        provider_mode: str | None = None,
+        latency_ms: float | None = None,
         fallback_reason: str | None = None,
     ) -> ChatResponse:
         self._ensure_thread(thread_id, content, user)
+        trace = ChatWorkflowTrace(
+            intent=Intent.GENERAL_CHAT,
+            confidence=1.0,
+            source=source,
+            selected_workflow=selected_workflow,
+            persisted=True,
+            llm_used=llm_used,
+            requested_provider=requested_provider or "agentmesh",
+            actual_provider=actual_provider or requested_provider or "agentmesh",
+            provider_mode=provider_mode or ("fallback" if fallback_reason else "real"),
+            latency_ms=latency_ms,
+            fallback_reason=fallback_reason,
+        )
         user_message = self.repository.add_chat_message(
             ChatMessage(thread_id=thread_id, role=ChatRole.USER, content=content, scope=Scope.PRIVATE)
         )
         assistant_message = self.repository.add_chat_message(
-            ChatMessage(thread_id=thread_id, role=ChatRole.ASSISTANT, content=assistant_content, scope=Scope.PRIVATE)
+            ChatMessage(
+                thread_id=thread_id,
+                role=ChatRole.ASSISTANT,
+                content=assistant_content,
+                scope=Scope.PRIVATE,
+                workflow_trace=trace,
+            )
         )
         return ChatResponse(
             thread_id=thread_id,
@@ -403,15 +443,7 @@ class PersonalAgent:
             inbox_items=[],
             memory_items=[],
             user_memory_items=[],
-            workflow_trace=ChatWorkflowTrace(
-                intent=Intent.GENERAL_CHAT,
-                confidence=1.0,
-                source=source,
-                selected_workflow=selected_workflow,
-                persisted=True,
-                llm_used=llm_used,
-                fallback_reason=fallback_reason,
-            ),
+            workflow_trace=trace,
         )
 
     @staticmethod
@@ -442,6 +474,7 @@ class PersonalAgent:
         )
         task.steps.append("created_blackboard_request")
         state.evidence_post = self.data_agent.query(task, state.request_post, content, user)
+        self._capture_provider_metadata(state, state.evidence_post.metadata)
         state.synthesis_evidence_post = state.evidence_post
         self._persist_sources(state.evidence_post.sources)
         self.repository.add_blackboard_post(state.evidence_post)
@@ -454,6 +487,10 @@ class PersonalAgent:
         t0 = time.perf_counter()
         results = self._search_team_brain(content, user)
         latency_ms = int((time.perf_counter() - t0) * 1000)
+        state.requested_provider = "memory_index"
+        state.actual_provider = "memory_index"
+        state.provider_mode = "real"
+        state.provider_latency_ms = float(latency_ms)
 
         source_ids = [r.id for r in results]
         state.retrieval_metrics = RetrievalMetrics(
@@ -709,6 +746,7 @@ class PersonalAgent:
         acquisition_result = self._document_acquisition_result(acquisition_request)
         if acquisition_result is None:
             acquisition_result = self.acquisition_agent.acquire(acquisition_request)
+        self._capture_provider_metadata(state, acquisition_result.metadata)
         state.evidence_post = self._create_evidence_post(task, state.request_post, acquisition_result)
         content_risk = assess_external_content(acquisition_result.content)
         if content_risk.decision == RiskDecision.NEEDS_REVIEW:
@@ -746,7 +784,15 @@ class PersonalAgent:
             title="已检索上传文档",
             content=content,
             sources=sources,
-            metadata={"provider": "documents", "request_post_id": request.request_post_id},
+            metadata={
+                **provider_metadata(
+                    requested_provider="documents",
+                    actual_provider="documents",
+                    mode="real",
+                    latency_ms=0.0,
+                ),
+                "request_post_id": request.request_post_id,
+            },
         )
 
     def _document_search_results(self, request: AcquisitionRequest):
@@ -1577,6 +1623,7 @@ class PersonalAgent:
             scope=Scope.PROJECT,
             permission=result.permission,
             sources=result.sources,
+            metadata=result.metadata,
             read_by_agents=[request_post.actor],
             related_post_id=request_post.id,
             collaboration_stage=CollaborationStage.REVIEW,
@@ -1816,7 +1863,15 @@ class PersonalAgent:
 
     def _audit(self, action: str, target_type: str, target_id: str, metadata: dict[str, object]) -> None:
         self.repository.add_audit_event(
-            AuditEvent(actor=self.actor, action=action, target_type=target_type, target_id=target_id, metadata=metadata)
+            AuditEvent(
+                actor=self.actor,
+                action=action,
+                target_type=target_type,
+                target_id=target_id,
+                workspace_id=WORKSPACE.id,
+                project_id=PROJECT.id,
+                metadata=metadata,
+            )
         )
 
     def _persist_sources(self, sources: list[Source]) -> None:
@@ -1940,6 +1995,55 @@ class PersonalAgent:
             Intent.GENERAL_CHAT: "note",
         }
         return labels[intent]
+
+    def _llm_provider_label(self, user: User, llm_client: ChatLLM | None) -> str:
+        model_name = getattr(llm_client, "model", None)
+        if isinstance(model_name, str) and model_name:
+            return model_name
+        model_id = resolve_agent_model_id(self.repository, user)
+        model = self.repository.get_model_definition(model_id)
+        return model.model_name if model is not None else model_id
+
+    @staticmethod
+    def _capture_provider_metadata(state: _ChatTurnState, metadata: dict[str, str]) -> None:
+        state.requested_provider = metadata.get("requested_provider") or state.requested_provider
+        state.actual_provider = metadata.get("actual_provider") or state.actual_provider
+        mode = metadata.get("mode")
+        if mode in {"real", "fallback"}:
+            state.provider_mode = mode
+        latency = metadata.get("latency_ms")
+        if latency:
+            try:
+                state.provider_latency_ms = max(0.0, float(latency))
+            except ValueError:
+                state.provider_latency_ms = None
+        state.provider_fallback_reason = metadata.get("fallback_reason") or state.provider_fallback_reason
+
+    def _apply_trace_provenance(
+        self,
+        trace: ChatWorkflowTrace,
+        state: _ChatTurnState,
+        user: User,
+        synthesis_latency_ms: float | None,
+    ) -> None:
+        if state.requested_provider is not None or state.actual_provider is not None:
+            trace.requested_provider = state.requested_provider or state.actual_provider
+            trace.actual_provider = state.actual_provider or state.requested_provider
+            trace.provider_mode = state.provider_mode or "real"
+            trace.latency_ms = state.provider_latency_ms
+            trace.fallback_reason = trace.fallback_reason or state.provider_fallback_reason
+            return
+        if trace.llm_used:
+            provider = self._llm_provider_label(user, chat_llm_client(self.repository, user, self.llm_client))
+            trace.requested_provider = provider
+            trace.actual_provider = provider
+            trace.provider_mode = "real"
+            trace.latency_ms = synthesis_latency_ms
+            return
+        trace.requested_provider = "llm" if trace.fallback_reason else "agentmesh"
+        trace.actual_provider = "local_fallback" if trace.fallback_reason else "agentmesh"
+        trace.provider_mode = "fallback" if trace.fallback_reason else "real"
+        trace.latency_ms = synthesis_latency_ms
 
     @staticmethod
     def _command_workflow_trace(

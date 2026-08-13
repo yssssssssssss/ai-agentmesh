@@ -189,7 +189,10 @@ def test_o2_data_connector_keeps_read_only_business_query_shape() -> None:
     )
 
     assert result.connector_name == "o2_cli"
-    assert result.metadata["provider"] == "o2"
+    assert result.metadata["requested_provider"] == "o2_cli"
+    assert result.metadata["actual_provider"] == "o2:metasearch"
+    assert result.metadata["mode"] == "real"
+    assert "provider" not in result.metadata
     assert result.records == [{"title": "SKU A", "price": 99}]
     assert result.source.reference == "o2://metasearch/search"
 
@@ -244,13 +247,19 @@ def test_composite_acquisition_uses_real_provider_with_sources_before_mock() -> 
                 title="Web 资料",
                 content="外部 Web 找到了资料。",
                 sources=[Source(title="Web Page", source_type="web_page", reference="https://example.com")],
-                metadata={"provider": "web"},
+                metadata={
+                    "requested_provider": "o2_research",
+                    "actual_provider": "web",
+                    "mode": "real",
+                    "latency_ms": "1.000",
+                },
             )
 
     result = CompositeAcquisitionAgent([FailingAgent(), WebAgent()]).acquire(_acquisition_request())
 
     assert result.actor == "web_research_agent"
-    assert result.metadata["provider"] == "web"
+    assert result.metadata["requested_provider"] == "o2_research"
+    assert result.metadata["actual_provider"] == "web"
 
 
 def test_composite_acquisition_falls_back_to_mock_only_when_real_sources_missing() -> None:
@@ -263,7 +272,12 @@ def test_composite_acquisition_falls_back_to_mock_only_when_real_sources_missing
                 title="未找到 Oxygen-CLI 资料",
                 content="Oxygen-CLI 没有返回可用结果。",
                 sources=[],
-                metadata={"provider": "o2"},
+                metadata={
+                    "requested_provider": "o2_research",
+                    "actual_provider": "o2_research",
+                    "mode": "real",
+                    "latency_ms": "1.000",
+                },
             )
 
     class FailingAgent:
@@ -275,7 +289,9 @@ def test_composite_acquisition_falls_back_to_mock_only_when_real_sources_missing
     result = CompositeAcquisitionAgent([EmptyAgent(), FailingAgent()]).acquire(_acquisition_request())
 
     assert result.actor == "mock_research_agent"
-    assert result.metadata["provider"] == "mock"
+    assert result.metadata["requested_provider"] == "o2_research"
+    assert result.metadata["actual_provider"] == "mock"
+    assert "provider" not in result.metadata
     assert result.metadata["fallback_reason"] == "no_real_provider_sources"
     assert "o2_research_agent" in result.metadata["provider_diagnostics"]
     assert "web_research_agent" in result.metadata["provider_diagnostics"]

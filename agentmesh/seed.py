@@ -31,6 +31,7 @@ from agentmesh.models import (
     UserRole,
     Workspace,
 )
+from agentmesh.permissions import capabilities_for_user
 from agentmesh.store import SQLiteStore
 
 WORKSPACE = Workspace(
@@ -497,6 +498,7 @@ def bootstrap_state(repository: SQLiteStore, user: User = USER) -> BootstrapStat
         teams=repository.list_teams(workspace_id=user.workspace_id),
         team_memberships=repository.list_team_memberships(user_id=user.id),
         agents=agents,
+        capabilities=capabilities_for_user(user, repository.permission_policy_rules),
         metrics=BootstrapMetrics(
             personal_activity_count=len(
                 [log for log in repository.list_personal_activity() if log.project_id == PROJECT.id]

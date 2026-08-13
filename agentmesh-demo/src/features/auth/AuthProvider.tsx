@@ -27,6 +27,7 @@ export interface AuthContextValue extends AuthState {
   login: (userId: string, password: string) => Promise<void>
   logout: () => Promise<void>
   restore: () => Promise<void>
+  refreshBootstrap: () => Promise<void>
 }
 
 const LOADING_STATE: AuthState = {
@@ -96,6 +97,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [clearClientSession])
 
+  const refreshBootstrap = useCallback(async () => {
+    const generation = sessionGeneration.current
+    try {
+      const bootstrap = await authApi.bootstrap()
+      if (generation !== sessionGeneration.current) return
+      setState((current) => current.status === 'ready'
+        ? { status: 'ready', user: bootstrap.user, bootstrap, message: null }
+        : current)
+    } catch (error) {
+      if (generation !== sessionGeneration.current) return
+      if (error instanceof ApiError && error.status === 401) {
+        clearClientSession(generation)
+        return
+      }
+      if (error instanceof ApiError && error.status === 403) {
+        queryClient.clear()
+        setState((current) => ({
+          status: 'denied',
+          user: current.user,
+          bootstrap: null,
+          message: errorMessage(error),
+        }))
+        return
+      }
+      throw error
+    }
+  }, [clearClientSession])
+
   useEffect(() => onUnauthorized(clearClientSession), [clearClientSession])
 
   useEffect(() => {
@@ -155,8 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearClientSession])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, logoutError, login, logout, restore }),
-    [login, logout, logoutError, restore, state],
+    () => ({ ...state, logoutError, login, logout, restore, refreshBootstrap }),
+    [login, logout, logoutError, refreshBootstrap, restore, state],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

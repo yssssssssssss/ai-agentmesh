@@ -189,7 +189,7 @@ class DataSourceRegistry:
         requested_by: str,
     ) -> DataSourceResult:
         errors: list[str] = []
-        requested_provider = next((name for name in connector_names if name in self._connectors), "data_api")
+        requested_provider = connector_names[0] if connector_names else "data_api"
         for connector_name in connector_names:
             if connector_name not in self._connectors:
                 continue
@@ -211,7 +211,8 @@ class DataSourceRegistry:
             if result.records:
                 result.metadata["requested_provider"] = requested_provider
                 if errors:
-                    result.metadata["fallback_reason"] = " | ".join(errors)[:500]
+                    if not result.metadata.get("fallback_reason"):
+                        result.metadata["fallback_reason"] = " | ".join(errors)[:500]
                     result.metadata["fallback_diagnostics"] = " | ".join(
                         entry.replace(":", ": ", 1) for entry in errors
                     )[:500]

@@ -87,7 +87,7 @@ def test_provider_status_has_one_secret_safe_serializable_contract() -> None:
     assert payload["last_error"] == "Bearer [REDACTED] token=[REDACTED] https://example.test/v1"
 
 
-def test_health_returns_all_five_provider_contracts_without_sensitive_details(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_health_returns_canonical_secret_safe_provider_contracts(monkeypatch: pytest.MonkeyPatch) -> None:
     statuses = {
         "embedding_provider_status": ProviderStatus(
             name="embedding", configured=True, ready=True, mode="real", latency_ms=2.0
@@ -114,21 +114,27 @@ def test_health_returns_all_five_provider_contracts_without_sensitive_details(mo
         role=UserRole.USER,
         personal_agent_id="agent_provider_test",
     ))
-    providers = payload["providers"]
+    providers = payload.providers
+    serialized = payload.model_dump_json()
 
-    assert {item["name"] for item in providers[:5]} == {
+    assert {item.name for item in providers} == {
         "embedding",
-        "o2_research",
+        "o2",
         "web_research",
-        "data_api",
+        "data_connectors",
         "llm",
+        "document_parser",
     }
     assert all(
-        {"name", "configured", "ready", "mode", "last_error", "latency_ms"} <= set(item)
-        for item in providers[:5]
+        {"name", "configured", "ready", "mode", "last_error", "latency_ms"}
+        <= set(item.model_dump())
+        for item in providers
     )
-    assert payload["overall"] == "degraded"
-    assert "secret" not in json.dumps(payload).lower()
+    assert payload.overall == "degraded"
+    assert "secret" not in serialized.lower()
+    assert "base_url" not in serialized
+    assert "api_key" not in serialized
+    assert "authorization" not in serialized.lower()
 
 
 def test_embedding_records_ready_and_degraded_observations(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -286,7 +286,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Chat Threads */
+        get: operations["chat_threads_api_chat_threads_get"];
         put?: never;
         /** Create Chat Thread */
         post: operations["create_chat_thread_api_chat_threads_post"];
@@ -324,6 +325,40 @@ export interface paths {
         put?: never;
         /** Create Chat Message */
         post: operations["create_chat_message_api_chat_messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/messages/receipts/{client_turn_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chat Turn Receipt */
+        get: operations["chat_turn_receipt_api_chat_messages_receipts__client_turn_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/threads/{thread_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chat Thread Detail */
+        get: operations["chat_thread_detail_api_chat_threads__thread_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -608,6 +643,23 @@ export interface paths {
         };
         /** Blackboard Task Cards */
         get: operations["blackboard_task_cards_api_blackboard_task_cards_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/blackboard/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Blackboard Task Detail */
+        get: operations["blackboard_task_detail_api_blackboard_tasks__task_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1499,6 +1551,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/insights/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Insights Audit Events */
+        get: operations["insights_audit_events_api_insights_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/search": {
         parameters: {
             query?: never;
@@ -1636,6 +1705,16 @@ export interface components {
              */
             created_at?: string;
         };
+        /**
+         * ActivityTodayResponse
+         * @description 今日活动响应。
+         */
+        ActivityTodayResponse: {
+            /** Personal */
+            personal: components["schemas"]["ActivityLog"][];
+            /** External */
+            external: components["schemas"]["ActivityLog"][];
+        };
         /** Agent */
         Agent: {
             /** Id */
@@ -1742,6 +1821,53 @@ export interface components {
             /** Capabilities */
             capabilities?: string[] | null;
         };
+        /** AgentsResponse */
+        AgentsResponse: {
+            /** Items */
+            items: components["schemas"]["Agent"][];
+        };
+        /** AuditEvent */
+        AuditEvent: {
+            /** Id */
+            id?: string;
+            /** Actor */
+            actor: string;
+            /** Action */
+            action: string;
+            /** Target Type */
+            target_type: string;
+            /** Target Id */
+            target_id: string;
+            /** Workspace Id */
+            workspace_id?: string | null;
+            /** Project Id */
+            project_id?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+        };
+        /**
+         * AuditListResponse
+         * @description 审计事件列表响应。
+         */
+        AuditListResponse: {
+            /** Items */
+            items: components["schemas"]["AuditEvent"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+        };
         /** AutoBlackboardPostCreateRequest */
         AutoBlackboardPostCreateRequest: {
             /** Task Id */
@@ -1842,6 +1968,10 @@ export interface components {
             status: string;
             /** Sources */
             sources?: components["schemas"]["Source"][];
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            };
             /** Read By Agents */
             read_by_agents?: string[];
             /** Related Post Id */
@@ -1883,12 +2013,77 @@ export interface components {
          */
         BlackboardPostType: "request" | "evidence" | "risk" | "digest" | "decision" | "handoff" | "archive" | "correction" | "memory_candidate" | "marketplace_signal" | "marketplace_match";
         /**
+         * BlackboardPostView
+         * @description Visible Blackboard post with server-derived commands.
+         */
+        BlackboardPostView: {
+            /** Id */
+            id?: string;
+            /** Task Id */
+            task_id: string;
+            post_type: components["schemas"]["BlackboardPostType"];
+            /** Actor */
+            actor: string;
+            /** Title */
+            title: string;
+            /** Content */
+            content: string;
+            scope: components["schemas"]["Scope"];
+            /** Permission */
+            permission: string;
+            /**
+             * Status
+             * @default published
+             */
+            status: string;
+            /** Sources */
+            sources?: components["schemas"]["Source"][];
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            };
+            /** Read By Agents */
+            read_by_agents?: string[];
+            /** Related Post Id */
+            related_post_id?: string | null;
+            /** @default discussion */
+            collaboration_stage: components["schemas"]["CollaborationStage"];
+            /** Current Owner Agent Id */
+            current_owner_agent_id?: string | null;
+            /** Current Owner Label */
+            current_owner_label?: string | null;
+            execution_lock?: components["schemas"]["ExecutionLock"] | null;
+            /** Done When */
+            done_when?: string | null;
+            handoff?: components["schemas"]["StructuredHandoffPacket"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /** Allowed Actions */
+            allowed_actions?: string[];
+        };
+        /** BlackboardPostsResponse */
+        BlackboardPostsResponse: {
+            /** Items */
+            items: components["schemas"]["BlackboardPostView"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+            /** Has Next */
+            has_next: boolean;
+        };
+        /**
          * BlackboardTaskCard
          * @description 黑板任务卡片。
          */
         BlackboardTaskCard: {
             task: components["schemas"]["Task"];
-            latest_post?: components["schemas"]["BlackboardPost"] | null;
+            latest_post?: components["schemas"]["BlackboardPostView"] | null;
             stage?: components["schemas"]["CollaborationStage"] | null;
             /** Owner */
             owner?: string | null;
@@ -1916,6 +2111,10 @@ export interface components {
             upstream_agents?: string[];
             /** Downstream Agents */
             downstream_agents?: string[];
+            /** Target Post Id */
+            target_post_id?: string | null;
+            /** Allowed Actions */
+            allowed_actions?: string[];
         };
         /**
          * BlackboardTaskCardsResponse
@@ -1924,6 +2123,15 @@ export interface components {
         BlackboardTaskCardsResponse: {
             /** Items */
             items: components["schemas"]["BlackboardTaskCard"][];
+        };
+        /**
+         * BlackboardTaskDetail
+         * @description One visible task card and its filtered Blackboard timeline.
+         */
+        BlackboardTaskDetail: {
+            task_card: components["schemas"]["BlackboardTaskCard"];
+            /** Posts */
+            posts: components["schemas"]["BlackboardPostView"][];
         };
         /** Body_upload_document_api_documents_upload_post */
         Body_upload_document_api_documents_upload_post: {
@@ -1957,6 +2165,15 @@ export interface components {
             /** Agents */
             agents: components["schemas"]["Agent"][];
             metrics: components["schemas"]["BootstrapMetrics"];
+            /** Capabilities */
+            capabilities?: string[];
+        };
+        /** BriefConfirmRequest */
+        BriefConfirmRequest: {
+            /** Text */
+            text: string;
+            /** Expected Document Version */
+            expected_document_version: number;
         };
         /** ChatMessage */
         ChatMessage: {
@@ -1971,6 +2188,7 @@ export interface components {
             scope: components["schemas"]["Scope"];
             /** Sources */
             sources?: components["schemas"]["Source"][];
+            workflow_trace?: components["schemas"]["ChatWorkflowTrace"] | null;
             /**
              * Created At
              * Format: date-time
@@ -1983,6 +2201,8 @@ export interface components {
             content: string;
             /** Thread Id */
             thread_id?: string | null;
+            /** Client Turn Id */
+            client_turn_id?: string;
         };
         /** ChatResponse */
         ChatResponse: {
@@ -2042,6 +2262,31 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** ChatThreadDetailResponse */
+        ChatThreadDetailResponse: {
+            thread: components["schemas"]["ChatThread"];
+            /** Messages */
+            messages: components["schemas"]["ChatMessage"][];
+        };
+        /** ChatThreadListResponse */
+        ChatThreadListResponse: {
+            /** Items */
+            items: components["schemas"]["ChatThread"][];
+        };
+        /**
+         * ChatTurnReceiptStatus
+         * @enum {string}
+         */
+        ChatTurnReceiptStatus: "processing" | "completed" | "failed";
+        /** ChatTurnReceiptView */
+        ChatTurnReceiptView: {
+            /** Client Turn Id */
+            client_turn_id: string;
+            status: components["schemas"]["ChatTurnReceiptStatus"];
+            /** Thread Id */
+            thread_id: string;
+            response?: components["schemas"]["ChatResponse"] | null;
+        };
         /** ChatWorkflowTrace */
         ChatWorkflowTrace: {
             intent: components["schemas"]["Intent"];
@@ -2055,6 +2300,14 @@ export interface components {
             persisted: boolean;
             /** Llm Used */
             llm_used: boolean;
+            /** Requested Provider */
+            requested_provider?: string | null;
+            /** Actual Provider */
+            actual_provider?: string | null;
+            /** Provider Mode */
+            provider_mode?: string | null;
+            /** Latency Ms */
+            latency_ms?: number | null;
             /** Fallback Reason */
             fallback_reason?: string | null;
         };
@@ -2196,6 +2449,59 @@ export interface components {
              */
             updated_at?: string;
         };
+        /**
+         * InboxItemView
+         * @description Visible Inbox item with server-derived commands.
+         */
+        InboxItemView: {
+            /** Id */
+            id?: string;
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Item Type */
+            item_type: string;
+            scope: components["schemas"]["Scope"];
+            /** User Id */
+            user_id?: string | null;
+            /**
+             * Status
+             * @default open
+             */
+            status: string;
+            /** Workspace Id */
+            workspace_id?: string | null;
+            /** Project Id */
+            project_id?: string | null;
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            };
+            /** Acknowledged At */
+            acknowledged_at?: string | null;
+            /** Snooze Until */
+            snooze_until?: string | null;
+            /** Resolved At */
+            resolved_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at?: string;
+            /** Allowed Actions */
+            allowed_actions?: string[];
+        };
+        /** InboxItemsResponse */
+        InboxItemsResponse: {
+            /** Items */
+            items: components["schemas"]["InboxItemView"][];
+        };
         /** InboxUpdateRequest */
         InboxUpdateRequest: {
             /** Status */
@@ -2310,10 +2616,86 @@ export interface components {
             created_at?: string;
         };
         /**
+         * MemoryItemView
+         * @description Visible governed memory with server-derived commands.
+         */
+        MemoryItemView: {
+            /** Id */
+            id?: string;
+            /** Title */
+            title: string;
+            /** Summary */
+            summary: string;
+            /** Memory Type */
+            memory_type: string;
+            scope: components["schemas"]["Scope"];
+            /** @default proposed */
+            status: components["schemas"]["MemoryStatus"];
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Workspace Id */
+            workspace_id?: string | null;
+            /** Project Id */
+            project_id?: string | null;
+            /** Team Id */
+            team_id?: string | null;
+            /** Sources */
+            sources?: components["schemas"]["Source"][];
+            /** Metadata */
+            metadata?: {
+                [key: string]: string;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /** Allowed Actions */
+            allowed_actions?: string[];
+        };
+        /** MemoryItemsResponse */
+        MemoryItemsResponse: {
+            /** Items */
+            items: components["schemas"]["MemoryItemView"][];
+        };
+        /**
          * MemoryLayer
          * @enum {string}
          */
         MemoryLayer: "short_term" | "mid_term" | "long_term";
+        /** MemoryOverviewCounts */
+        MemoryOverviewCounts: {
+            /** Short */
+            short: number;
+            /** Project */
+            project: number;
+            /** Archive */
+            archive: number;
+            /** Team */
+            team: number;
+        };
+        /** MemoryOverviewResponse */
+        MemoryOverviewResponse: {
+            /** Project Id */
+            project_id: string;
+            sections: components["schemas"]["MemoryOverviewSections"];
+            counts: components["schemas"]["MemoryOverviewCounts"];
+            /** Daily Summary Worker */
+            daily_summary_worker?: {
+                [key: string]: unknown;
+            };
+        };
+        /** MemoryOverviewSections */
+        MemoryOverviewSections: {
+            /** Short */
+            short: components["schemas"]["UserMemoryItem"][];
+            /** Project */
+            project: components["schemas"]["UserMemoryItem"][];
+            /** Archive */
+            archive: components["schemas"]["UserMemoryItem"][];
+            /** Team */
+            team: components["schemas"]["MemoryItemView"][];
+        };
         /**
          * MemoryStatus
          * @enum {string}
@@ -2324,6 +2706,63 @@ export interface components {
             status?: components["schemas"]["MemoryStatus"] | null;
             scope?: components["schemas"]["Scope"] | null;
         };
+        /** ModelDefinition */
+        ModelDefinition: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Provider */
+            provider: string;
+            /** Model Name */
+            model_name: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Configured
+             * @default false
+             */
+            configured: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at?: string;
+        };
+        /** ModelsResponse */
+        ModelsResponse: {
+            /** Items */
+            items: components["schemas"]["ModelDefinition"][];
+        };
+        /** O2LoginStatus */
+        O2LoginStatus: {
+            /** Available */
+            available: boolean;
+            /** Logged In */
+            logged_in: boolean;
+        };
+        /** O2StatusResponse */
+        O2StatusResponse: {
+            /** Installed */
+            installed: boolean;
+            /** Binary */
+            binary: string;
+            /** Version */
+            version?: string | null;
+            login: components["schemas"]["O2LoginStatus"];
+            /** Setup Checks */
+            setup_checks?: {
+                [key: string]: unknown;
+            }[];
+        };
         /**
          * O2SyncResponse
          * @description O2 工具同步响应。
@@ -2333,22 +2772,6 @@ export interface components {
             items: components["schemas"]["ToolDefinition"][];
             /** Count */
             count: number;
-        };
-        /**
-         * PaginatedResponse
-         * @description 分页列表响应包装。
-         */
-        PaginatedResponse: {
-            /** Items */
-            items: unknown[];
-            /** Total */
-            total: number;
-            /** Page */
-            page: number;
-            /** Page Size */
-            page_size: number;
-            /** Has Next */
-            has_next: boolean;
         };
         /** PasswordChangeRequest */
         PasswordChangeRequest: {
@@ -2361,6 +2784,44 @@ export interface components {
         PasswordResetRequest: {
             /** New Password */
             new_password: string;
+        };
+        /** PermissionPoliciesResponse */
+        PermissionPoliciesResponse: {
+            /** Items */
+            items: components["schemas"]["PermissionPolicyRule"][];
+        };
+        /** PermissionPolicyRule */
+        PermissionPolicyRule: {
+            /** Id */
+            id?: string;
+            role: components["schemas"]["UserRole"];
+            /** Action */
+            action: string;
+            /**
+             * Effect
+             * @default allow
+             */
+            effect: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at?: string;
         };
         /** PermissionPolicyRuleCreateRequest */
         PermissionPolicyRuleCreateRequest: {
@@ -2441,6 +2902,77 @@ export interface components {
         ProjectMemorySummaryRequest: {
             /** Project Id */
             project_id?: string | null;
+        };
+        /**
+         * ProviderDiagnostic
+         * @description Canonical secret-safe provider status with optional non-sensitive diagnostics.
+         */
+        ProviderDiagnostic: {
+            /** Name */
+            name: string;
+            /** Configured */
+            configured: boolean;
+            /** Ready */
+            ready: boolean;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "real" | "fallback";
+            /** Last Error */
+            last_error?: string | null;
+            /** Latency Ms */
+            latency_ms?: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * ProviderHealthCheckResponse
+         * @description Provider 健康检查响应。
+         */
+        ProviderHealthCheckResponse: {
+            /** Overall */
+            overall: string;
+            /** Providers */
+            providers: components["schemas"]["ProviderDiagnostic"][];
+        };
+        /** RiskPoliciesResponse */
+        RiskPoliciesResponse: {
+            /** Items */
+            items: components["schemas"]["RiskPolicyRule"][];
+        };
+        /** RiskPolicyRule */
+        RiskPolicyRule: {
+            /** Id */
+            id?: string;
+            /** Rule Id */
+            rule_id: string;
+            /** Category */
+            category: string;
+            /** Signal */
+            signal: string;
+            /** Message */
+            message: string;
+            /**
+             * Decision
+             * @default needs_review
+             */
+            decision: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at?: string;
         };
         /** RiskPolicyRuleCreateRequest */
         RiskPolicyRuleCreateRequest: {
@@ -2744,6 +3276,11 @@ export interface components {
              */
             updated_at?: string;
         };
+        /** ToolsResponse */
+        ToolsResponse: {
+            /** Items */
+            items: components["schemas"]["ToolDefinition"][];
+        };
         /** User */
         User: {
             /** Id */
@@ -2790,6 +3327,10 @@ export interface components {
             workspace_id?: string | null;
             /** Default Project Id */
             default_project_id?: string | null;
+        };
+        /** UserItemResponse */
+        UserItemResponse: {
+            item: components["schemas"]["User"];
         };
         /** UserMemoryCreateRequest */
         UserMemoryCreateRequest: {
@@ -2893,6 +3434,11 @@ export interface components {
             workspace_id?: string | null;
             /** Default Project Id */
             default_project_id?: string | null;
+        };
+        /** UsersResponse */
+        UsersResponse: {
+            /** Items */
+            items: components["schemas"]["User"][];
         };
         /** ValidationError */
         ValidationError: {
@@ -3137,7 +3683,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemsResponse"];
+                    "application/json": components["schemas"]["UsersResponse"];
                 };
             };
         };
@@ -3161,7 +3707,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemResponse"];
+                    "application/json": components["schemas"]["UserItemResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3196,7 +3742,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemResponse"];
+                    "application/json": components["schemas"]["UserItemResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3260,7 +3806,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemsResponse"];
+                    "application/json": components["schemas"]["PermissionPoliciesResponse"];
                 };
             };
         };
@@ -3484,6 +4030,26 @@ export interface operations {
             };
         };
     };
+    chat_threads_api_chat_threads_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatThreadListResponse"];
+                };
+            };
+        };
+    };
     create_chat_thread_api_chat_threads_post: {
         parameters: {
             query?: never;
@@ -3572,6 +4138,68 @@ export interface operations {
             };
         };
     };
+    chat_turn_receipt_api_chat_messages_receipts__client_turn_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                client_turn_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatTurnReceiptView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chat_thread_detail_api_chat_threads__thread_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                thread_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatThreadDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     bootstrap_api_bootstrap_get: {
         parameters: {
             query?: never;
@@ -3607,7 +4235,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemsResponse"];
+                    "application/json": components["schemas"]["AgentsResponse"];
                 };
             };
         };
@@ -3735,7 +4363,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemsResponse"];
+                    "application/json": components["schemas"]["ToolsResponse"];
                 };
             };
         };
@@ -3755,7 +4383,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemsResponse"];
+                    "application/json": components["schemas"]["ModelsResponse"];
                 };
             };
         };
@@ -3812,7 +4440,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemsResponse"];
+                    "application/json": components["schemas"]["ToolsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3847,7 +4475,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemsResponse"];
+                    "application/json": components["schemas"]["ToolsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3964,9 +4592,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["O2StatusResponse"];
                 };
             };
         };
@@ -4113,7 +4739,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PaginatedResponse"];
+                    "application/json": components["schemas"]["BlackboardPostsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4129,7 +4755,9 @@ export interface operations {
     };
     blackboard_task_cards_api_blackboard_task_cards_get: {
         parameters: {
-            query?: never;
+            query: {
+                project_id: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4143,6 +4771,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BlackboardTaskCardsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    blackboard_task_detail_api_blackboard_tasks__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlackboardTaskDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4602,7 +5270,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemsResponse"];
+                    "application/json": components["schemas"]["MemoryItemsResponse"];
                 };
             };
         };
@@ -4726,9 +5394,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MemoryOverviewResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5155,7 +5821,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ItemsResponse"];
+                    "application/json": components["schemas"]["InboxItemsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5213,7 +5879,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BriefConfirmRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -5656,9 +6326,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["RiskPoliciesResponse"];
                 };
             };
         };
@@ -5759,7 +6427,9 @@ export interface operations {
     };
     activity_today_api_activity_today_get: {
         parameters: {
-            query?: never;
+            query: {
+                project_id: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5772,9 +6442,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ActivityTodayResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5798,9 +6475,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuditListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    insights_audit_events_api_insights_audit_get: {
+        parameters: {
+            query: {
+                project_id: string;
+                limit?: number;
+                action?: string | null;
+                target_type?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6058,9 +6767,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ProviderHealthCheckResponse"];
                 };
             };
         };

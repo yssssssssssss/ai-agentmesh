@@ -9,13 +9,7 @@ from fastapi.testclient import TestClient
 
 from agentmesh.app import app
 from agentmesh.chunker import chunk_text
-from agentmesh.models import (
-    DocumentRecord,
-    MemoryLayer,
-    Scope,
-    Source,
-    UserMemoryItem,
-)
+from agentmesh.models import DocumentRecord, MemoryLayer, Scope, Source
 from agentmesh.routes.documents import import_document_chunks
 from agentmesh.seed import PROJECT, USER, WORKSPACE
 from agentmesh.store import SQLiteStore, store

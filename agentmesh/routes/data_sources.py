@@ -74,6 +74,7 @@ def query_data_agent(request: DataSourceQueryRequest, user: User = Depends(curre
             scope=Scope.PROJECT,
             permission="project_visible",
             sources=[result.source],
+            metadata=result.metadata,
             read_by_agents=["personal_agent"],
         )
     )

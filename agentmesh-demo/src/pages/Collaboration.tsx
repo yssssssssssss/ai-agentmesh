@@ -1,199 +1,150 @@
 import { useState } from 'react'
-import {
-  Network,
-  Activity,
-  InboxIcon,
-  Users,
-  HeartHandshake,
-  CheckCircle2,
-  Clock,
-  ArrowRight,
-} from 'lucide-react'
-import { PageHeader } from '../components/ui/PageHeader'
-import { Tabs, type TabItem } from '../components/ui/Tabs'
-import { StatTile } from '../components/ui/StatTile'
-import { Badge } from '../components/ui/Badge'
-import { Avatar } from '../components/ui/Avatar'
-import { HelpRequestCard } from '../components/collaboration/HelpRequestCard'
+import { Activity, CheckCircle2, Network, RadioTower, RefreshCw, Users } from 'lucide-react'
+
+import { CollabTimelineDrawer } from '../components/collaboration/CollabTimelineDrawer'
 import { MyCollabCard } from '../components/collaboration/MyCollabCard'
 import { PeerCard } from '../components/collaboration/PeerCard'
-import { CollabTimelineDrawer } from '../components/collaboration/CollabTimelineDrawer'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
+import { PageHeader } from '../components/ui/PageHeader'
+import { StatTile } from '../components/ui/StatTile'
+import { Tabs, type TabItem } from '../components/ui/Tabs'
+import { useAuth } from '../features/auth/AuthProvider'
+import type { TaskCard } from '../features/collaboration/api'
 import {
-  COLLAB_OVERVIEW,
-  HELP_REQUESTS,
-  COMPLETED_COLLAB,
-  RECOMMENDED_PEERS,
-} from '../data/mockData'
-import { useDemo } from '../store/DemoContext'
+  collaborationErrorMessage,
+  useCollaborationMutations,
+  useMarketQueries,
+  useTaskCards,
+} from '../features/collaboration/queries'
 
 export function Collaboration() {
-  const { peopleHelped, wangchenAuthorized, authorizeWangchen, showToast } = useDemo()
-  const [tab, setTab] = useState('requests')
-  const [timelineOpen, setTimelineOpen] = useState(false)
-  const [localAuthorized, setLocalAuthorized] = useState<Set<string>>(new Set())
-  const [declined, setDeclined] = useState<Set<string>>(new Set())
+  const { user, bootstrap } = useAuth()
+  const context = {
+    userId: user?.id ?? '',
+    workspaceId: user?.workspace_id ?? '',
+    projectId: user?.default_project_id ?? '',
+  }
+  const [tab, setTab] = useState('active')
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const cardsQuery = useTaskCards(context)
+  const market = useMarketQueries(context, tab === 'market')
+  const mutations = useCollaborationMutations()
+  const cards = cardsQuery.data?.items ?? []
+  const mine = cards.filter((card) => card.initiated_by_current_user)
+  const active = cards.filter((card) => card.task.status !== 'completed')
+  const completed = cards.filter((card) => card.task.status === 'completed')
+  const controlled = cards.filter((card) => card.allowed_actions.length > 1)
+  const eligibleHandoffAgents = (bootstrap?.agents ?? []).filter((agent) => {
+    if (agent.workspace_id !== context.workspaceId || agent.status !== 'online') return false
+    if (!agent.owner_user_id) return agent.agent_type !== 'personal'
+    const owner = bootstrap?.users.find((candidate) => candidate.id === agent.owner_user_id)
+    const ownerId = owner?.id
+    if (!ownerId || owner.status !== 'active' || owner.workspace_id !== context.workspaceId) return false
+    return owner.default_project_id === context.projectId || (bootstrap?.project.member_ids ?? []).includes(ownerId)
+  })
 
   const tabs: TabItem[] = [
-    { key: 'requests', label: '向我求助', count: 3 },
-    { key: 'mine', label: '我发起的', count: 2 },
-    { key: 'ongoing', label: '协作中', count: 2 },
-    { key: 'done', label: '已完成', count: 8 },
-    { key: 'peers', label: '推荐数字分身' },
+    { key: 'active', label: '协作中', count: active.length },
+    { key: 'mine', label: '我发起的', count: mine.length },
+    { key: 'all', label: '全部任务', count: cards.length },
+    { key: 'done', label: '已完成', count: completed.length },
+    { key: 'market', label: '协作市场' },
   ]
+  const displayCards: TaskCard[] = tab === 'mine' ? mine : tab === 'done' ? completed : tab === 'all' ? cards : active
+  const marketError = market.status.error ?? market.board.error ?? market.participation.error
 
-  const isAuthorized = (id: string) => (id === 'req-wangchen' ? wangchenAuthorized : localAuthorized.has(id))
-
-  const handleAllow = (id: string) => {
-    if (id === 'req-wangchen') {
-      authorizeWangchen()
-    } else {
-      setLocalAuthorized((prev) => new Set(prev).add(id))
-      showToast('已允许引用，数字人会保留来源与适用范围')
+  const toggleParticipation = async () => {
+    setError(null)
+    setMessage(null)
+    try {
+      const next = !(market.participation.data?.enabled ?? false)
+      await mutations.participation.mutateAsync(next)
+      setMessage(next ? '已加入协作市场。' : '已退出协作市场。')
+    } catch (actionError) {
+      setError(collaborationErrorMessage(actionError))
     }
-  }
-
-  const handleDecline = (id: string) => {
-    setDeclined((prev) => new Set(prev).add(id))
-    showToast('已选择暂不共享', 'info')
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="协作网络"
-        subtitle="你的数字人如何调用他人经验，也展示你的经验如何帮助其他人。"
-      />
-
-      {/* 概览 */}
+      <PageHeader title="协作网络" subtitle="Task、Blackboard 时间线、执行锁、交接与市场参与均由服务端授权。" />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile label="协作进行中" value={COLLAB_OVERVIEW.ongoing} icon={<Activity className="h-4 w-4" />} tone="mint" />
-        <StatTile label="请求等待确认" value={COLLAB_OVERVIEW.pendingRequests} icon={<InboxIcon className="h-4 w-4" />} tone="remind" />
-        <StatTile label="本月帮助同事" value={peopleHelped} icon={<HeartHandshake className="h-4 w-4" />} tone="collab" />
-        <StatTile label="收到经验支持" value={COLLAB_OVERVIEW.receivedSupport} icon={<Users className="h-4 w-4" />} tone="knowledge" />
+        <StatTile label="可见任务" value={cards.length} icon={<Users className="h-4 w-4" />} tone="knowledge" />
+        <StatTile label="协作进行中" value={active.length} icon={<Activity className="h-4 w-4" />} tone="mint" />
+        <StatTile label="我发起的" value={mine.length} icon={<Network className="h-4 w-4" />} tone="collab" />
+        <StatTile label="可控制任务" value={controlled.length} icon={<CheckCircle2 className="h-4 w-4" />} tone="remind" />
       </div>
-
       <Tabs items={tabs} value={tab} onChange={setTab} />
 
-      {/* 向我求助 */}
-      {tab === 'requests' && (
-        <div className="space-y-4 animate-fade-in">
-          {HELP_REQUESTS.filter((r) => !declined.has(r.id)).map((r) => (
-            <HelpRequestCard
-              key={r.id}
-              request={r}
-              featured={r.id === 'req-wangchen'}
-              authorized={isAuthorized(r.id)}
-              onAllow={() => handleAllow(r.id)}
-              onDetail={() => setTimelineOpen(true)}
-              onDecline={() => handleDecline(r.id)}
-            />
+      {cardsQuery.error ? (
+        <div role="alert" className="flex items-center justify-between gap-3 rounded-[12px] border border-rose/25 bg-rose/10 p-4 text-sm text-rose">
+          <span>{collaborationErrorMessage(cardsQuery.error)}</span>
+          <Button size="sm" variant="subtle" icon={<RefreshCw className="h-4 w-4" />} onClick={() => void cardsQuery.refetch()}>重试</Button>
+        </div>
+      ) : null}
+      {error ? <p role="alert" className="rounded-[10px] border border-rose/25 bg-rose/10 px-4 py-3 text-sm text-rose">{error}</p> : null}
+      {message ? <p role="status" className="rounded-[10px] border border-mint-400/20 bg-mint-400/[0.06] px-4 py-3 text-sm text-mint-300">{message}</p> : null}
+
+      {tab !== 'market' ? (
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2" aria-label="协作任务">
+          {displayCards.map((card) => (
+            <MyCollabCard key={card.task.id} card={card} onDetail={() => setSelectedTaskId(card.task.id ?? null)} />
           ))}
-          {HELP_REQUESTS.every((r) => declined.has(r.id)) && (
-            <div className="card-base py-12 text-center text-sm text-slate-400">暂无待处理的求助</div>
-          )}
-        </div>
-      )}
-
-      {/* 我发起的 */}
-      {tab === 'mine' && (
-        <div className="space-y-4 animate-fade-in">
-          <MyCollabCard status="done" onDetail={() => setTimelineOpen(true)} />
-          <CompactCollab
-            title="确认 2026 首屏重点商品入口方案"
-            peer="王晨的数字人"
-            status="ongoing"
-            note="等待暑期主推品类清单"
-          />
-        </div>
-      )}
-
-      {/* 协作中 */}
-      {tab === 'ongoing' && (
-        <div className="space-y-4 animate-fade-in">
-          <CompactCollab title="查找 618 家电会场历史经验" peer="李明的数字人" status="ongoing" note="正在补充复盘细节" onDetail={() => setTimelineOpen(true)} />
-          <CompactCollab title="首屏入口点击口径二次确认" peer="王晨的数字人" status="ongoing" note="数据查询 Skill 处理中" />
-        </div>
-      )}
-
-      {/* 已完成 */}
-      {tab === 'done' && (
-        <div className="grid grid-cols-1 gap-3 animate-fade-in md:grid-cols-2">
-          {COMPLETED_COLLAB.map((c) => (
-            <div key={c.id} className="card-base flex items-center gap-4 p-4">
-              <Avatar name={c.peer} tone="knowledge" />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-slate-100">{c.title}</div>
-                <div className="text-xs text-slate-500">
-                  {c.peer} · {c.result}
+          {cardsQuery.isLoading ? <p className="text-sm text-slate-400">正在读取任务卡…</p> : null}
+          {!cardsQuery.isLoading && displayCards.length === 0 ? <div className="card-base col-span-full py-12 text-center text-sm text-slate-400">当前分类暂无可见任务。</div> : null}
+        </section>
+      ) : (
+        <section className="space-y-5" aria-label="协作市场">
+          {marketError ? <p role="alert" className="text-sm text-rose">{collaborationErrorMessage(marketError)}</p> : null}
+          <div className="card-base p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <RadioTower className="h-5 w-5 text-collab" />
+                  <h2 className="text-base font-semibold text-white">{market.status.data?.enabled ? '市场运行中' : '市场已关闭'}</h2>
+                  {market.polling ? <Badge tone="mint">30 秒轮询</Badge> : <Badge tone="neutral">轮询已暂停</Badge>}
                 </div>
+                <p className="mt-2 text-sm text-slate-400">仅在 Market 标签和文档同时可见时轮询。</p>
               </div>
-              <div className="flex flex-col items-end gap-1">
-                <Badge tone="mint" icon={<CheckCircle2 className="h-3 w-3" />}>
-                  已完成
-                </Badge>
-                <span className="text-[11px] text-slate-600">{c.time}</span>
-              </div>
+              {market.participation.data ? (
+                <Button loading={mutations.participation.isPending} variant={market.participation.data.enabled ? 'secondary' : 'primary'} onClick={() => void toggleParticipation()}>
+                  {market.participation.data.enabled ? '退出市场' : '加入市场'}
+                </Button>
+              ) : null}
             </div>
-          ))}
-        </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <WorkerStatus label="发布 Worker" worker={market.status.data?.publish_worker} />
+              <WorkerStatus label="发现 Worker" worker={market.status.data?.scout_worker} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {market.board.data?.signals.map((signal) => <PeerCard key={`${signal.owner_id}-${signal.created_at}`} signal={signal} />)}
+            {market.board.data && market.board.data.signals.length === 0 ? <div className="card-base col-span-full py-12 text-center text-sm text-slate-400">暂无市场信号。</div> : null}
+          </div>
+        </section>
       )}
 
-      {/* 推荐数字分身 */}
-      {tab === 'peers' && (
-        <div className="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2 xl:grid-cols-3">
-          {RECOMMENDED_PEERS.map((p) => (
-            <PeerCard key={p.id} peer={p} onCollab={() => showToast(`已向${p.name}发起协作请求`)} />
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-center gap-2 text-xs text-slate-600">
-        <Network className="h-3.5 w-3.5" />
-        经验引用全程可追溯，任何跨成员共享都需要经验拥有者本人授权。
-      </div>
-
-      <CollabTimelineDrawer open={timelineOpen} onClose={() => setTimelineOpen(false)} />
+      <div className="flex items-center gap-2 text-xs text-slate-600"><Network className="h-3.5 w-3.5" />页面只渲染 task detail 返回的 allowed_actions。</div>
+      <CollabTimelineDrawer
+        open={selectedTaskId !== null}
+        taskId={selectedTaskId}
+        context={context}
+        currentAgentId={user?.personal_agent_id ?? ''}
+        agents={eligibleHandoffAgents}
+        onClose={() => setSelectedTaskId(null)}
+      />
     </div>
   )
 }
 
-/** 紧凑协作条目 */
-function CompactCollab({
-  title,
-  peer,
-  status,
-  note,
-  onDetail,
-}: {
-  title: string
-  peer: string
-  status: 'ongoing' | 'done'
-  note: string
-  onDetail?: () => void
-}) {
+function WorkerStatus({ label, worker }: { label: string; worker?: { enabled: boolean; running: boolean; last_error: string | null } }) {
   return (
-    <div className="card-base flex items-center gap-4 p-4">
-      <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-knowledge/12 text-knowledge">
-        <Clock className="h-5 w-5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-slate-100">{title}</div>
-        <div className="text-xs text-slate-500">
-          {peer} · {note}
-        </div>
-      </div>
-      <Badge tone={status === 'done' ? 'mint' : 'knowledge'} dot>
-        {status === 'done' ? '已完成' : '协作中'}
-      </Badge>
-      {onDetail && (
-        <button
-          onClick={onDetail}
-          className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-white/[0.06] hover:text-slate-200"
-          aria-label="查看详情"
-        >
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      )}
+    <div className="rounded-[10px] border border-white/[0.06] bg-surface-1 p-3">
+      <div className="flex items-center justify-between gap-2"><span className="text-sm text-slate-200">{label}</span><Badge tone={worker?.running ? 'mint' : 'neutral'}>{worker?.running ? 'running' : worker?.enabled ? 'enabled' : 'disabled'}</Badge></div>
+      <p className={`mt-2 text-xs ${worker?.last_error ? 'text-rose' : 'text-slate-500'}`}>{worker?.last_error ?? '无错误'}</p>
     </div>
   )
 }
