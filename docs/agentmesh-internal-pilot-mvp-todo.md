@@ -387,9 +387,9 @@ cd ..
 
 | Task | Owner | Branch | Status | Commit | Tests/Evidence |
 | --- | --- | --- | --- | --- | --- |
-| M1 | M1SafeConfig | feat/internal-pilot-mvp-stabilization | code_complete_external_action_pending |  | 425 pytest; Ruff pass; key rotation external |
-| M2 | M2UserIsolation | feat/internal-pilot-mvp-stabilization | done |  | 425 pytest; Ruff pass; R1 approved |
-| M3 | M3Governance | feat/internal-pilot-mvp-stabilization | done |  | 425 pytest; Ruff pass; R1 approved |
+| M1 | M1SafeConfig | feat/internal-pilot-mvp-stabilization | code_complete_external_action_pending | 74841d2 | 425 pytest; Ruff pass; key rotation external |
+| M2 | M2UserIsolation | feat/internal-pilot-mvp-stabilization | done | 74841d2 | 425 pytest; Ruff pass; R1 approved |
+| M3 | M3Governance | feat/internal-pilot-mvp-stabilization | done | 74841d2 | 425 pytest; Ruff pass; R1 approved |
 | M4 |  |  | pending |  |  |
 | M5 |  |  | pending |  |  |
 | M6 |  |  | pending |  |  |
