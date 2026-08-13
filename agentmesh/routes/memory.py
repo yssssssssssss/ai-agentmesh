@@ -19,6 +19,7 @@ from agentmesh.models import (
     MemoryCreateRequest,
     MemoryItem,
     MemoryLayer,
+    MemoryRelation,
     MemoryStatus,
     MemoryUpdateRequest,
     ProjectArchiveRequest,
@@ -237,6 +238,42 @@ def archive_project_memory(
         project_id=project_id,
     )
     return ItemResponse(item=store.add_user_memory_item(item))
+
+
+@router.post("/user/{item_id}/share-to-project", response_model=ItemResponse)
+def share_user_memory_to_project(item_id: str, user: User = Depends(current_user)) -> ItemResponse:
+    """Share a personal memory to project scope so all project members can see it."""
+    source_item = store.get_user_memory_item(item_id)
+    if source_item is None or source_item.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Memory not found")
+
+    if source_item.project_id is None:
+        raise HTTPException(status_code=400, detail="Memory has no associated project")
+
+    project = store.get_project(source_item.project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    shared = MemoryItem(
+        title=source_item.title,
+        summary=source_item.summary,
+        memory_type=source_item.memory_type,
+        scope=Scope.PROJECT,
+        status=MemoryStatus.ACCEPTED,
+        workspace_id=source_item.workspace_id,
+        project_id=source_item.project_id,
+        sources=source_item.sources,
+    )
+    store.add_memory_item(shared)
+
+    store.add_memory_relation(
+        MemoryRelation(
+            from_memory_id=shared.id,
+            to_source_id=source_item.id,
+            relation_type="shared_from_personal",
+        )
+    )
+    return ItemResponse(item=shared)
 
 
 @router.patch("/{item_id}", response_model=ItemResponse)

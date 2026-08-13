@@ -43,6 +43,7 @@ PROJECT = Project(
     workspace_id=WORKSPACE.id,
     name="618 家电会场首页改版",
     goal="复用团队经验，提升大促会场首屏入口效率和 Brief 生成质量。",
+    member_ids=["usr_current_designer", "usr_team_lead", "usr_admin"],
 )
 
 USER = User(

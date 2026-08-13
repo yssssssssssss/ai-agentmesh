@@ -70,6 +70,8 @@ def search_items(
     workspace_id: str | None = None,
     project_id: str | None = None,
     visibility: str = "personal",
+    limit: int = Query(default=20, ge=1, le=100),
+    max_chars: int = Query(default=8000, ge=100, le=50000),
     user: User = Depends(current_user),
 ) -> dict[str, list[SearchResult]]:
     allowed_scopes = SEARCH_VISIBILITY_SCOPES.get(visibility)
@@ -82,6 +84,8 @@ def search_items(
             workspace_id=workspace_id or WORKSPACE.id,
             project_id=project_id or PROJECT.id,
             user_id=user.id,
+            max_results=limit,
+            max_chars=max_chars,
         )
     }
 

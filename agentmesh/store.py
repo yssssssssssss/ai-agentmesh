@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from dataclasses import dataclass
 from datetime import date as dt_date
+from datetime import datetime
 from pathlib import Path
 from typing import TypeVar
 
@@ -42,6 +44,7 @@ from agentmesh.models import (
     ToolDefinition,
     User,
     UserMemoryItem,
+    UserRole,
     Workspace,
 )
 
@@ -50,6 +53,130 @@ ModelT = TypeVar("ModelT", bound=BaseModel)
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DB_PATH = ROOT_DIR / "data" / "agentmesh.sqlite3"
 
+# --- FTS5 infrastructure ---
+
+_FTS_COLLECTIONS = frozenset(
+    {"chat_messages", "activity_logs", "blackboard_posts", "memory_items", "user_memory_items", "documents"}
+)
+
+
+@dataclass(slots=True)
+class _FTSDoc:
+    collection: str
+    record_id: str
+    title: str
+    body: str
+    scope: str
+    workspace_id: str
+    project_id: str
+    user_id: str
+    created_at: str
+
+
+def _extract_fts_doc(collection: str, item: BaseModel) -> _FTSDoc | None:
+    """Extract searchable fields from an item for FTS indexing."""
+    if collection not in _FTS_COLLECTIONS:
+        return None
+
+    scope = ""
+    workspace_id = ""
+    project_id = ""
+    user_id = ""
+    title = ""
+    body = ""
+    created_at = ""
+
+    if collection == "chat_messages":
+        title = "对话记录"
+        body = getattr(item, "content", "")
+        scope = getattr(item, "scope", "")
+        created_at = _dt_str(getattr(item, "created_at", None))
+    elif collection == "activity_logs":
+        title = getattr(item, "title", "")
+        body = getattr(item, "summary", "")
+        scope = getattr(item, "scope", "")
+        workspace_id = getattr(item, "workspace_id", "") or ""
+        project_id = getattr(item, "project_id", "") or ""
+        created_at = _dt_str(getattr(item, "created_at", None))
+    elif collection == "blackboard_posts":
+        title = getattr(item, "title", "")
+        body = getattr(item, "content", "")
+        scope = getattr(item, "scope", "")
+        created_at = _dt_str(getattr(item, "created_at", None))
+    elif collection == "memory_items":
+        title = getattr(item, "title", "")
+        body = getattr(item, "summary", "")
+        scope = getattr(item, "scope", "")
+        workspace_id = getattr(item, "workspace_id", "") or ""
+        project_id = getattr(item, "project_id", "") or ""
+        created_at = _dt_str(getattr(item, "created_at", None))
+    elif collection == "user_memory_items":
+        title = getattr(item, "title", "")
+        summary = getattr(item, "summary", "")
+        memory_type = getattr(item, "memory_type", "")
+        body = f"{summary} {memory_type}"
+        scope = getattr(item, "scope", "")
+        workspace_id = getattr(item, "workspace_id", "") or ""
+        project_id = getattr(item, "project_id", "") or ""
+        user_id = getattr(item, "user_id", "") or ""
+        created_at = _dt_str(getattr(item, "created_at", None))
+    elif collection == "documents":
+        title = getattr(item, "title", "")
+        file_name = getattr(item, "file_name", "")
+        text = getattr(item, "text", "")
+        body = f"{file_name} {text[:2000]}"
+        scope = str(Scope.PRIVATE)
+        workspace_id = getattr(item, "workspace_id", "") or ""
+        project_id = getattr(item, "project_id", "") or ""
+        user_id = getattr(item, "uploaded_by", "") or ""
+        created_at = _dt_str(getattr(item, "created_at", None))
+
+    if isinstance(scope, Scope):
+        scope = scope.value
+
+    return _FTSDoc(
+        collection=collection,
+        record_id=getattr(item, "id", ""),
+        title=title,
+        body=body,
+        scope=str(scope),
+        workspace_id=workspace_id,
+        project_id=project_id,
+        user_id=user_id,
+        created_at=created_at,
+    )
+
+
+def _dt_str(val: datetime | None) -> str:
+    if val is None:
+        return ""
+    return val.isoformat()
+
+
+def _build_fts_query(needle: str) -> str:
+    """Build a FTS5 MATCH query from user input, escaping special characters."""
+    tokens = [f'"{t.replace(chr(34), chr(34) * 2)}"' for t in needle.split() if t]
+    if not tokens:
+        return f'"{needle}"'
+    return " ".join(tokens)
+
+
+def _can_use_fts_match(needle: str) -> bool:
+    """FTS5 trigram silently ignores tokens shorter than 3 chars, causing false positives.
+    Only use MATCH when all whitespace-separated tokens are >= 3 chars."""
+    tokens = needle.split()
+    return bool(tokens) and all(len(t) >= 3 for t in tokens)
+
+
+_FTS_COLLECTION_MODELS: dict[str, type[BaseModel]] = {
+    "chat_messages": ChatMessage,
+    "activity_logs": ActivityLog,
+    "blackboard_posts": BlackboardPost,
+    "memory_items": MemoryItem,
+    "user_memory_items": UserMemoryItem,
+    "documents": DocumentRecord,
+}
+
 
 class SQLiteStore:
     def __init__(self, db_path: str | Path | None = None):
@@ -57,6 +184,7 @@ class SQLiteStore:
         self.db_path = Path(configured_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
+        self._backfill_fts()
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.db_path)
@@ -84,10 +212,27 @@ class SQLiteStore:
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_records_collection ON records(collection, created_order)"
         )
+        connection.execute(
+            """
+            CREATE VIRTUAL TABLE IF NOT EXISTS records_fts USING fts5(
+                collection UNINDEXED,
+                record_id UNINDEXED,
+                title,
+                body,
+                scope UNINDEXED,
+                workspace_id UNINDEXED,
+                project_id UNINDEXED,
+                user_id UNINDEXED,
+                created_at UNINDEXED,
+                tokenize='trigram'
+            )
+            """
+        )
 
     def reset(self) -> None:
         with self._connect() as connection:
             connection.execute("DELETE FROM records")
+            connection.execute("DELETE FROM records_fts")
 
     def _upsert(self, collection: str, item: BaseModel) -> None:
         with self._connect() as connection:
@@ -100,6 +245,43 @@ class SQLiteStore:
                 """,
                 (collection, item.id, item.model_dump_json()),
             )
+            self._sync_fts(connection, collection, item)
+
+    def _sync_fts(self, connection: sqlite3.Connection, collection: str, item: BaseModel) -> None:
+        doc = _extract_fts_doc(collection, item)
+        if doc is None:
+            return
+        connection.execute(
+            "DELETE FROM records_fts WHERE collection = ? AND record_id = ?",
+            (doc.collection, doc.record_id),
+        )
+        connection.execute(
+            "INSERT INTO records_fts(collection, record_id, title, body, scope, workspace_id, project_id, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (doc.collection, doc.record_id, doc.title, doc.body, doc.scope, doc.workspace_id, doc.project_id, doc.user_id, doc.created_at),
+        )
+
+    def _backfill_fts(self) -> None:
+        """Rebuild FTS index from records if out of sync."""
+        with self._connect() as connection:
+            placeholders = ",".join(f"'{c}'" for c in _FTS_COLLECTIONS)
+            records_count = connection.execute(
+                f"SELECT COUNT(*) FROM records WHERE collection IN ({placeholders})"
+            ).fetchone()[0]
+            fts_count = connection.execute("SELECT COUNT(*) FROM records_fts").fetchone()[0]
+            if fts_count >= records_count:
+                return
+            connection.execute("DELETE FROM records_fts")
+            rows = connection.execute(
+                f"SELECT collection, payload FROM records WHERE collection IN ({placeholders}) ORDER BY created_order"
+            ).fetchall()
+            for row in rows:
+                collection = row["collection"]
+                payload = row["payload"]
+                model_cls = _FTS_COLLECTION_MODELS.get(collection)
+                if model_cls is None:
+                    continue
+                item = model_cls.model_validate_json(payload)
+                self._sync_fts(connection, collection, item)
 
     def _get(self, collection: str, item_id: str, model: type[ModelT]) -> ModelT | None:
         with self._connect() as connection:
@@ -561,39 +743,62 @@ class SQLiteStore:
         workspace_id: str | None = None,
         project_id: str | None = None,
         user_id: str | None = None,
+        max_results: int = 20,
+        max_chars: int = 8000,
     ) -> list[SearchResult]:
-        needle = query.strip().lower()
+        needle = query.strip()
         if not needle:
             return []
 
+        scope_values = [s.value for s in allowed_scopes]
+        placeholders = ",".join("?" for _ in scope_values)
+
+        with self._connect() as connection:
+            rows = self._fts_match(connection, needle, scope_values, placeholders)
+            if not rows:
+                rows = self._fts_like_fallback(connection, needle, scope_values, placeholders)
+
+        if not rows:
+            return []
+
         results: list[SearchResult] = []
-        threads_by_id = {thread.id: thread for thread in self.chat_threads}
-        tasks_by_id = {task.id: task for task in self.tasks}
-        for message in self.chat_messages:
-            thread = threads_by_id.get(message.thread_id)
-            if (
-                message.scope in allowed_scopes
-                and self._thread_matches(thread, workspace_id, project_id)
-                and self._matches(needle, message.content)
-            ):
+        threads_by_id: dict[str, ChatThread] | None = None
+        tasks_by_id: dict[str, Task] | None = None
+
+        for row in rows:
+            collection = row["collection"]
+            record_id = row["record_id"]
+            row_workspace_id = row["workspace_id"] or None
+            row_project_id = row["project_id"] or None
+            row_user_id = row["user_id"] or None
+
+            if collection == "chat_messages":
+                if threads_by_id is None:
+                    threads_by_id = {thread.id: thread for thread in self.chat_threads}
+                msg = self._get("chat_messages", record_id, ChatMessage)
+                if msg is None:
+                    continue
+                thread = threads_by_id.get(msg.thread_id)
+                if not self._thread_matches(thread, workspace_id, project_id):
+                    continue
                 results.append(
                     SearchResult(
-                        id=message.id,
+                        id=msg.id,
                         result_type="chat_message",
                         title="对话记录",
-                        summary=message.content,
-                        scope=message.scope,
-                        sources=message.sources,
-                        created_at=message.created_at,
+                        summary=msg.content,
+                        scope=msg.scope,
+                        sources=msg.sources,
+                        created_at=msg.created_at,
                     )
                 )
 
-        for log in self.activity_logs:
-            if (
-                log.scope in allowed_scopes
-                and self._project_fields_match(log.workspace_id, log.project_id, workspace_id, project_id)
-                and self._matches(needle, log.title, log.summary)
-            ):
+            elif collection == "activity_logs":
+                if not self._project_fields_match(row_workspace_id, row_project_id, workspace_id, project_id):
+                    continue
+                log = self._get("activity_logs", record_id, ActivityLog)
+                if log is None:
+                    continue
                 results.append(
                     SearchResult(
                         id=log.id,
@@ -605,15 +810,18 @@ class SQLiteStore:
                     )
                 )
 
-        for post in self.blackboard_posts:
-            task = tasks_by_id.get(post.task_id)
-            thread = threads_by_id.get(task.thread_id) if task else None
-            if (
-                post.scope in allowed_scopes
-                and post.post_type == BlackboardPostType.EVIDENCE
-                and self._thread_matches(thread, workspace_id, project_id)
-                and self._matches(needle, post.title, post.content)
-            ):
+            elif collection == "blackboard_posts":
+                post = self._get("blackboard_posts", record_id, BlackboardPost)
+                if post is None or post.post_type != BlackboardPostType.EVIDENCE:
+                    continue
+                if threads_by_id is None:
+                    threads_by_id = {thread.id: thread for thread in self.chat_threads}
+                if tasks_by_id is None:
+                    tasks_by_id = {task.id: task for task in self.tasks}
+                task = tasks_by_id.get(post.task_id)
+                thread = threads_by_id.get(task.thread_id) if task else None
+                if not self._thread_matches(thread, workspace_id, project_id):
+                    continue
                 results.append(
                     SearchResult(
                         id=post.id,
@@ -626,12 +834,15 @@ class SQLiteStore:
                     )
                 )
 
-        for item in self.memory_items:
-            if (
-                item.scope in allowed_scopes
-                and self._project_fields_match(item.workspace_id, item.project_id, workspace_id, project_id)
-                and self._matches(needle, item.title, item.summary)
-            ):
+            elif collection == "memory_items":
+                if not self._project_fields_match(row_workspace_id, row_project_id, workspace_id, project_id):
+                    continue
+                item = self._get("memory_items", record_id, MemoryItem)
+                if item is None:
+                    continue
+                if item.scope == Scope.PROJECT and user_id and item.project_id:
+                    if not self._user_can_access_project(user_id, item.project_id):
+                        continue
                 results.append(
                     SearchResult(
                         id=item.id,
@@ -644,48 +855,106 @@ class SQLiteStore:
                     )
                 )
 
-        if Scope.PRIVATE in allowed_scopes and user_id is not None:
-            for item in self.user_memory_items:
-                if (
-                    item.user_id == user_id
-                    and self._project_fields_match(item.workspace_id, item.project_id, workspace_id, project_id)
-                    and self._matches(needle, item.title, item.summary, item.memory_type)
-                ):
-                    results.append(
-                        SearchResult(
-                            id=item.id,
-                            result_type="user_memory_item",
-                            title=item.title,
-                            summary=item.summary,
-                            scope=item.scope,
-                            sources=item.sources,
-                            created_at=item.created_at,
-                        )
+            elif collection == "user_memory_items":
+                if Scope.PRIVATE not in allowed_scopes or user_id is None:
+                    continue
+                if row_user_id != user_id:
+                    continue
+                if not self._project_fields_match(row_workspace_id, row_project_id, workspace_id, project_id):
+                    continue
+                item = self._get("user_memory_items", record_id, UserMemoryItem)
+                if item is None:
+                    continue
+                results.append(
+                    SearchResult(
+                        id=item.id,
+                        result_type="user_memory_item",
+                        title=item.title,
+                        summary=item.summary,
+                        scope=item.scope,
+                        sources=item.sources,
+                        created_at=item.created_at,
                     )
+                )
 
-            for document in self.documents:
-                if (
-                    document.uploaded_by == user_id
-                    and self._project_fields_match(document.workspace_id, document.project_id, workspace_id, project_id)
-                    and self._matches(needle, document.title, document.file_name, document.text)
-                ):
-                    results.append(
-                        SearchResult(
-                            id=document.id,
-                            result_type="document",
-                            title=document.title,
-                            summary=document.text[:500],
-                            scope=Scope.PRIVATE,
-                            sources=[document.source],
-                            created_at=document.created_at,
-                        )
+            elif collection == "documents":
+                if Scope.PRIVATE not in allowed_scopes or user_id is None:
+                    continue
+                if row_user_id != user_id:
+                    continue
+                if not self._project_fields_match(row_workspace_id, row_project_id, workspace_id, project_id):
+                    continue
+                document = self._get("documents", record_id, DocumentRecord)
+                if document is None:
+                    continue
+                results.append(
+                    SearchResult(
+                        id=document.id,
+                        result_type="document",
+                        title=document.title,
+                        summary=document.text[:500],
+                        scope=Scope.PRIVATE,
+                        sources=[document.source],
+                        created_at=document.created_at,
                     )
+                )
 
-        return sorted(results, key=lambda result: result.created_at, reverse=True)
+        sorted_results = sorted(results, key=lambda result: result.created_at, reverse=True)
+        return self._apply_budget(sorted_results, max_results, max_chars)
 
     @staticmethod
-    def _matches(needle: str, *values: str) -> bool:
-        return any(needle in value.lower() for value in values)
+    def _apply_budget(results: list[SearchResult], max_results: int, max_chars: int) -> list[SearchResult]:
+        output: list[SearchResult] = []
+        chars_used = 0
+        for result in results:
+            if len(output) >= max_results:
+                break
+            result_chars = len(result.title) + len(result.summary)
+            if chars_used + result_chars > max_chars and output:
+                break
+            output.append(result)
+            chars_used += result_chars
+        return output
+
+    @staticmethod
+    def _fts_match(
+        connection: sqlite3.Connection, needle: str, scope_values: list[str], placeholders: str
+    ) -> list[sqlite3.Row]:
+        if not _can_use_fts_match(needle):
+            return []
+        fts_query = _build_fts_query(needle)
+        try:
+            return connection.execute(
+                f"""
+                SELECT collection, record_id, scope, workspace_id, project_id,
+                       user_id, created_at, bm25(records_fts) AS score
+                FROM records_fts
+                WHERE records_fts MATCH ?
+                  AND scope IN ({placeholders})
+                ORDER BY score
+                LIMIT 200
+                """,
+                [fts_query, *scope_values],
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return []
+
+    @staticmethod
+    def _fts_like_fallback(
+        connection: sqlite3.Connection, needle: str, scope_values: list[str], placeholders: str
+    ) -> list[sqlite3.Row]:
+        like_pattern = f"%{needle}%"
+        return connection.execute(
+            f"""
+            SELECT collection, record_id, scope, workspace_id, project_id,
+                   user_id, created_at
+            FROM records_fts
+            WHERE (title LIKE ? OR body LIKE ?)
+              AND scope IN ({placeholders})
+            LIMIT 200
+            """,
+            [like_pattern, like_pattern, *scope_values],
+        ).fetchall()
 
     @staticmethod
     def _thread_matches(thread: ChatThread | None, workspace_id: str | None, project_id: str | None) -> bool:
@@ -703,6 +972,17 @@ class SQLiteStore:
         if workspace_id is not None and item_workspace_id != workspace_id:
             return False
         return not (project_id is not None and item_project_id != project_id)
+
+    def _user_can_access_project(self, user_id: str, project_id: str) -> bool:
+        project = self.get_project(project_id)
+        if project is None:
+            return False
+        if not project.member_ids:
+            return True
+        user = self.get_user(user_id)
+        if user and user.role in (UserRole.ADMIN, UserRole.TEAM_LEAD):
+            return True
+        return user_id in project.member_ids
 
 
 store = SQLiteStore()

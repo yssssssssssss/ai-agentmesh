@@ -100,6 +100,7 @@ class Project(BaseModel):
     workspace_id: str
     name: str
     goal: str
+    member_ids: list[str] = Field(default_factory=list)
     status: str = "active"
     created_at: datetime = Field(default_factory=now_utc)
     updated_at: datetime = Field(default_factory=now_utc)
