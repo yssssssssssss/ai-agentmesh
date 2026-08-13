@@ -24,6 +24,7 @@ from agentmesh.models import (
     MemoryUpdateRequest,
     ProjectArchiveRequest,
     ProjectMemorySummaryRequest,
+    RetrievalMetrics,
     Scope,
     User,
     UserMemoryCreateRequest,
@@ -556,3 +557,30 @@ def _project_memory_prompt(project_id: str, items: list[UserMemoryItem]) -> str:
     if len(ordered) > 20:
         lines.append(f"- 另有 {len(ordered) - 20} 条短期记忆未展开。")
     return "\n".join(lines)[:6000]
+
+
+@router.get("/retrieval-metrics")
+def retrieval_metrics_list(
+    limit: int = Query(default=50, ge=1, le=200),
+    user: User = Depends(current_user),
+) -> dict[str, object]:
+    """Return recent retrieval metrics for recall quality analysis."""
+    all_metrics = sorted(store.retrieval_metrics, key=lambda m: m.created_at, reverse=True)
+    items = all_metrics[:limit]
+    if not items:
+        return {"items": [], "summary": {"total": 0, "avg_citation_rate": 0.0, "avg_latency_ms": 0}}
+    total = len(items)
+    total_returned = sum(m.results_returned for m in items)
+    total_cited = sum(m.results_cited for m in items)
+    avg_citation_rate = total_cited / total_returned if total_returned > 0 else 0.0
+    avg_latency_ms = sum(m.latency_ms for m in items) / total
+    return {
+        "items": [m.model_dump() for m in items],
+        "summary": {
+            "total": total,
+            "avg_citation_rate": round(avg_citation_rate, 3),
+            "avg_latency_ms": round(avg_latency_ms, 1),
+            "total_returned": total_returned,
+            "total_cited": total_cited,
+        },
+    }

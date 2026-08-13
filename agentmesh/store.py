@@ -33,6 +33,7 @@ from agentmesh.models import (
     ModelDefinition,
     PermissionPolicyRule,
     Project,
+    RetrievalMetrics,
     RiskPolicyRule,
     ScheduledAgentTaskDefinition,
     Scope,
@@ -487,6 +488,14 @@ class SQLiteStore:
     @property
     def memory_relations(self) -> list[MemoryRelation]:
         return self._list("memory_relations", MemoryRelation)
+
+    @property
+    def retrieval_metrics(self) -> list[RetrievalMetrics]:
+        return self._list("retrieval_metrics", RetrievalMetrics)
+
+    def add_retrieval_metrics(self, metrics: RetrievalMetrics) -> RetrievalMetrics:
+        self._upsert("retrieval_metrics", metrics)
+        return metrics
 
     @property
     def market_participations(self) -> list[MarketParticipation]:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from dataclasses import dataclass, field
 from typing import NoReturn
 
@@ -37,6 +38,7 @@ from agentmesh.models import (
     MemoryItem,
     MemoryLayer,
     MemoryRelation,
+    RetrievalMetrics,
     Scope,
     SearchResult,
     Source,
@@ -76,6 +78,7 @@ class _ChatTurnState:
     memory_items: list[MemoryItem] = field(default_factory=list)
     user_memory_items: list[UserMemoryItem] = field(default_factory=list)
     pending_tool_approval: bool = False
+    retrieval_metrics: RetrievalMetrics | None = None
 
 
 class RequestAlreadyFulfilledError(RuntimeError):
@@ -312,6 +315,16 @@ class PersonalAgent:
             workflow_trace.llm_used = synthesis.llm_used
             workflow_trace.fallback_reason = synthesis.fallback_reason
 
+        if state.retrieval_metrics is not None:
+            state.retrieval_metrics.llm_used = workflow_trace.llm_used if workflow_trace else False
+            state.retrieval_metrics.results_cited = self._count_cited_sources(
+                assistant_content, state.retrieval_metrics.source_ids_returned
+            )
+            state.retrieval_metrics.source_ids_cited = self._find_cited_source_ids(
+                assistant_content, state.retrieval_metrics.source_ids_returned
+            )
+            self.repository.add_retrieval_metrics(state.retrieval_metrics)
+
         state.activity_logs.append(
             self._activity(
                 title="处理了一条用户请求",
@@ -439,7 +452,19 @@ class PersonalAgent:
         )
 
     def _handle_memory_search(self, task: Task, content: str, user: User, state: _ChatTurnState) -> None:
+        t0 = time.perf_counter()
         results = self._search_team_brain(content, user)
+        latency_ms = int((time.perf_counter() - t0) * 1000)
+
+        source_ids = [r.id for r in results]
+        state.retrieval_metrics = RetrievalMetrics(
+            query_text=content[:200],
+            user_id=user.id,
+            results_returned=len(results),
+            source_ids_returned=source_ids,
+            latency_ms=latency_ms,
+        )
+
         if results:
             state.evidence_post = self._create_memory_search_evidence(task, results)
             state.synthesis_evidence_post = state.evidence_post
@@ -532,6 +557,24 @@ class PersonalAgent:
             r for r in results
             if r.result_type in {"user_memory_item", "memory_item", "document", "blackboard_evidence"}
         ]
+
+    @staticmethod
+    def _count_cited_sources(llm_output: str, source_ids: list[str]) -> int:
+        """Count how many returned sources were referenced in the LLM output."""
+        if not llm_output or not source_ids:
+            return 0
+        return len(PersonalAgent._find_cited_source_ids(llm_output, source_ids))
+
+    @staticmethod
+    def _find_cited_source_ids(llm_output: str, source_ids: list[str]) -> list[str]:
+        """Find source IDs whose content appears referenced in LLM output."""
+        if not llm_output:
+            return []
+        cited: list[str] = []
+        for source_id in source_ids:
+            if source_id in llm_output:
+                cited.append(source_id)
+        return cited
 
     def _memory_search_pool(self, user: User) -> list[SearchResult]:
         results: list[SearchResult] = []

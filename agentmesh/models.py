@@ -796,6 +796,21 @@ class BootstrapState(BaseModel):
     metrics: BootstrapMetrics
 
 
+class RetrievalMetrics(BaseModel):
+    """Tracks search recall quality for optimization feedback loop."""
+
+    id: str = Field(default_factory=lambda: new_id("rmet"))
+    query_text: str
+    user_id: str
+    results_returned: int
+    results_cited: int = 0
+    source_ids_returned: list[str] = Field(default_factory=list)
+    source_ids_cited: list[str] = Field(default_factory=list)
+    latency_ms: int = 0
+    llm_used: bool = False
+    created_at: datetime = Field(default_factory=now_utc)
+
+
 class ChatWorkflowTrace(BaseModel):
     intent: Intent
     confidence: float
