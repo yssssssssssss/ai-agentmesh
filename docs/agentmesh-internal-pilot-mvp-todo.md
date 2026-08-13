@@ -353,7 +353,7 @@ Done when: React 是默认 UI，生产代码没有本地业务 mock。
 - [x] User/Team Lead/Admin production-like smoke
 - [x] Restart/persistence smoke
 - [x] README/CONTEXT 更新
-- [ ] Final commit/evidence 记录
+- [x] Final commit/evidence 记录
 
 External release blocker observed 2026-08-14: `provider_smoke.py --embedding --o2 --web --data --llm` exited 1; all five providers reported `configured=false`, `ready=false`, `mode=fallback`. Release remains blocked until an approved internal host supplies the required credentials/CLIs and all five report real/ready. GitHub CI must also complete after the commit is published.
 
@@ -399,7 +399,7 @@ cd ..
 | M8 | M8KnowledgeCollaboration + Main | feat/internal-pilot-mvp-stabilization | done | 9231c9a | Atomic Brief governance; handoff control; Governance/Collaboration E2E; R3 approved |
 | M9 | M9ReadModelsAdmin + Main | feat/internal-pilot-mvp-stabilization | done | 9231c9a | Project-scoped read models; Admin capabilities; real-handler E2E; R3 approved |
 | M10 | Main | feat/internal-pilot-mvp-stabilization | done | cf14e51 | Mock state removed; parity E2E; 23 Playwright; 487 pytest; Ruff; Vitest/build |
-| M11 | Main | feat/internal-pilot-mvp-stabilization | code_complete_external_gates_pending | pending | CI/hygiene complete; clean install + PDF 13; 487 pytest; Ruff; 7 Vitest; build; 23 Playwright; real Providers unconfigured |
+| M11 | Main | feat/internal-pilot-mvp-stabilization | code_complete_external_gates_pending | 5b6e337 | CI/hygiene complete; clean install + PDF 13; 487 pytest; Ruff; 7 Vitest; build; 23 Playwright; real Providers unconfigured |
 
 ## Review and Release Ledger
 

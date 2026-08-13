@@ -432,7 +432,7 @@ Acceptance: delegated collaboration 从请求到采纳完整可达并幂等。
 - [ ] CONTEXT capability 状态正确
 - [ ] ADR 与 vector 实现一致
 - [x] Clean install PDF smoke 通过
-- [ ] Commit 已记录
+- [x] Commit 已记录
 
 Dependencies: T1, T19, T20-T22  
 Acceptance: 干净 clone 按 README 可安装、运行和验证，文档无过时事实。
@@ -449,7 +449,7 @@ Acceptance: 干净 clone 按 README 可安装、运行和验证，文档无过�
 - [ ] Dependency audit
 - [x] Security denial paths coverage
 - [x] Worker/concurrency tests 纳入 CI
-- [ ] Commit 已记录
+- [x] Commit 已记录
 
 Dependencies: T1-T23  
 Acceptance: PR 无法在任一必需门禁失败时合并。
