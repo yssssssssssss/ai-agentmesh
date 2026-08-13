@@ -7,6 +7,17 @@ MVP scope decisions: `docs/adr/0003-mvp-scope-answer-only-gateway.md`.
 
 Legend: ✅ works · ⚠️ convention/partial · ❌ absent (design-only).
 
+## 前端术语约定 / Frontend terminology
+
+后续对话与文档中,"新前端"/"旧前端"固定指代以下两处,不得混用:
+
+- **新前端** — `agentmesh-demo/`。React 19 + Vite + Tailwind + TanStack Query 的
+  TypeScript 单页应用;FastAPI 从 `agentmesh-demo/dist` 同源托管。是未来唯一前端,
+  完整替换设计见 `docs/superpowers/specs/2026-08-11-react-frontend-complete-replacement-design.md`。
+- **旧前端** — 项目根目录的 `app.html`。单文件深色工作台,无任何构建步骤,
+  `agentmesh/app.py:93` 以 `FileResponse` 直接 serve。等价切换完成后按计划退役
+  (先迁至 `/legacy/app.html` 保留一个发布周期,再删除)。
+
 ## Terms
 
 - **数字分身 / Digital Twin (PersonalAgent)** — the single agent representing one person.
