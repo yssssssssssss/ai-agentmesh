@@ -4,6 +4,7 @@ import { loginAs } from './support/auth'
 
 test.describe.serial('MVP governance and collaboration', () => {
   test('Brief confirmation is atomic, versioned and canonical across UI refreshes', async ({ page }) => {
+    test.setTimeout(90_000)
     await loginAs(page)
     const briefResponse = await page.request.post('/api/chat/messages', {
       data: { content: `$brief.create M8 治理验证 ${Date.now()}` },

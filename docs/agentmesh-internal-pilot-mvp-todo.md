@@ -43,9 +43,9 @@
 | Wave 1 | M1 + M2 + M3 | approved_external_rotation_pending | R1 Security Boundary |
 | Wave 2 | M4 | approved | R2 Availability + React Foundation |
 | Wave 3 | M5 + M6 | approved | R2 Availability + React Foundation |
-| Wave 4 | M7 + M8 + M9 | pending | R3 Browser Main Flows |
-| Wave 5 | M10 | pending | Final Gate 前置 |
-| Wave 6 | M11 | pending | Final Release Gate |
+| Wave 4 | M7 + M8 + M9 | approved | R3 Browser Main Flows |
+| Wave 5 | M10 | done | Final Gate 前置 |
+| Wave 6 | M11 | code_complete_external_gates_pending | Final Release Gate |
 
 ---
 
@@ -224,75 +224,75 @@ npm run test:e2e -- e2e/auth-shell.spec.ts
 
 ## M7 Connect Workspace and Real Provider Traces
 
-- [ ] Threads list/detail/create
-- [ ] Natural chat mutation
-- [ ] Explicit `$` Skill
-- [ ] Pending/failed/retry state
-- [ ] Document upload/job status
-- [ ] Search
-- [ ] Source/detail panel
-- [ ] Actual provider/mode/latency/fallback
-- [ ] Refresh persistence
-- [ ] Provider failure 不显示成功
-- [ ] Workspace E2E 通过
-- [ ] Backend chat/doc/search/provider tests 通过
-- [ ] Commit/Evidence 记录
+- [x] Threads list/detail/create
+- [x] Natural chat mutation
+- [x] Explicit `$` Skill
+- [x] Pending/failed/retry state
+- [x] Document upload/job status
+- [x] Search
+- [x] Source/detail panel
+- [x] Actual provider/mode/latency/fallback
+- [x] Refresh persistence
+- [x] Provider failure 不显示成功
+- [x] Workspace E2E 通过
+- [x] Backend chat/doc/search/provider tests 通过
+- [x] Commit/Evidence 记录
 
 Dependencies: M2, M4-M6  
 Done when: Workspace 没有 timer 假成功，真实 Provider 来源可见并可刷新恢复。
 
 ## M8 Connect Knowledge and Collaboration Core
 
-- [ ] Inbox list/counts
-- [ ] Brief confirm
-- [ ] Snooze/resolve
-- [ ] Team Lead accept candidate
-- [ ] Prompt injection review
-- [ ] Task cards/detail
-- [ ] Reply
-- [ ] Lock/unlock
-- [ ] Handoff
-- [ ] Market status/participation
-- [ ] Allowed actions 驱动按钮
-- [ ] 移除 DemoContext/local Sets
-- [ ] 409 刷新 canonical state
-- [ ] Governance/Collaboration E2E 通过
-- [ ] Commit/Evidence 记录
+- [x] Inbox list/counts
+- [x] Brief confirm
+- [x] Snooze/resolve
+- [x] Team Lead accept candidate
+- [x] Prompt injection review
+- [x] Task cards/detail
+- [x] Reply
+- [x] Lock/unlock
+- [x] Handoff
+- [x] Market status/participation
+- [x] Allowed actions 驱动按钮
+- [x] 移除 DemoContext/local Sets
+- [x] 409 刷新 canonical state
+- [x] Governance/Collaboration E2E 通过
+- [x] Commit/Evidence 记录
 
 Dependencies: M3, M6  
 Done when: 核心治理和协作刷新后仍一致，所有动作由服务端授权。
 
 ## M9 Add Read-Only Digital/Insights and Minimum Admin
 
-- [ ] Digital Self 使用 bootstrap/runtime/activity/memory
-- [ ] Insights 使用 task/activity/audit
-- [ ] 无后端资源显示空态
-- [ ] 隐藏 editable understanding/preferences/review
-- [ ] Admin 用户 list/create/disable/reset
-- [ ] Agent model/tool 基础配置
-- [ ] Provider diagnostics
-- [ ] O2 sync
-- [ ] Policies/Audit read-only
-- [ ] 独立 capability gate
-- [ ] 无 handler-less button
-- [ ] Role/E2E tests 通过
-- [ ] Commit/Evidence 记录
+- [x] Digital Self 使用 bootstrap/runtime/activity/memory
+- [x] Insights 使用 task/activity/audit
+- [x] 无后端资源显示空态
+- [x] 隐藏 editable understanding/preferences/review
+- [x] Admin 用户 list/create/disable/reset
+- [x] Agent model/tool 基础配置
+- [x] Provider diagnostics
+- [x] O2 sync
+- [x] Policies/Audit read-only
+- [x] 独立 capability gate
+- [x] 无 handler-less button
+- [x] Role/E2E tests 通过
+- [x] Commit/Evidence 记录
 
 Dependencies: M3, M4, M6  
 Done when: 只展示真实数据；未实现能力不伪装成功。
 
 ## Review Gate R3: Browser Main Flows
 
-- [ ] M7、M8、M9 Worker 改动全部返回
-- [ ] Workspace/Knowledge/Collaboration/Admin contracts 已对齐
-- [ ] React unit tests/build 通过
-- [ ] 三条核心 Playwright 文件通过
-- [ ] 相关 Backend contract tests 通过
-- [ ] 页面无 mock、timer success、Toast-only success
-- [ ] Reviewer 完成一次正式审查
-- [ ] 无未处理 Critical/High finding
-- [ ] 确认问题修复并重新验证
-- [ ] 主协调者提交 Wave 4
+- [x] M7、M8、M9 Worker 改动全部返回
+- [x] Workspace/Knowledge/Collaboration/Admin contracts 已对齐
+- [x] React unit tests/build 通过
+- [x] 四条核心 Playwright 文件通过
+- [x] 相关 Backend contract tests 通过
+- [x] 页面无 mock、timer success、Toast-only success
+- [x] Reviewer 完成一次正式审查
+- [x] 无未处理 Critical/High finding
+- [x] 确认问题修复并重新验证
+- [x] 主协调者提交 Wave 4
 
 Commands:
 
@@ -318,42 +318,44 @@ AGENTMESH_EMBEDDING_ENABLED=false .venv/bin/python -m pytest \
 
 ## M10 Cut Over React and Remove Production Mock State
 
-- [ ] MVP parity E2E
-- [ ] `/` 切到 React
-- [ ] Deep-link refresh 可用
-- [ ] `mockData.ts` 删除
-- [ ] `DemoContext.tsx` 删除
-- [ ] Timer business success 删除
-- [ ] Toast-only success 删除
-- [ ] Handler-less controls 删除
-- [ ] `/legacy/app.html` 保留一个周期
-- [ ] Unknown API 保持 JSON 404
-- [ ] Pytest/Ruff/React tests/build/E2E 通过
-- [ ] Commit/Evidence 记录
+- [x] MVP parity E2E
+- [x] `/` 切到 React
+- [x] Deep-link refresh 可用
+- [x] `mockData.ts` 删除
+- [x] `DemoContext.tsx` 删除
+- [x] Timer business success 删除
+- [x] Toast-only success 删除
+- [x] Handler-less controls 删除
+- [x] `/legacy/app.html` 保留一个周期
+- [x] Unknown API 保持 JSON 404
+- [x] Pytest/Ruff/React tests/build/E2E 通过
+- [x] Commit/Evidence 记录
 
 Dependencies: M6-M9  
 Done when: React 是默认 UI，生产代码没有本地业务 mock。
 
 ## M11 Add Minimum CI and Run MVP Release Gate
 
-- [ ] `.gitignore` 覆盖 node_modules/dist/.vite/tsbuildinfo/Playwright
-- [ ] PyMuPDF 依赖和 README 一致
-- [ ] 23 个 Ruff 问题关闭
-- [ ] Backend clean install job
-- [ ] Secret scan
-- [ ] Ruff job
-- [ ] Pytest job
-- [ ] Frontend types/test/build job
-- [ ] Core Playwright job
+- [x] `.gitignore` 覆盖 node_modules/dist/.vite/tsbuildinfo/Playwright
+- [x] PyMuPDF 依赖和 README 一致
+- [x] 23 个 Ruff 问题关闭
+- [x] Backend clean install job
+- [x] Secret scan job
+- [x] Ruff job
+- [x] Pytest job
+- [x] Frontend types/test/build job
+- [x] Core Playwright job
 - [ ] Embedding real smoke 通过
 - [ ] O2 real smoke 通过
 - [ ] Web Research real smoke 通过
 - [ ] Data API real smoke 通过
 - [ ] LLM real smoke 通过
-- [ ] User/Team Lead/Admin production-like smoke
-- [ ] Restart/persistence smoke
-- [ ] README/CONTEXT 更新
+- [x] User/Team Lead/Admin production-like smoke
+- [x] Restart/persistence smoke
+- [x] README/CONTEXT 更新
 - [ ] Final commit/evidence 记录
+
+External release blocker observed 2026-08-14: `provider_smoke.py --embedding --o2 --web --data --llm` exited 1; all five providers reported `configured=false`, `ready=false`, `mode=fallback`. Release remains blocked until an approved internal host supplies the required credentials/CLIs and all five report real/ready. GitHub CI must also complete after the commit is published.
 
 Dependencies: M1-M10  
 Done when: CI 全绿，五类真实 Provider smoke 全绿，文档明确单 Workspace/单实例限制。
@@ -374,14 +376,14 @@ cd ..
 .venv/bin/python scripts/provider_smoke.py --embedding --o2 --web --data --llm
 ```
 
-- [ ] 无 tracked secret/default production password
-- [ ] Cross-user chat/document isolation
-- [ ] React 五条 MVP 主链真实 API
+- [x] 无 tracked secret/default production password
+- [x] Cross-user chat/document isolation
+- [x] React 五条 MVP 主链真实 API
 - [ ] 五类 Provider 可观测且真实 smoke 通过
-- [ ] Provider failure 不锁 DB/阻塞 API
-- [ ] Memory/Blackboard MVP actions 已授权
+- [x] Provider failure 不锁 DB/阻塞 API
+- [x] Memory/Blackboard MVP actions 已授权
 - [ ] CI 全绿
-- [ ] 单 Workspace/单实例/Post-MVP 限制写入文档
+- [x] 单 Workspace/单实例/Post-MVP 限制写入文档
 
 ## Execution Ledger
 
@@ -393,11 +395,11 @@ cd ..
 | M4 | M4ProviderObservability | feat/internal-pilot-mvp-stabilization | done | 1d28865 | Provider contracts; 461 full pytest; R2 approved |
 | M5 | M5IngestionStability | feat/internal-pilot-mvp-stabilization | done | 1d28865 | Ingestion/concurrency regressions; 461 full pytest; R2 approved |
 | M6 | M6ReactFoundation | feat/internal-pilot-mvp-stabilization | done | 1d28865 | 7 Vitest; build pass; 11 Playwright; R2 approved |
-| M7 |  |  | pending |  |  |
-| M8 |  |  | pending |  |  |
-| M9 |  |  | pending |  |  |
-| M10 |  |  | pending |  |  |
-| M11 |  |  | pending |  |  |
+| M7 | M7Workspace + Main | feat/internal-pilot-mvp-stabilization | done | 9231c9a | Idempotent chat receipts; exact async ingestion; Workspace E2E; R3 approved |
+| M8 | M8KnowledgeCollaboration + Main | feat/internal-pilot-mvp-stabilization | done | 9231c9a | Atomic Brief governance; handoff control; Governance/Collaboration E2E; R3 approved |
+| M9 | M9ReadModelsAdmin + Main | feat/internal-pilot-mvp-stabilization | done | 9231c9a | Project-scoped read models; Admin capabilities; real-handler E2E; R3 approved |
+| M10 | Main | feat/internal-pilot-mvp-stabilization | done | cf14e51 | Mock state removed; parity E2E; 23 Playwright; 487 pytest; Ruff; Vitest/build |
+| M11 | Main | feat/internal-pilot-mvp-stabilization | code_complete_external_gates_pending | pending | CI/hygiene complete; clean install + PDF 13; 487 pytest; Ruff; 7 Vitest; build; 23 Playwright; real Providers unconfigured |
 
 ## Review and Release Ledger
 
@@ -405,5 +407,5 @@ cd ..
 | --- | --- | --- | --- | --- |
 | R1 | M1-M3 Security Boundary | R1AuthIsolation + R1GovernanceReview | approved | 425 pytest; Ruff pass; secret scan clean |
 | R2 | M4-M6 Availability + React Foundation | R2FoundationReview + R2ReReview | approved | 8 findings resolved; 461 pytest; Ruff; 7 Vitest; build; 11 Playwright |
-| R3 | M7-M9 Browser Main Flows |  | pending |  |
-| Final | M10-M11 Release |  | pending |  |
+| R3 | M7-M9 Browser Main Flows | R3Review + R3ReReview | approved | 18 findings plus tenant-thread regression resolved; 487 pytest; Ruff; 7 Vitest; build; 22 Playwright |
+| Final | M10-M11 Release | Main | blocked_external | Local gates pass; five real Provider smokes and remote CI pending |

@@ -17,6 +17,8 @@ deep link 均返回 React index；业务状态和权限以 FastAPI/SQLite 为唯
 一个发布周期作为回滚入口。它不再是默认入口，也不再承载新功能。完整替换设计见
 `docs/superpowers/specs/2026-08-11-react-frontend-complete-replacement-design.md`。
 
+运行边界：当前 MVP 仅支持单 Workspace、单应用进程和单 SQLite 数据库，并且只部署在可信内网。多 Workspace 租户、SQLite 多进程协调、水平扩容、高可用和公网加固均为 Post-MVP。发布前必须在具备授权凭证/CLI 的内网宿主机运行五类真实 Provider smoke；fallback 通过单元测试不等于真实 Provider 发布验收通过。
+
 ## Terms
 
 - **数字分身 / Digital Twin (PersonalAgent)** — the single agent representing one person.

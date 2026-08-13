@@ -423,15 +423,15 @@ Acceptance: delegated collaboration 从请求到采纳完整可达并幂等。
 
 ### T23 Fix Repository Hygiene, Dependencies, and Reality Docs
 
-- [ ] `.gitignore` 增加 node_modules/dist/.vite/tsbuildinfo
-- [ ] 不破坏用户未跟踪文件
-- [ ] PyMuPDF 依赖/README 一致
-- [ ] React 版本与栈文档正确
-- [ ] FastAPI serving 状态正确
+- [x] `.gitignore` 增加 node_modules/dist/.vite/tsbuildinfo
+- [x] 不破坏用户未跟踪文件
+- [x] PyMuPDF 依赖/README 一致
+- [x] React 版本与栈文档正确
+- [x] FastAPI serving 状态正确
 - [ ] Worker/Embedding 默认值正确
 - [ ] CONTEXT capability 状态正确
 - [ ] ADR 与 vector 实现一致
-- [ ] Clean install PDF smoke 通过
+- [x] Clean install PDF smoke 通过
 - [ ] Commit 已记录
 
 Dependencies: T1, T19, T20-T22  
@@ -439,16 +439,16 @@ Acceptance: 干净 clone 按 README 可安装、运行和验证，文档无过�
 
 ### T24 Add CI, Coverage, Frontend Tests, and Clean Ruff
 
-- [ ] 23 个 Ruff 问题全部关闭
-- [ ] Backend clean-install job
-- [ ] Ruff job
+- [x] 23 个 Ruff 问题全部关闭
+- [x] Backend clean-install job
+- [x] Ruff job
 - [ ] Pytest + coverage job
-- [ ] Frontend types/test/build job
-- [ ] Playwright job
-- [ ] Secret scan
+- [x] Frontend types/test/build job
+- [x] Playwright job
+- [x] Secret scan
 - [ ] Dependency audit
-- [ ] Security denial paths coverage
-- [ ] Worker/concurrency tests 纳入 CI
+- [x] Security denial paths coverage
+- [x] Worker/concurrency tests 纳入 CI
 - [ ] Commit 已记录
 
 Dependencies: T1-T23  

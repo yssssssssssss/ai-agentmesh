@@ -101,6 +101,18 @@ The app UI shows a local login panel when no session exists. In explicit demo mo
 
 For frontend development, keep FastAPI on port `8010` and run `npm run dev` in `agentmesh-demo/`; Vite serves `http://127.0.0.1:5178/` and proxies `/api` to FastAPI. The retired single-file UI remains temporarily available at `/legacy/app.html` for one release cycle.
 
+### Deployment boundaries
+
+This internal-pilot MVP supports one Workspace, one application process, and one SQLite database. Run it only on a trusted internal network. Multi-workspace tenancy, multi-process SQLite coordination, horizontal scaling, high availability, and public-internet hardening are Post-MVP work.
+
+Before an internal release, run the real read-only Provider gate from a host with approved credentials and CLIs:
+
+```bash
+.venv/bin/python scripts/provider_smoke.py --embedding --o2 --web --data --llm
+```
+
+The command prints only redacted provider readiness, mode, latency, and stable error categories. A release is blocked unless all five providers report `ready=true` and `mode=real`.
+
 ## Test
 
 ```bash
