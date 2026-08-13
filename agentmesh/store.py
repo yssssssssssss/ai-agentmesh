@@ -185,6 +185,7 @@ class SQLiteStore:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
         self._backfill_fts()
+        self._backfill_vec()
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.db_path)
@@ -228,11 +229,25 @@ class SQLiteStore:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS records_vec (
+                collection TEXT NOT NULL,
+                record_id TEXT NOT NULL,
+                embedding BLOB NOT NULL,
+                UNIQUE(collection, record_id)
+            )
+            """
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_records_vec_collection ON records_vec(collection)"
+        )
 
     def reset(self) -> None:
         with self._connect() as connection:
             connection.execute("DELETE FROM records")
             connection.execute("DELETE FROM records_fts")
+            connection.execute("DELETE FROM records_vec")
 
     def _upsert(self, collection: str, item: BaseModel) -> None:
         with self._connect() as connection:
@@ -246,6 +261,7 @@ class SQLiteStore:
                 (collection, item.id, item.model_dump_json()),
             )
             self._sync_fts(connection, collection, item)
+            self._sync_vec(connection, collection, item)
 
     def _sync_fts(self, connection: sqlite3.Connection, collection: str, item: BaseModel) -> None:
         doc = _extract_fts_doc(collection, item)
@@ -258,6 +274,27 @@ class SQLiteStore:
         connection.execute(
             "INSERT INTO records_fts(collection, record_id, title, body, scope, workspace_id, project_id, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (doc.collection, doc.record_id, doc.title, doc.body, doc.scope, doc.workspace_id, doc.project_id, doc.user_id, doc.created_at),
+        )
+
+    def _sync_vec(self, connection: sqlite3.Connection, collection: str, item: BaseModel) -> None:
+        doc = _extract_fts_doc(collection, item)
+        if doc is None:
+            return
+        text = f"{doc.title} {doc.body}".strip()
+        if not text:
+            return
+        from agentmesh.embedding import embed_text, serialize_embedding
+
+        embedding = embed_text(text)
+        if embedding is None:
+            return
+        connection.execute(
+            "DELETE FROM records_vec WHERE collection = ? AND record_id = ?",
+            (doc.collection, doc.record_id),
+        )
+        connection.execute(
+            "INSERT INTO records_vec(collection, record_id, embedding) VALUES (?, ?, ?)",
+            (doc.collection, doc.record_id, serialize_embedding(embedding)),
         )
 
     def _backfill_fts(self) -> None:
@@ -282,6 +319,36 @@ class SQLiteStore:
                     continue
                 item = model_cls.model_validate_json(payload)
                 self._sync_fts(connection, collection, item)
+
+    def _backfill_vec(self) -> None:
+        """Backfill missing vector embeddings. Skips records that already have embeddings."""
+        from agentmesh.embedding import EMBEDDING_ENABLED
+
+        if not EMBEDDING_ENABLED:
+            return
+        with self._connect() as connection:
+            placeholders = ",".join(f"'{c}'" for c in _FTS_COLLECTIONS)
+            missing = connection.execute(
+                f"""
+                SELECT r.collection, r.id, r.payload FROM records r
+                WHERE r.collection IN ({placeholders})
+                  AND NOT EXISTS (
+                    SELECT 1 FROM records_vec rv
+                    WHERE rv.collection = r.collection AND rv.record_id = r.id
+                  )
+                ORDER BY r.created_order
+                LIMIT 100
+                """
+            ).fetchall()
+            if not missing:
+                return
+            for row in missing:
+                collection = row["collection"]
+                model_cls = _FTS_COLLECTION_MODELS.get(collection)
+                if model_cls is None:
+                    continue
+                item = model_cls.model_validate_json(row["payload"])
+                self._sync_vec(connection, collection, item)
 
     def _get(self, collection: str, item_id: str, model: type[ModelT]) -> ModelT | None:
         with self._connect() as connection:
@@ -754,9 +821,12 @@ class SQLiteStore:
         placeholders = ",".join("?" for _ in scope_values)
 
         with self._connect() as connection:
-            rows = self._fts_match(connection, needle, scope_values, placeholders)
-            if not rows:
-                rows = self._fts_like_fallback(connection, needle, scope_values, placeholders)
+            fts_rows = self._fts_match(connection, needle, scope_values, placeholders)
+            if not fts_rows:
+                fts_rows = self._fts_like_fallback(connection, needle, scope_values, placeholders)
+            vec_rows = self._vec_search(connection, needle, scope_values, placeholders)
+
+        rows = self._rrf_merge(fts_rows, vec_rows)
 
         if not rows:
             return []
@@ -899,8 +969,8 @@ class SQLiteStore:
                     )
                 )
 
-        sorted_results = sorted(results, key=lambda result: result.created_at, reverse=True)
-        return self._apply_budget(sorted_results, max_results, max_chars)
+        # Results already in RRF relevance order from _rrf_merge; preserve that order.
+        return self._apply_budget(results, max_results, max_chars)
 
     @staticmethod
     def _apply_budget(results: list[SearchResult], max_results: int, max_chars: int) -> list[SearchResult]:
@@ -955,6 +1025,64 @@ class SQLiteStore:
             """,
             [like_pattern, like_pattern, *scope_values],
         ).fetchall()
+
+    @staticmethod
+    def _vec_search(
+        connection: sqlite3.Connection, needle: str, scope_values: list[str], placeholders: str
+    ) -> list[dict]:
+        from agentmesh.embedding import EMBEDDING_ENABLED, cosine_similarity, deserialize_embedding, embed_text
+
+        if not EMBEDDING_ENABLED:
+            return []
+        query_embedding = embed_text(needle)
+        if query_embedding is None:
+            return []
+        rows = connection.execute(
+            f"""
+            SELECT rv.collection, rv.record_id, rv.embedding,
+                   rf.scope, rf.workspace_id, rf.project_id, rf.user_id, rf.created_at
+            FROM records_vec rv
+            JOIN records_fts rf ON rv.collection = rf.collection AND rv.record_id = rf.record_id
+            WHERE rf.scope IN ({placeholders})
+            """,
+            scope_values,
+        ).fetchall()
+        scored: list[tuple[float, dict]] = []
+        for row in rows:
+            embedding = deserialize_embedding(row["embedding"])
+            score = cosine_similarity(query_embedding, embedding)
+            scored.append((score, {
+                "collection": row["collection"],
+                "record_id": row["record_id"],
+                "scope": row["scope"],
+                "workspace_id": row["workspace_id"],
+                "project_id": row["project_id"],
+                "user_id": row["user_id"],
+                "created_at": row["created_at"],
+            }))
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [item[1] for item in scored[:50]]
+
+    @staticmethod
+    def _rrf_merge(fts_rows: list, vec_rows: list, k: int = 60) -> list[dict]:
+        """Reciprocal Rank Fusion: merge FTS and vector results."""
+        scores: dict[tuple[str, str], float] = {}
+        row_data: dict[tuple[str, str], dict] = {}
+
+        for rank, row in enumerate(fts_rows):
+            key = (row["collection"], row["record_id"])
+            scores[key] = scores.get(key, 0.0) + 1.0 / (k + rank + 1)
+            if key not in row_data:
+                row_data[key] = dict(row) if hasattr(row, "keys") else row
+
+        for rank, row in enumerate(vec_rows):
+            key = (row["collection"], row["record_id"])
+            scores[key] = scores.get(key, 0.0) + 1.0 / (k + rank + 1)
+            if key not in row_data:
+                row_data[key] = row
+
+        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        return [row_data[key] for key, _ in ranked[:200]]
 
     @staticmethod
     def _thread_matches(thread: ChatThread | None, workspace_id: str | None, project_id: str | None) -> bool:
