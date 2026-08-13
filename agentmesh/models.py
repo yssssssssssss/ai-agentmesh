@@ -811,6 +811,33 @@ class RetrievalMetrics(BaseModel):
     created_at: datetime = Field(default_factory=now_utc)
 
 
+class SkillStatus(StrEnum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    DEPRECATED = "deprecated"
+
+
+class LearnedSkill(BaseModel):
+    """A reusable workflow pattern extracted from repeated successful traces."""
+
+    id: str = Field(default_factory=lambda: new_id("skill"))
+    title: str
+    trigger_pattern: str
+    steps: list[str] = Field(default_factory=list)
+    validation_rules: list[str] = Field(default_factory=list)
+    source_workflow_ids: list[str] = Field(default_factory=list)
+    version: int = 1
+    status: SkillStatus = SkillStatus.DRAFT
+    scope: Scope = Scope.PRIVATE
+    workspace_id: str | None = None
+    project_id: str | None = None
+    user_id: str | None = None
+    occurrence_count: int = 0
+    last_used_at: datetime | None = None
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
+
+
 class ChatWorkflowTrace(BaseModel):
     intent: Intent
     confidence: float

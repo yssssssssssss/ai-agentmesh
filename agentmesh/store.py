@@ -27,6 +27,7 @@ from agentmesh.models import (
     DocumentParseJob,
     DocumentRecord,
     InboxItem,
+    LearnedSkill,
     MarketParticipation,
     MemoryItem,
     MemoryRelation,
@@ -496,6 +497,21 @@ class SQLiteStore:
     def add_retrieval_metrics(self, metrics: RetrievalMetrics) -> RetrievalMetrics:
         self._upsert("retrieval_metrics", metrics)
         return metrics
+
+    @property
+    def learned_skills(self) -> list[LearnedSkill]:
+        return self._list("learned_skills", LearnedSkill)
+
+    def add_learned_skill(self, skill: LearnedSkill) -> LearnedSkill:
+        self._upsert("learned_skills", skill)
+        return skill
+
+    def save_learned_skill(self, skill: LearnedSkill) -> LearnedSkill:
+        self._upsert("learned_skills", skill)
+        return skill
+
+    def get_learned_skill(self, skill_id: str) -> LearnedSkill | None:
+        return self._get("learned_skills", skill_id, LearnedSkill)
 
     @property
     def market_participations(self) -> list[MarketParticipation]:

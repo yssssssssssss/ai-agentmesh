@@ -16,6 +16,7 @@ from agentmesh.models import (
     GroupMemorySummaryRequest,
     ItemResponse,
     ItemsResponse,
+    LearnedSkill,
     MemoryCreateRequest,
     MemoryItem,
     MemoryLayer,
@@ -26,6 +27,7 @@ from agentmesh.models import (
     ProjectMemorySummaryRequest,
     RetrievalMetrics,
     Scope,
+    SkillStatus,
     User,
     UserMemoryCreateRequest,
     UserMemoryItem,
@@ -584,3 +586,53 @@ def retrieval_metrics_list(
             "total_cited": total_cited,
         },
     }
+
+
+@router.get("/skills")
+def list_learned_skills(user: User = Depends(current_user)) -> dict[str, object]:
+    """List learned skills for the current user."""
+    skills = [
+        s for s in store.learned_skills
+        if s.user_id == user.id or s.scope in (Scope.PROJECT, Scope.TEAM_ACCEPTED)
+    ]
+    return {"items": [s.model_dump() for s in sorted(skills, key=lambda s: s.created_at, reverse=True)]}
+
+
+@router.post("/skills/{skill_id}/activate")
+def activate_skill(skill_id: str, user: User = Depends(current_user)) -> dict[str, object]:
+    """Activate a draft skill (user confirms it's useful)."""
+    skill = store.get_learned_skill(skill_id)
+    if skill is None or skill.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    if skill.status != SkillStatus.DRAFT:
+        raise HTTPException(status_code=400, detail="Only draft skills can be activated")
+    skill.status = SkillStatus.ACTIVE
+    skill.updated_at = now_utc()
+    store.save_learned_skill(skill)
+    return {"item": skill.model_dump()}
+
+
+@router.post("/skills/{skill_id}/share")
+def share_skill_to_project(skill_id: str, user: User = Depends(current_user)) -> dict[str, object]:
+    """Share a personal skill to project scope."""
+    skill = store.get_learned_skill(skill_id)
+    if skill is None or skill.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    if skill.status != SkillStatus.ACTIVE:
+        raise HTTPException(status_code=400, detail="Only active skills can be shared")
+    skill.scope = Scope.PROJECT
+    skill.updated_at = now_utc()
+    store.save_learned_skill(skill)
+    return {"item": skill.model_dump()}
+
+
+@router.post("/skills/{skill_id}/deprecate")
+def deprecate_skill(skill_id: str, user: User = Depends(current_user)) -> dict[str, object]:
+    """Mark a skill as deprecated."""
+    skill = store.get_learned_skill(skill_id)
+    if skill is None or skill.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    skill.status = SkillStatus.DEPRECATED
+    skill.updated_at = now_utc()
+    store.save_learned_skill(skill)
+    return {"item": skill.model_dump()}

@@ -356,6 +356,7 @@ class PersonalAgent:
         memory_item = self._record_short_term_memory(task, intent, skill_content, assistant_content, state, user)
         if memory_item is not None:
             state.user_memory_items.append(memory_item)
+            self._try_extract_skills(user)
 
         return ChatResponse(
             thread_id=thread_id,
@@ -1839,6 +1840,23 @@ class PersonalAgent:
     def _persist_sources(self, sources: list[Source]) -> None:
         for source in sources:
             self.repository.add_source(source)
+
+    def _try_extract_skills(self, user: User) -> None:
+        """Attempt to extract recurring workflow patterns into draft skills."""
+        try:
+            from agentmesh.skill_extractor import try_extract_skills
+
+            new_skills = try_extract_skills(
+                user_memory_items=self.repository.user_memory_items,
+                existing_skills=self.repository.learned_skills,
+                user_id=user.id,
+                workspace_id=WORKSPACE.id,
+                project_id=PROJECT.id,
+            )
+            for skill in new_skills:
+                self.repository.add_learned_skill(skill)
+        except Exception as exc:
+            logger.warning("Skill extraction failed: %s", exc)
 
     def _synthesize_with_llm(
         self,
