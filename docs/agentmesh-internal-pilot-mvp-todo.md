@@ -390,9 +390,9 @@ cd ..
 | M1 | M1SafeConfig | feat/internal-pilot-mvp-stabilization | code_complete_external_action_pending | 74841d2 | 425 pytest; Ruff pass; key rotation external |
 | M2 | M2UserIsolation | feat/internal-pilot-mvp-stabilization | done | 74841d2 | 425 pytest; Ruff pass; R1 approved |
 | M3 | M3Governance | feat/internal-pilot-mvp-stabilization | done | 74841d2 | 425 pytest; Ruff pass; R1 approved |
-| M4 | M4ProviderObservability | feat/internal-pilot-mvp-stabilization | done |  | Provider contracts; 461 full pytest; R2 approved |
-| M5 | M5IngestionStability | feat/internal-pilot-mvp-stabilization | done |  | Ingestion/concurrency regressions; 461 full pytest; R2 approved |
-| M6 | M6ReactFoundation | feat/internal-pilot-mvp-stabilization | done |  | 7 Vitest; build pass; 11 Playwright; R2 approved |
+| M4 | M4ProviderObservability | feat/internal-pilot-mvp-stabilization | done | 1d28865 | Provider contracts; 461 full pytest; R2 approved |
+| M5 | M5IngestionStability | feat/internal-pilot-mvp-stabilization | done | 1d28865 | Ingestion/concurrency regressions; 461 full pytest; R2 approved |
+| M6 | M6ReactFoundation | feat/internal-pilot-mvp-stabilization | done | 1d28865 | 7 Vitest; build pass; 11 Playwright; R2 approved |
 | M7 |  |  | pending |  |  |
 | M8 |  |  | pending |  |  |
 | M9 |  |  | pending |  |  |
