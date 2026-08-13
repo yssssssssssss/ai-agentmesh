@@ -44,6 +44,16 @@ Set up an isolated environment:
 .venv/bin/python -m pip install -e '.[dev]'
 ```
 
+Install and build the React frontend for FastAPI hosting:
+
+```bash
+cd agentmesh-demo
+npm ci
+npm run api:types
+npm run build
+cd ..
+```
+
 Start the app with production-safe defaults:
 
 ```bash
@@ -84,10 +94,12 @@ Or start this instance on another port:
 Open:
 
 ```text
-http://127.0.0.1:8010/app.html
+http://127.0.0.1:8010/
 ```
 
 The app UI shows a local login panel when no session exists. In explicit demo mode, use the fixture-account controls shown by the local UI; production-safe mode has no built-in account credentials.
+
+For frontend development, keep FastAPI on port `8010` and run `npm run dev` in `agentmesh-demo/`; Vite serves `http://127.0.0.1:5178/` and proxies `/api` to FastAPI. The retired single-file UI remains temporarily available at `/legacy/app.html` for one release cycle.
 
 ## Test
 

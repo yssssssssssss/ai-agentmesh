@@ -4,7 +4,6 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { ProfileDrawer } from './ProfileDrawer'
 import { SettingsDrawer } from './SettingsDrawer'
-import { ToastViewport } from '../ui/ToastViewport'
 
 interface LayoutUIValue {
   openProfile: () => void
@@ -100,7 +99,6 @@ export function AppLayout() {
 
       <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} />
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <ToastViewport />
     </LayoutUIContext.Provider>
   )
 }
