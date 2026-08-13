@@ -9,6 +9,7 @@ from agentmesh.model_registry import list_enabled_models, set_agent_model
 from agentmesh.models import (
     Agent,
     AgentCreateRequest,
+    AgentMemoryBinding,
     AgentModelUpdateRequest,
     AgentToolsUpdateRequest,
     AgentUpdateRequest,
@@ -275,3 +276,58 @@ def sync_o2_tool_registry(user: User = Depends(current_user)) -> O2SyncResponse:
         create_audit_event(user.id, "sync_o2_tools", "tool_registry", "o2", {"count": len(synced_tools)})
     )
     return O2SyncResponse(items=synced_tools, count=len(synced_tools))
+
+
+@router.get("/agents/{agent_id}/memory-binding")
+def get_agent_memory_binding(agent_id: str, _: User = Depends(current_user)) -> dict[str, object]:
+    """Get the memory binding for an agent."""
+    binding = store.get_binding_for_agent(agent_id)
+    if binding is None:
+        return {"binding": None}
+    return {"binding": binding.model_dump()}
+
+
+@router.put("/agents/{agent_id}/memory-binding")
+def set_agent_memory_binding(
+    agent_id: str,
+    request: AgentMemoryBinding,
+    user: User = Depends(current_user),
+) -> dict[str, object]:
+    """Create or update memory binding for an agent."""
+    agent = store.get_agent(agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    ensure_can_manage_agent(user, agent, store.permission_policy_rules)
+    existing = store.get_binding_for_agent(agent_id)
+    if existing:
+        existing.allowed_scopes = request.allowed_scopes
+        existing.allowed_memory_types = request.allowed_memory_types
+        existing.allowed_project_ids = request.allowed_project_ids
+        existing.max_results_per_query = request.max_results_per_query
+        existing.updated_at = now_utc()
+        store.save_agent_memory_binding(existing)
+        return {"binding": existing.model_dump()}
+    request.agent_id = agent_id
+    binding = store.add_agent_memory_binding(request)
+    return {"binding": binding.model_dump()}
+
+
+@router.delete("/agents/{agent_id}/memory-binding")
+def delete_agent_memory_binding(
+    agent_id: str,
+    user: User = Depends(current_user),
+) -> dict[str, str]:
+    """Remove memory binding (agent reverts to full access)."""
+    agent = store.get_agent(agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    ensure_can_manage_agent(user, agent, store.permission_policy_rules)
+    existing = store.get_binding_for_agent(agent_id)
+    if existing is None:
+        return {"status": "no_binding"}
+    with store._connect() as connection:
+        connection.execute(
+            "DELETE FROM records WHERE collection = ? AND id = ?",
+            ("agent_memory_bindings", existing.id),
+        )
+    return {"status": "deleted"}

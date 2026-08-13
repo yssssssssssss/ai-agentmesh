@@ -223,6 +223,19 @@ class AgentToolGrant(BaseModel):
     updated_at: datetime = Field(default_factory=now_utc)
 
 
+class AgentMemoryBinding(BaseModel):
+    """Constrains which memory an Agent can access during search."""
+
+    id: str = Field(default_factory=lambda: new_id("amb"))
+    agent_id: str
+    allowed_scopes: list[Scope] = Field(default_factory=lambda: [Scope.PRIVATE, Scope.PROJECT, Scope.TEAM_ACCEPTED])
+    allowed_memory_types: list[str] = Field(default_factory=list)
+    allowed_project_ids: list[str] = Field(default_factory=list)
+    max_results_per_query: int = 10
+    created_at: datetime = Field(default_factory=now_utc)
+    updated_at: datetime = Field(default_factory=now_utc)
+
+
 class ScheduledAgentTaskDefinition(BaseModel):
     id: str = Field(default_factory=lambda: new_id("sched"))
     agent_id: str

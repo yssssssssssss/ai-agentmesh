@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from agentmesh.models import (
     ActivityLog,
     Agent,
+    AgentMemoryBinding,
     AgentToolGrant,
     AuditEvent,
     AuthCredential,
@@ -512,6 +513,59 @@ class SQLiteStore:
 
     def get_learned_skill(self, skill_id: str) -> LearnedSkill | None:
         return self._get("learned_skills", skill_id, LearnedSkill)
+
+    @property
+    def agent_memory_bindings(self) -> list[AgentMemoryBinding]:
+        return self._list("agent_memory_bindings", AgentMemoryBinding)
+
+    def add_agent_memory_binding(self, binding: AgentMemoryBinding) -> AgentMemoryBinding:
+        self._upsert("agent_memory_bindings", binding)
+        return binding
+
+    def save_agent_memory_binding(self, binding: AgentMemoryBinding) -> AgentMemoryBinding:
+        self._upsert("agent_memory_bindings", binding)
+        return binding
+
+    def get_agent_memory_binding(self, binding_id: str) -> AgentMemoryBinding | None:
+        return self._get("agent_memory_bindings", binding_id, AgentMemoryBinding)
+
+    def get_binding_for_agent(self, agent_id: str) -> AgentMemoryBinding | None:
+        for binding in self.agent_memory_bindings:
+            if binding.agent_id == agent_id:
+                return binding
+        return None
+
+    def search_for_agent(
+        self,
+        query: str,
+        agent_id: str,
+        workspace_id: str | None = None,
+        project_id: str | None = None,
+        user_id: str | None = None,
+    ) -> list[SearchResult]:
+        """Search with constraints from agent's memory binding."""
+        binding = self.get_binding_for_agent(agent_id)
+        if binding is None:
+            return self.search(
+                query,
+                {Scope.PRIVATE, Scope.PROJECT, Scope.TEAM_CANDIDATE, Scope.TEAM_ACCEPTED},
+                workspace_id=workspace_id,
+                project_id=project_id,
+                user_id=user_id,
+            )
+        allowed_scopes = set(binding.allowed_scopes) if binding.allowed_scopes else {Scope.PRIVATE}
+        effective_project = binding.allowed_project_ids[0] if binding.allowed_project_ids else project_id
+        results = self.search(
+            query,
+            allowed_scopes,
+            workspace_id=workspace_id,
+            project_id=effective_project,
+            user_id=user_id,
+            max_results=binding.max_results_per_query,
+        )
+        if binding.allowed_memory_types:
+            results = [r for r in results if r.result_type in set(binding.allowed_memory_types)]
+        return results
 
     @property
     def market_participations(self) -> list[MarketParticipation]:
