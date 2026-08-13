@@ -475,22 +475,47 @@ class PersonalAgent:
         )
 
     def _search_team_brain(self, query: str, user: User) -> list[SearchResult]:
-        allowed_scopes = {Scope.PRIVATE, Scope.PROJECT, Scope.TEAM_CANDIDATE, Scope.TEAM_ACCEPTED}
-        direct_results = self.repository.search(
+        """Layered retrieval: high-tier memory first, drill down only if needed."""
+        # Layer 1: long_term + TEAM_ACCEPTED (high-value condensed memory)
+        tier1_results = self.repository.search(
             query,
-            allowed_scopes,
+            {Scope.TEAM_ACCEPTED},
             workspace_id=WORKSPACE.id,
             project_id=PROJECT.id,
             user_id=user.id,
+            max_results=5,
         )
-        direct_results = [
-            result
-            for result in direct_results
-            if result.result_type in {"user_memory_item", "memory_item", "document", "blackboard_evidence"}
-        ]
-        if direct_results:
-            return direct_results[:5]
+        tier1_results = self._filter_memory_types(tier1_results)
+        if len(tier1_results) >= 3:
+            return tier1_results[:5]
 
+        # Layer 2: mid_term + PROJECT (project-level shared memory)
+        tier2_results = self.repository.search(
+            query,
+            {Scope.PROJECT, Scope.TEAM_ACCEPTED, Scope.TEAM_CANDIDATE},
+            workspace_id=WORKSPACE.id,
+            project_id=PROJECT.id,
+            user_id=user.id,
+            max_results=10,
+        )
+        tier2_results = self._filter_memory_types(tier2_results)
+        if len(tier2_results) >= 3:
+            return tier2_results[:5]
+
+        # Layer 3: short_term + PRIVATE (personal fine-grained facts)
+        tier3_results = self.repository.search(
+            query,
+            {Scope.PRIVATE, Scope.PROJECT, Scope.TEAM_CANDIDATE, Scope.TEAM_ACCEPTED},
+            workspace_id=WORKSPACE.id,
+            project_id=PROJECT.id,
+            user_id=user.id,
+            max_results=10,
+        )
+        tier3_results = self._filter_memory_types(tier3_results)
+        if tier3_results:
+            return tier3_results[:5]
+
+        # Fallback: broad term matching over full memory pool
         terms = self._search_terms(query)
         scored_results: list[tuple[int, SearchResult]] = []
         for result in self._memory_search_pool(user):
@@ -500,6 +525,13 @@ class PersonalAgent:
                 scored_results.append((score, result))
         scored_results.sort(key=lambda item: (item[0], item[1].created_at), reverse=True)
         return [result for _, result in scored_results[:5]]
+
+    @staticmethod
+    def _filter_memory_types(results: list[SearchResult]) -> list[SearchResult]:
+        return [
+            r for r in results
+            if r.result_type in {"user_memory_item", "memory_item", "document", "blackboard_evidence"}
+        ]
 
     def _memory_search_pool(self, user: User) -> list[SearchResult]:
         results: list[SearchResult] = []
