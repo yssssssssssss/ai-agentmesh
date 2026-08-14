@@ -61,6 +61,7 @@ from agentmesh.synthesis import (
     build_llm_prompt,
     chat_llm_client,
     evidence_answer,
+    llm_model_provenance,
     source_titles,
     synthesize_with_llm_result,
 )
@@ -162,11 +163,14 @@ class PersonalAgent:
                 selected_workflow="chat",
                 source="chat",
                 llm_used=chat_result.llm_used,
-                requested_provider=self._llm_provider_label(user, llm_client),
-                actual_provider=self._llm_provider_label(user, llm_client) if chat_result.llm_used else "local_fallback",
-                provider_mode="real" if chat_result.llm_used else "fallback",
+                requested_provider="llm" if llm_client is not None else "agentmesh",
+                actual_provider="llm" if chat_result.llm_used else "local_fallback",
+                provider_mode="fallback" if chat_result.fallback_reason or not chat_result.llm_used else "real",
                 latency_ms=latency_ms,
-                fallback_reason=chat_result.fallback_reason,
+                fallback_reason=chat_result.fallback_reason if not chat_result.llm_used else None,
+                requested_model=chat_result.requested_model,
+                actual_model=chat_result.actual_model,
+                model_fallback_reason=chat_result.fallback_reason if chat_result.llm_used else None,
             )
 
         if invocation.spec is None:
@@ -336,7 +340,12 @@ class PersonalAgent:
             synthesis_latency_ms = (time.perf_counter() - synthesis_started) * 1000
             assistant_content = synthesis.content
             workflow_trace.llm_used = synthesis.llm_used
-            workflow_trace.fallback_reason = state.provider_fallback_reason or synthesis.fallback_reason
+            workflow_trace.requested_model = synthesis.requested_model
+            workflow_trace.actual_model = synthesis.actual_model
+            workflow_trace.model_fallback_reason = synthesis.fallback_reason if synthesis.llm_used else None
+            workflow_trace.fallback_reason = state.provider_fallback_reason or (
+                synthesis.fallback_reason if not synthesis.llm_used else None
+            )
 
         self._apply_trace_provenance(workflow_trace, state, user, synthesis_latency_ms)
         if state.retrieval_metrics is not None:
@@ -404,9 +413,12 @@ class PersonalAgent:
         llm_used: bool,
         requested_provider: str | None = None,
         actual_provider: str | None = None,
+        requested_model: str | None = None,
+        actual_model: str | None = None,
         provider_mode: str | None = None,
         latency_ms: float | None = None,
         fallback_reason: str | None = None,
+        model_fallback_reason: str | None = None,
     ) -> ChatResponse:
         self._ensure_thread(thread_id, content, user)
         trace = ChatWorkflowTrace(
@@ -418,9 +430,12 @@ class PersonalAgent:
             llm_used=llm_used,
             requested_provider=requested_provider or "agentmesh",
             actual_provider=actual_provider or requested_provider or "agentmesh",
+            requested_model=requested_model,
+            actual_model=actual_model,
             provider_mode=provider_mode or ("fallback" if fallback_reason else "real"),
             latency_ms=latency_ms,
             fallback_reason=fallback_reason,
+            model_fallback_reason=model_fallback_reason,
         )
         user_message = self.repository.add_chat_message(
             ChatMessage(thread_id=thread_id, role=ChatRole.USER, content=content, scope=Scope.PRIVATE)
@@ -1559,6 +1574,7 @@ class PersonalAgent:
             f"{'用户' if message.role == ChatRole.USER else '助理'}：{message.content}" for message in history[-6:]
         )
         prompt = f"历史上下文：\n{history_text or '无'}\n\n用户输入：{content}\n请直接自然回复，不要创建任务或编造数据。"
+        requested_model, _, _ = llm_model_provenance(llm_client)
         try:
             generated = llm_client.complete(
                 system_prompt=(
@@ -1574,11 +1590,24 @@ class PersonalAgent:
                 content="我可以继续和你澄清需求；当问题明确需要查资料、查数据、生成 Brief 或沉淀记忆时，我会进入对应 Agent 工作流。",
                 llm_used=False,
                 fallback_reason=reason,
+                requested_model=requested_model,
             )
         content_text = generated.strip()
         if not content_text:
-            return SynthesisResult(content="我在，可以继续说。", llm_used=False, fallback_reason="empty_response")
-        return SynthesisResult(content=content_text, llm_used=True)
+            return SynthesisResult(
+                content="我在，可以继续说。",
+                llm_used=False,
+                fallback_reason="empty_response",
+                requested_model=requested_model,
+            )
+        requested_model, actual_model, model_fallback_reason = llm_model_provenance(llm_client)
+        return SynthesisResult(
+            content=content_text,
+            llm_used=True,
+            fallback_reason=model_fallback_reason,
+            requested_model=requested_model,
+            actual_model=actual_model,
+        )
 
     def _create_request_post(
         self,
@@ -2034,10 +2063,9 @@ class PersonalAgent:
             trace.fallback_reason = trace.fallback_reason or state.provider_fallback_reason
             return
         if trace.llm_used:
-            provider = self._llm_provider_label(user, chat_llm_client(self.repository, user, self.llm_client))
-            trace.requested_provider = provider
-            trace.actual_provider = provider
-            trace.provider_mode = "real"
+            trace.requested_provider = "llm"
+            trace.actual_provider = "llm"
+            trace.provider_mode = "fallback" if trace.model_fallback_reason else "real"
             trace.latency_ms = synthesis_latency_ms
             return
         trace.requested_provider = "llm" if trace.fallback_reason else "agentmesh"

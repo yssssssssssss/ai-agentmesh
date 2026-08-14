@@ -58,6 +58,49 @@ test('creates, selects, sends natural and explicit skill messages, and reloads p
   await expect(page.getByTestId('user-message').filter({ hasText: naturalMessage })).toBeVisible()
 })
 
+
+test('renders requested and actual model provenance after reload', async ({ page }) => {
+  const marker = `workspace-model-provenance-${Date.now()}`
+  const modelFields = {
+    requested_model: 'GPT-5.2-joybuilder',
+    actual_model: 'DeepSeek-V4-Flash',
+    model_fallback_reason: 'timeout',
+    llm_used: true,
+    provider_mode: 'fallback',
+  }
+  await page.route('**/api/chat/messages', async (route) => {
+    const response = await route.fetch()
+    const payload = await response.json()
+    payload.workflow_trace = { ...payload.workflow_trace, ...modelFields }
+    payload.assistant_message.workflow_trace = { ...payload.assistant_message.workflow_trace, ...modelFields }
+    await route.fulfill({ response, json: payload })
+  })
+  await page.route('**/api/chat/threads/*', async (route) => {
+    const response = await route.fetch()
+    const payload = await response.json()
+    payload.messages = payload.messages.map((message: { role: string; workflow_trace?: object }) =>
+      message.role === 'assistant'
+        ? { ...message, workflow_trace: { ...message.workflow_trace, ...modelFields } }
+        : message,
+    )
+    await route.fulfill({ response, json: payload })
+  })
+
+  await page.getByRole('button', { name: '开始新对话' }).click()
+  await page.getByLabel('消息').fill(marker)
+  await page.getByRole('button', { name: '发送' }).click()
+  const provenance = page.getByTestId('provider-provenance').last()
+  await expect(provenance).toContainText('请求模型GPT-5.2-joybuilder')
+  await expect(provenance).toContainText('实际模型DeepSeek-V4-Flash')
+  await expect(provenance).toContainText('模型切换原因timeout')
+
+  await page.reload()
+  const reloaded = page.getByTestId('provider-provenance').last()
+  await expect(reloaded).toContainText('请求模型GPT-5.2-joybuilder')
+  await expect(reloaded).toContainText('实际模型DeepSeek-V4-Flash')
+  await expect(reloaded).toContainText('模型切换原因timeout')
+})
+
 test('handles synchronous upload, queued own job, search source, and stable document detail', async ({ page }) => {
   const uploadInput = page.getByLabel('上传文档')
   const syncFileName = `workspace-source-${researchMarker}.txt`

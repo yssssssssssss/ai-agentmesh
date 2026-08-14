@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 import pytest
 
+from agentmesh.agents import PersonalAgent
 from agentmesh.llm import LLMClient, LLMRequestError
 from agentmesh.seed import USER
 from agentmesh.store import store
@@ -92,6 +94,20 @@ def test_double_failure_has_stable_redacted_reason() -> None:
     assert "secret" not in str(captured.value)
 
 
+def test_each_completion_resets_model_provenance() -> None:
+    primary = StubLLM("primary-model", error=LLMRequestError("timeout", "redacted"))
+    fallback = StubLLM("fallback-model", result="fallback answer")
+    client = FailoverChatLLM(primary, fallback)
+
+    assert client.complete("system", "first") == "fallback answer"
+    primary.error = None
+    primary.result = "primary recovered"
+
+    assert client.complete("system", "second") == "primary recovered"
+    assert client.actual_model == "primary-model"
+    assert client.fallback_reason is None
+
+
 def test_chat_client_wraps_selected_model_with_configured_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     primary = StubLLM("primary-model", result="primary answer")
     fallback = StubLLM("fallback-model", result="fallback answer")
@@ -134,3 +150,71 @@ def test_unconfigured_fallback_keeps_primary_client(monkeypatch: pytest.MonkeyPa
     client = chat_llm_client(store, USER)
 
     assert client is primary
+
+
+def test_fallback_model_provenance_persists_with_assistant_message() -> None:
+    store.reset()
+    primary = StubLLM("primary-model", error=LLMRequestError("timeout", "redacted"))
+    fallback = StubLLM("fallback-model", result="fallback answer")
+    agent = PersonalAgent(store, llm_client=FailoverChatLLM(primary, fallback))
+
+    response = agent.handle_chat("$note.save model provenance", user=USER)
+
+    trace = response.workflow_trace
+    assert trace is not None
+    assert trace.requested_model == "primary-model"
+    assert trace.actual_model == "fallback-model"
+    assert trace.model_fallback_reason == "timeout"
+    messages = store.list_thread_messages(response.thread_id)
+    assert messages[-1].workflow_trace is not None
+    assert messages[-1].workflow_trace.model_dump() == trace.model_dump()
+
+
+def test_primary_model_provenance_records_same_requested_and_actual_model() -> None:
+    store.reset()
+    primary = StubLLM("primary-model", result="primary answer")
+    agent = PersonalAgent(store, llm_client=primary)
+
+    response = agent.handle_chat("$note.save primary provenance", user=USER)
+
+    trace = response.workflow_trace
+    assert trace is not None
+    assert trace.requested_model == "primary-model"
+    assert trace.actual_model == "primary-model"
+    assert trace.model_fallback_reason is None
+
+
+def test_provider_and_model_fallback_reasons_are_preserved_separately() -> None:
+    store.reset()
+    primary = StubLLM("primary-model", error=LLMRequestError("timeout", "redacted"))
+    fallback = StubLLM("fallback-model", result="fallback answer")
+    agent = PersonalAgent(store, llm_client=FailoverChatLLM(primary, fallback))
+
+    response = agent.handle_chat("$research.request separate provenance", user=USER)
+
+    trace = response.workflow_trace
+    assert trace is not None
+    assert trace.fallback_reason == "no_real_provider_configured"
+    assert trace.model_fallback_reason == "timeout"
+    assert trace.requested_model == "primary-model"
+    assert trace.actual_model == "fallback-model"
+
+
+def test_request_scoped_failover_clients_do_not_leak_actual_model_state() -> None:
+    first = FailoverChatLLM(
+        StubLLM("primary-a", error=LLMRequestError("timeout", "redacted")),
+        StubLLM("fallback-a", result="answer-a"),
+    )
+    second = FailoverChatLLM(
+        StubLLM("primary-b", result="answer-b"),
+        StubLLM("fallback-b", result="unused"),
+    )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first_result = executor.submit(first.complete, "system", "user")
+        second_result = executor.submit(second.complete, "system", "user")
+
+    assert first_result.result() == "answer-a"
+    assert second_result.result() == "answer-b"
+    assert first.actual_model == "fallback-a"
+    assert second.actual_model == "primary-b"

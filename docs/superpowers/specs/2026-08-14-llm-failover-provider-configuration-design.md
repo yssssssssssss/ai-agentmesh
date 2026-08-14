@@ -76,7 +76,7 @@ Extend `ChatWorkflowTrace` with:
 - `requested_model: str | None`
 - `actual_model: str | None`
 
-Extend `SynthesisResult` with the same model fields. On primary success, both fields contain the selected model. On fallback success, `requested_model` contains the primary model, `actual_model` contains the fallback model, and `fallback_reason` contains the primary stable failure category.
+Extend `SynthesisResult` with the same model fields. On primary success, both fields contain the selected model. On fallback success, `requested_model` contains the primary model and `actual_model` contains the fallback model. Persist the primary stable failure category as `ChatWorkflowTrace.model_fallback_reason`; keep `fallback_reason` reserved for Provider or local fallback so both causes can coexist.
 
 The existing requested/actual provider fields remain separate. Acquisition provider provenance must not be overwritten by LLM model provenance.
 

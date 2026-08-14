@@ -259,7 +259,7 @@ git commit -m "Add automatic LLM failover"
 
 **Interfaces:**
 - Consumes: Task 1 `FailoverChatLLM.requested_model`, `.actual_model`, `.fallback_reason`.
-- Produces: `ChatWorkflowTrace.requested_model`, `ChatWorkflowTrace.actual_model`, and `SynthesisResult` model provenance.
+- Produces: `ChatWorkflowTrace.requested_model`, `ChatWorkflowTrace.actual_model`, `ChatWorkflowTrace.model_fallback_reason`, and `SynthesisResult` model provenance.
 
 - [ ] **Step 1: Write persistence tests**
 
@@ -268,7 +268,7 @@ Add backend tests that force primary timeout and fallback success, then assert:
 ```python
 assert response.workflow_trace.requested_model == "primary-model"
 assert response.workflow_trace.actual_model == "fallback-model"
-assert response.workflow_trace.fallback_reason == "timeout"
+assert response.workflow_trace.model_fallback_reason == "timeout"
 
 reloaded = client.get(f"/api/chat/threads/{response.thread_id}").json()
 trace = reloaded["messages"][-1]["workflow_trace"]
@@ -295,6 +295,7 @@ Add to `ChatWorkflowTrace`:
 ```python
 requested_model: str | None = None
 actual_model: str | None = None
+model_fallback_reason: str | None = None
 ```
 
 Extend `SynthesisResult`:
@@ -307,9 +308,13 @@ actual_model: str | None = None
 After a successful call, derive model provenance from the request-scoped client:
 
 ```python
-requested_model = getattr(client, "requested_model", getattr(client, "model", None))
-actual_model = getattr(client, "actual_model", requested_model)
-fallback_reason = getattr(client, "fallback_reason", None)
+model = getattr(client, "model", None)
+requested_value = getattr(client, "requested_model", None)
+requested_model = requested_value if isinstance(requested_value, str) else model if isinstance(model, str) else None
+actual_value = getattr(client, "actual_model", None)
+actual_model = actual_value if isinstance(actual_value, str) else requested_model
+fallback_value = getattr(client, "fallback_reason", None)
+model_fallback_reason = fallback_value if isinstance(fallback_value, str) else None
 ```
 
 Return these fields from both normal synthesis and general chat. For local fallback after both LLMs fail, preserve `requested_model` but leave `actual_model=None` because no model generated the persisted answer.
@@ -323,6 +328,7 @@ trace.requested_provider = "llm"
 trace.actual_provider = "llm" if trace.llm_used else "local_fallback"
 trace.requested_model = synthesis.requested_model
 trace.actual_model = synthesis.actual_model
+trace.model_fallback_reason = synthesis.fallback_reason if synthesis.llm_used else None
 ```
 
 Acquisition provider metadata remains authoritative for requested/actual provider fields. Model fields are assigned independently before `_apply_trace_provenance()`.

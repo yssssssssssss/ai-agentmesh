@@ -30,9 +30,12 @@ function Provenance({ message }: { message: ChatMessage }) {
     <dl data-testid="provider-provenance" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
       <div className="flex gap-1"><dt>请求提供方</dt><dd className="text-slate-300">{trace.requested_provider ?? 'agentmesh'}</dd></div>
       <div className="flex gap-1"><dt>实际提供方</dt><dd className="text-slate-300">{trace.actual_provider ?? trace.requested_provider ?? 'agentmesh'}</dd></div>
+      {trace.requested_model ? <div className="flex gap-1"><dt>请求模型</dt><dd className="text-slate-300">{trace.requested_model}</dd></div> : null}
+      {trace.actual_model ? <div className="flex gap-1"><dt>实际模型</dt><dd className="text-slate-300">{trace.actual_model}</dd></div> : null}
       <div className="flex gap-1"><dt>模式</dt><dd className="text-slate-300">{trace.provider_mode ?? (trace.llm_used ? 'real' : 'fallback')}</dd></div>
       {trace.latency_ms != null ? <div className="flex gap-1"><dt>延迟</dt><dd className="text-slate-300">{Math.round(trace.latency_ms)} ms</dd></div> : null}
       {trace.fallback_reason ? <div className="flex gap-1"><dt>降级原因</dt><dd className="text-amber-300">{trace.fallback_reason}</dd></div> : null}
+      {trace.model_fallback_reason ? <div className="flex gap-1"><dt>模型切换原因</dt><dd className="text-amber-300">{trace.model_fallback_reason}</dd></div> : null}
       <div className="flex gap-1"><dt>工作流</dt><dd className="text-slate-300">{trace.selected_workflow}</dd></div>
     </dl>
   )

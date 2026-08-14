@@ -296,9 +296,12 @@ class ChatWorkflowTrace(BaseModel):
     llm_used: bool
     requested_provider: str | None = None
     actual_provider: str | None = None
+    requested_model: str | None = None
+    actual_model: str | None = None
     provider_mode: str | None = Field(default=None, pattern="^(real|fallback)$")
     latency_ms: float | None = Field(default=None, ge=0)
     fallback_reason: str | None = None
+    model_fallback_reason: str | None = None
 
 
 class Source(BaseModel):

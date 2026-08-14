@@ -2304,12 +2304,18 @@ export interface components {
             requested_provider?: string | null;
             /** Actual Provider */
             actual_provider?: string | null;
+            /** Requested Model */
+            requested_model?: string | null;
+            /** Actual Model */
+            actual_model?: string | null;
             /** Provider Mode */
             provider_mode?: string | null;
             /** Latency Ms */
             latency_ms?: number | null;
             /** Fallback Reason */
             fallback_reason?: string | null;
+            /** Model Fallback Reason */
+            model_fallback_reason?: string | null;
         };
         /**
          * CollaborationStage

@@ -36,6 +36,8 @@ class FailoverChatLLM:
         return result
 
     def complete(self, system_prompt: str, user_prompt: str) -> str:
+        self.actual_model = self.requested_model
+        self.fallback_reason = None
         try:
             return self._nonempty(self.primary, system_prompt, user_prompt)
         except LLMRequestError as primary_error:
@@ -56,6 +58,19 @@ class SynthesisResult:
     content: str
     llm_used: bool
     fallback_reason: str | None = None
+    requested_model: str | None = None
+    actual_model: str | None = None
+
+
+def llm_model_provenance(client: ChatLLM) -> tuple[str | None, str | None, str | None]:
+    model = getattr(client, "model", None)
+    requested_value = getattr(client, "requested_model", None)
+    requested_model = requested_value if isinstance(requested_value, str) else model if isinstance(model, str) else None
+    actual_value = getattr(client, "actual_model", None)
+    actual_model = actual_value if isinstance(actual_value, str) else requested_model
+    fallback_value = getattr(client, "fallback_reason", None)
+    fallback_reason = fallback_value if isinstance(fallback_value, str) else None
+    return requested_model, actual_model, fallback_reason
 
 
 def synthesize_with_llm(
@@ -102,6 +117,7 @@ def synthesize_with_llm_result(
     client = chat_llm_client(repository, user, llm_client)
     if client is None:
         return SynthesisResult(content=fallback_content, llm_used=False, fallback_reason="llm_not_configured")
+    requested_model, _, _ = llm_model_provenance(client)
     try:
         generated = client.complete(
             system_prompt=(
@@ -122,12 +138,34 @@ def synthesize_with_llm_result(
             ),
         )
     except LLMRequestError as error:
-        return SynthesisResult(content=fallback_content, llm_used=False, fallback_reason=error.reason)
+        return SynthesisResult(
+            content=fallback_content,
+            llm_used=False,
+            fallback_reason=error.reason,
+            requested_model=requested_model,
+        )
     except Exception:
-        return SynthesisResult(content=fallback_content, llm_used=False, fallback_reason="llm_error")
+        return SynthesisResult(
+            content=fallback_content,
+            llm_used=False,
+            fallback_reason="llm_error",
+            requested_model=requested_model,
+        )
+    requested_model, actual_model, model_fallback_reason = llm_model_provenance(client)
     if not generated:
-        return SynthesisResult(content=fallback_content, llm_used=False, fallback_reason="empty_response")
-    return SynthesisResult(content=generated, llm_used=True)
+        return SynthesisResult(
+            content=fallback_content,
+            llm_used=False,
+            fallback_reason="empty_response",
+            requested_model=requested_model,
+        )
+    return SynthesisResult(
+        content=generated,
+        llm_used=True,
+        fallback_reason=model_fallback_reason,
+        requested_model=requested_model,
+        actual_model=actual_model,
+    )
 
 
 def chat_llm_client(

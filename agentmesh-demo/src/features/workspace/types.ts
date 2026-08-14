@@ -12,8 +12,11 @@ export type SearchResult = components['schemas']['SearchResult']
 export type ChatWorkflowTrace = Omit<components['schemas']['ChatWorkflowTrace'], 'provider'> & {
   requested_provider?: string | null
   actual_provider?: string | null
+  requested_model?: string | null
+  actual_model?: string | null
   provider_mode?: 'real' | 'fallback' | null
   latency_ms?: number | null
+  model_fallback_reason?: string | null
 }
 export type ChatMessage = components['schemas']['ChatMessage'] & {
   workflow_trace?: ChatWorkflowTrace | null
