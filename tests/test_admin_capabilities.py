@@ -88,7 +88,7 @@ def test_granted_non_admin_capabilities_authorize_the_matching_modules() -> None
 
     create_user = user.post(
         "/api/users",
-        json={"name": "能力授权用户", "role": "user", "password": "capability-pass-123"},
+        json={"name": "能力授权用户", "role": "user", "password": "testpass"},
     )
     create_policy = user.post(
         "/api/users/permission-policies",

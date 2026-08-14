@@ -424,7 +424,12 @@ def test_smoke_parser_is_deterministic_and_selected_failures_aggregate_nonzero(m
     def failed() -> ProviderStatus:
         calls.append("llm")
         return ProviderStatus(
-            name="llm", configured=True, ready=False, mode="fallback", last_error="auth_error", latency_ms=2.0
+            name="llm",
+            configured=True,
+            ready=False,
+            mode="fallback",
+            last_error="auth_error",
+            latency_ms=2.0,
         )
 
     monkeypatch.setattr(provider_smoke, "SMOKE_HANDLERS", {"embedding": ready, "llm": failed})
