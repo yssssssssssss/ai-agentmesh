@@ -61,7 +61,7 @@ def _web_provider_status() -> dict[str, object]:
     if provider_type:
         payload["provider_type"] = provider_type
     if status.configured and not status.ready:
-        payload["status"] = "command_not_found"
+        payload["status"] = "command_not_found" if provider_type in {"opencli", "agent_browser"} else "degraded"
     return payload
 
 

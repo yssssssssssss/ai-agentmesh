@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from agentmesh.app import app
+from agentmesh.provider_status import ProviderTelemetry
 from agentmesh.seed import ADMIN
 
 
@@ -120,6 +121,25 @@ class TestProviderHealthCheck:
         web = next(p for p in data["providers"] if p["name"] == "web_research")
         assert web["status"] == "command_not_found"
         assert web["provider_type"] == "opencli"
+
+    def test_tavily_provider_is_ready_and_secret_safe(self, auth_client: TestClient):
+        env = {
+            "AGENTMESH_WEB_PROVIDER": "tavily",
+            "AGENTMESH_TAVILY_API_URL": "https://api.tavily.com/search",
+            "AGENTMESH_TAVILY_API_KEY": "secret-tavily-key",
+        }
+        with (
+            patch.dict("os.environ", env),
+            patch("agentmesh.web_research._tavily_telemetry", ProviderTelemetry()),
+        ):
+            response = auth_client.get("/api/health/providers")
+
+        web = next(item for item in response.json()["providers"] if item["name"] == "web_research")
+        assert web["configured"] is True
+        assert web["ready"] is True
+        assert web["provider_type"] == "tavily"
+        assert "secret-tavily-key" not in response.text
+        assert "api.tavily.com" not in response.text
 
     def test_o2_not_installed(self, auth_client: TestClient):
         """O2 CLI 未安装时返回 not_installed。"""

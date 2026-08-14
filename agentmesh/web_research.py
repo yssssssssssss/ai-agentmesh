@@ -8,12 +8,20 @@ import subprocess
 from time import monotonic
 from typing import Any, Protocol
 
+import httpx
 from pydantic import BaseModel, Field
 
 from agentmesh.acquisition import AcquisitionAgent, AcquisitionRequest, AcquisitionResult
 from agentmesh.models import Source
-from agentmesh.provider_status import ProviderStatus, build_provider_status, provider_error_code, provider_metadata
+from agentmesh.provider_status import (
+    ProviderStatus,
+    ProviderTelemetry,
+    build_provider_status,
+    provider_error_code,
+    provider_metadata,
+)
 
+_tavily_telemetry = ProviderTelemetry()
 
 class WebSearchResult(BaseModel):
     title: str = Field(min_length=1, max_length=200)
@@ -94,6 +102,82 @@ class CommandWebSearchProvider:
         )
 
 
+class TavilyWebSearchProvider:
+    provider_name = "tavily"
+    mode = "real"
+
+    def __init__(
+        self,
+        api_url: str,
+        api_key: str,
+        timeout_seconds: float = 20.0,
+        search_depth: str = "basic",
+        http_client: httpx.Client | None = None,
+    ):
+        self.api_url = api_url
+        self.api_key = api_key
+        self.search_depth = search_depth
+        self.http_client = http_client or httpx.Client(timeout=max(0.1, timeout_seconds))
+
+    def search(self, query: str, limit: int = 3) -> list[WebSearchResult]:
+        started = monotonic()
+        try:
+            response = self.http_client.post(
+                self.api_url,
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                json={
+                    "query": query,
+                    "search_depth": self.search_depth,
+                    "max_results": max(0, min(limit, 20)),
+                    "include_answer": False,
+                    "include_raw_content": False,
+                    "include_images": False,
+                },
+            )
+        except httpx.TimeoutException as error:
+            self._fail("timeout", "Tavily search timed out", error, started)
+        except httpx.RequestError as error:
+            self._fail("provider_error", "Tavily search request failed", error, started)
+
+        if response.status_code in {401, 403}:
+            self._fail("auth_error", "Tavily authentication failed", None, started)
+        if response.status_code in {429, 432}:
+            self._fail("rate_limited", "Tavily search limit was reached", None, started)
+        if response.status_code >= 400:
+            self._fail("provider_error", f"Tavily search returned HTTP {response.status_code}", None, started)
+
+        try:
+            payload = response.json()
+            raw_results = payload["results"]
+            if not isinstance(raw_results, list):
+                raise TypeError("results must be a list")
+            results = [
+                WebSearchResult(
+                    title=str(item["title"]),
+                    url=str(item["url"]),
+                    snippet=str(item.get("content") or ""),
+                )
+                for item in raw_results
+                if isinstance(item, dict)
+            ]
+        except (KeyError, TypeError, ValueError) as error:
+            self._fail("malformed_response", "Tavily search returned malformed JSON", error, started)
+
+        _tavily_telemetry.success((monotonic() - started) * 1000)
+        return results
+
+    @staticmethod
+    def _fail(
+        reason: str,
+        message: str,
+        error: BaseException | None,
+        started: float,
+    ) -> None:
+        wrapped = WebResearchError(reason, message)
+        _tavily_telemetry.failure(wrapped, (monotonic() - started) * 1000)
+        raise wrapped from error
+
+
 class MockWebSearchProvider:
     provider_name = "mock_web"
     mode = "fallback"
@@ -149,6 +233,19 @@ def provider_from_env() -> WebSearchProvider | None:
     provider = os.getenv("AGENTMESH_WEB_PROVIDER", "").strip().lower()
     if provider == "mock":
         return MockWebSearchProvider()
+    if provider == "tavily":
+        api_url = os.getenv("AGENTMESH_TAVILY_API_URL", "").strip()
+        api_key = os.getenv("AGENTMESH_TAVILY_API_KEY", "").strip()
+        if not api_url or not api_key:
+            return None
+        try:
+            timeout_seconds = max(0.1, float(os.getenv("AGENTMESH_TAVILY_TIMEOUT_SECONDS", "20")))
+        except ValueError:
+            timeout_seconds = 20.0
+        search_depth = os.getenv("AGENTMESH_TAVILY_SEARCH_DEPTH", "basic").strip().lower()
+        if search_depth not in {"advanced", "basic", "fast", "ultra-fast"}:
+            search_depth = "basic"
+        return TavilyWebSearchProvider(api_url, api_key, timeout_seconds, search_depth)
     if provider == "opencli":
         return CommandWebSearchProvider(
             os.getenv("AGENTMESH_OPENCLI_COMMAND", "opencli"),
@@ -169,6 +266,18 @@ def web_research_provider_status() -> ProviderStatus:
     if not configured_provider:
         return build_provider_status(
             name="web_research", configured=False, ready=False, error="not_configured"
+        )
+    if configured_provider == "tavily":
+        configured = bool(
+            os.getenv("AGENTMESH_TAVILY_API_URL", "").strip()
+            and os.getenv("AGENTMESH_TAVILY_API_KEY", "").strip()
+        )
+        return build_provider_status(
+            name="web_research",
+            configured=configured,
+            ready=configured,
+            telemetry=_tavily_telemetry,
+            error=None if configured else "not_configured",
         )
     provider = provider_from_env()
     if provider is None:
