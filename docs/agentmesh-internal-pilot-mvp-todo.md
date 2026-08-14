@@ -355,7 +355,7 @@ Done when: React 是默认 UI，生产代码没有本地业务 mock。
 - [x] README/CONTEXT 更新
 - [x] Final commit/evidence 记录
 
-Provider update observed 2026-08-14: Embedding, O2 metasearch, Tavily Web Research, `llm:primary`, and `llm:fallback` all reported `configured=true`, `ready=true`, `mode=real`. Tavily application verification returned three HTTPS sources with `actual_provider=tavily`; O2 returned real JD product results and AgentMesh O2 smoke passed. Data API remains unconfigured. Release also remains blocked until GitHub CI passes and the credentials exposed in chat are rotated.
+Provider update observed 2026-08-14: Embedding, O2 metasearch, Tavily Web Research, `llm:primary`, and `llm:fallback` all reported `configured=true`, `ready=true`, `mode=real`. Tavily application verification returned three HTTPS sources with `actual_provider=tavily`; O2 returned real JD product results and AgentMesh O2 smoke passed. GitHub PR #18 CI passed backend clean install/pytest, frontend types/test/build, Playwright, and secret scan. Data API remains unconfigured, and credentials exposed in chat still require rotation before wider deployment.
 
 Dependencies: M1-M10  
 Done when: CI 全绿，五类真实 Provider smoke 全绿，文档明确单 Workspace/单实例限制。
@@ -382,7 +382,7 @@ cd ..
 - [ ] 五类 Provider 可观测且真实 smoke 通过
 - [x] Provider failure 不锁 DB/阻塞 API
 - [x] Memory/Blackboard MVP actions 已授权
-- [ ] CI 全绿
+- [x] CI 全绿
 - [x] 单 Workspace/单实例/Post-MVP 限制写入文档
 
 ## Execution Ledger
@@ -399,7 +399,7 @@ cd ..
 | M8 | M8KnowledgeCollaboration + Main | feat/internal-pilot-mvp-stabilization | done | 9231c9a | Atomic Brief governance; handoff control; Governance/Collaboration E2E; R3 approved |
 | M9 | M9ReadModelsAdmin + Main | feat/internal-pilot-mvp-stabilization | done | 9231c9a | Project-scoped read models; Admin capabilities; real-handler E2E; R3 approved |
 | M10 | Main | feat/internal-pilot-mvp-stabilization | done | cf14e51 | Mock state removed; parity E2E; 23 Playwright; 487 pytest; Ruff; Vitest/build |
-| M11 | Main | feat/internal-pilot-mvp-stabilization | code_complete_external_gates_pending | 5b6e337 | 523 pytest; Ruff; 7 Vitest; build; 24 Playwright; Embedding/O2/Tavily/primary+fallback LLM real/ready; Data API and CI pending |
+| M11 | Main | feat/internal-pilot-mvp-stabilization | code_complete_data_api_pending | 5b6e337 | 523 pytest; Ruff; 7 Vitest; build; 24 Playwright; PR #18 CI all green; Embedding/O2/Tavily/primary+fallback LLM real/ready; Data API pending |
 
 ## Review and Release Ledger
 
@@ -408,4 +408,4 @@ cd ..
 | R1 | M1-M3 Security Boundary | R1AuthIsolation + R1GovernanceReview | approved | 425 pytest; Ruff pass; secret scan clean |
 | R2 | M4-M6 Availability + React Foundation | R2FoundationReview + R2ReReview | approved | 8 findings resolved; 461 pytest; Ruff; 7 Vitest; build; 11 Playwright |
 | R3 | M7-M9 Browser Main Flows | R3Review + R3ReReview | approved | 18 findings plus tenant-thread regression resolved; 487 pytest; Ruff; 7 Vitest; build; 22 Playwright |
-| Final | M10-M11 Release | Main | blocked_external | Local gates pass; Data API real smoke, credential rotation, and remote CI pending |
+| Final | M10-M11 Release | Main | blocked_external | Local and GitHub CI gates pass; Data API real smoke and credential rotation pending |
