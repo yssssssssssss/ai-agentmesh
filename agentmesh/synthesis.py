@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Protocol
 
-from agentmesh.llm import LLMClient, LLMRequestError, llm_chat_timeout_seconds
+from agentmesh.llm import LLMClient, LLMRequestError, llm_chat_timeout_seconds, normalize_model_id
 from agentmesh.model_registry import resolve_agent_model_id
 from agentmesh.models import BlackboardPost, ChatMessage, ChatRole, InboxItem, Intent, MemoryItem, Source, User
 from agentmesh.store import SQLiteStore
@@ -11,6 +12,43 @@ from agentmesh.store import SQLiteStore
 
 class ChatLLM(Protocol):
     def complete(self, system_prompt: str, user_prompt: str) -> str: ...
+
+FAILOVER_REASONS = frozenset({"timeout", "request_error", "http_status", "invalid_response", "empty_response"})
+
+
+class FailoverChatLLM:
+    def __init__(self, primary: ChatLLM, fallback: ChatLLM):
+        self.primary = primary
+        self.fallback = fallback
+        self.requested_model = str(getattr(primary, "model", "primary"))
+        self.actual_model = self.requested_model
+        self.fallback_reason: str | None = None
+
+    @property
+    def model(self) -> str:
+        return self.actual_model
+
+    @staticmethod
+    def _nonempty(client: ChatLLM, system_prompt: str, user_prompt: str) -> str:
+        result = client.complete(system_prompt, user_prompt)
+        if not result.strip():
+            raise LLMRequestError("empty_response", "LLM returned an empty response")
+        return result
+
+    def complete(self, system_prompt: str, user_prompt: str) -> str:
+        try:
+            return self._nonempty(self.primary, system_prompt, user_prompt)
+        except LLMRequestError as primary_error:
+            if primary_error.reason not in FAILOVER_REASONS:
+                raise
+            self.fallback_reason = primary_error.reason
+
+        self.actual_model = str(getattr(self.fallback, "model", "fallback"))
+        try:
+            return self._nonempty(self.fallback, system_prompt, user_prompt)
+        except LLMRequestError as fallback_error:
+            reason = f"primary_{self.fallback_reason}_fallback_{fallback_error.reason}"
+            raise LLMRequestError(reason, "Primary and fallback LLM requests failed") from fallback_error
 
 
 @dataclass(frozen=True)
@@ -100,10 +138,17 @@ def chat_llm_client(
 ) -> ChatLLM | None:
     if llm_client is not None:
         return llm_client
-    return LLMClient.from_model_id(
-        resolve_agent_model_id(repository, user),
-        timeout_seconds=timeout_seconds if timeout_seconds is not None else llm_chat_timeout_seconds(),
-    )
+    requested_model_id = normalize_model_id(resolve_agent_model_id(repository, user))
+    timeout = timeout_seconds if timeout_seconds is not None else llm_chat_timeout_seconds()
+    primary = LLMClient.from_model_id(requested_model_id, timeout_seconds=timeout)
+    fallback_value = os.getenv("AGENTMESH_LLM_FALLBACK_MODEL_ID", "").strip()
+    if primary is None or not fallback_value:
+        return primary
+    fallback_model_id = normalize_model_id(fallback_value)
+    if fallback_model_id == requested_model_id:
+        return primary
+    fallback = LLMClient.from_model_id(fallback_model_id, timeout_seconds=timeout)
+    return FailoverChatLLM(primary, fallback) if fallback is not None else primary
 
 
 def build_llm_prompt(
