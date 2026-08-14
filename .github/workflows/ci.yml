@@ -24,7 +24,7 @@ jobs:
       - run: python -m venv .venv
       - run: .venv/bin/python -m pip install -e '.[dev]'
       - run: .venv/bin/ruff check .
-      - run: .venv/bin/python -m pytest
+      - run: .venv/bin/python -m pytest --ignore=tests/test_frontend_routes.py
         env:
           AGENTMESH_EMBEDDING_ENABLED: "false"
 
@@ -43,7 +43,7 @@ jobs:
           cache: npm
           cache-dependency-path: agentmesh-demo/package-lock.json
       - run: python -m venv .venv
-      - run: .venv/bin/python -m pip install -e .
+      - run: .venv/bin/python -m pip install -e '.[dev]'
       - run: npm ci
         working-directory: agentmesh-demo
       - run: npm run api:types
@@ -52,6 +52,7 @@ jobs:
         working-directory: agentmesh-demo
       - run: npm run build
         working-directory: agentmesh-demo
+      - run: .venv/bin/python -m pytest tests/test_frontend_routes.py
 
   e2e:
     name: Core Playwright flows
