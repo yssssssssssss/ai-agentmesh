@@ -200,6 +200,38 @@ def test_provider_and_model_fallback_reasons_are_preserved_separately() -> None:
     assert trace.actual_model == "fallback-model"
 
 
+def test_double_model_failure_does_not_overwrite_provider_fallback_reason() -> None:
+    store.reset()
+    primary = StubLLM("primary-model", error=LLMRequestError("timeout", "redacted"))
+    fallback = StubLLM("fallback-model", error=LLMRequestError("request_error", "redacted"))
+    agent = PersonalAgent(store, llm_client=FailoverChatLLM(primary, fallback))
+
+    response = agent.handle_chat("$research.request failed model provenance", user=USER)
+
+    trace = response.workflow_trace
+    assert trace is not None
+    assert trace.fallback_reason == "no_real_provider_configured"
+    assert trace.model_fallback_reason == "primary_timeout_fallback_request_error"
+    assert trace.requested_model == "primary-model"
+    assert trace.actual_model is None
+
+
+def test_double_model_failure_stays_out_of_provider_fallback_reason() -> None:
+    store.reset()
+    primary = StubLLM("primary-model", error=LLMRequestError("timeout", "redacted"))
+    fallback = StubLLM("fallback-model", error=LLMRequestError("request_error", "redacted"))
+    agent = PersonalAgent(store, llm_client=FailoverChatLLM(primary, fallback))
+
+    response = agent.handle_chat("$note.save failed model provenance", user=USER)
+
+    trace = response.workflow_trace
+    assert trace is not None
+    assert trace.fallback_reason is None
+    assert trace.model_fallback_reason == "primary_timeout_fallback_request_error"
+    assert trace.requested_model == "primary-model"
+    assert trace.actual_model is None
+
+
 def test_request_scoped_failover_clients_do_not_leak_actual_model_state() -> None:
     first = FailoverChatLLM(
         StubLLM("primary-a", error=LLMRequestError("timeout", "redacted")),

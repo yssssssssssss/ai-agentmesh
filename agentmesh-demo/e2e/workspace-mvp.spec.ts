@@ -242,6 +242,9 @@ test('renders a failed import job separately from successful queued completion',
     }),
   )
 
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'AI 工作台' })).toBeVisible()
+
   await page.getByLabel('上传文档').setInputFiles({
     name: failedFileName,
     mimeType: 'text/plain',

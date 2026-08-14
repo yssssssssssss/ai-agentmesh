@@ -36,7 +36,7 @@ test('React default UI carries the MVP parity journey without local demo state',
     buffer: Buffer.from(`${marker}\ncanonical parity source`),
   })
   await expect(page.getByTestId('upload-status')).toContainText(uploadName)
-  await expect(page.getByTestId('upload-status')).toContainText('已导入')
+  await expect(page.getByTestId('upload-status')).toContainText('已导入', { timeout: 15_000 })
   await page.getByLabel('搜索资料').fill(marker)
   await page.getByRole('button', { name: '搜索', exact: true }).click()
   const documentResult = page

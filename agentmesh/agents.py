@@ -167,10 +167,10 @@ class PersonalAgent:
                 actual_provider="llm" if chat_result.llm_used else "local_fallback",
                 provider_mode="fallback" if chat_result.fallback_reason or not chat_result.llm_used else "real",
                 latency_ms=latency_ms,
-                fallback_reason=chat_result.fallback_reason if not chat_result.llm_used else None,
+                fallback_reason=None,
                 requested_model=chat_result.requested_model,
                 actual_model=chat_result.actual_model,
-                model_fallback_reason=chat_result.fallback_reason if chat_result.llm_used else None,
+                model_fallback_reason=chat_result.fallback_reason,
             )
 
         if invocation.spec is None:
@@ -342,10 +342,8 @@ class PersonalAgent:
             workflow_trace.llm_used = synthesis.llm_used
             workflow_trace.requested_model = synthesis.requested_model
             workflow_trace.actual_model = synthesis.actual_model
-            workflow_trace.model_fallback_reason = synthesis.fallback_reason if synthesis.llm_used else None
-            workflow_trace.fallback_reason = state.provider_fallback_reason or (
-                synthesis.fallback_reason if not synthesis.llm_used else None
-            )
+            workflow_trace.model_fallback_reason = synthesis.fallback_reason
+            workflow_trace.fallback_reason = state.provider_fallback_reason
 
         self._apply_trace_provenance(workflow_trace, state, user, synthesis_latency_ms)
         if state.retrieval_metrics is not None:
@@ -432,7 +430,9 @@ class PersonalAgent:
             actual_provider=actual_provider or requested_provider or "agentmesh",
             requested_model=requested_model,
             actual_model=actual_model,
-            provider_mode=provider_mode or ("fallback" if fallback_reason else "real"),
+            provider_mode=provider_mode or (
+                "fallback" if fallback_reason or model_fallback_reason else "real"
+            ),
             latency_ms=latency_ms,
             fallback_reason=fallback_reason,
             model_fallback_reason=model_fallback_reason,
@@ -2068,9 +2068,9 @@ class PersonalAgent:
             trace.provider_mode = "fallback" if trace.model_fallback_reason else "real"
             trace.latency_ms = synthesis_latency_ms
             return
-        trace.requested_provider = "llm" if trace.fallback_reason else "agentmesh"
-        trace.actual_provider = "local_fallback" if trace.fallback_reason else "agentmesh"
-        trace.provider_mode = "fallback" if trace.fallback_reason else "real"
+        trace.requested_provider = "llm" if trace.model_fallback_reason else "agentmesh"
+        trace.actual_provider = "local_fallback" if trace.model_fallback_reason else "agentmesh"
+        trace.provider_mode = "fallback" if trace.model_fallback_reason else "real"
         trace.latency_ms = synthesis_latency_ms
 
     @staticmethod

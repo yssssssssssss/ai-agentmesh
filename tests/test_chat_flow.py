@@ -249,7 +249,8 @@ def test_general_chat_trace_records_llm_timeout_fallback() -> None:
     assert response.workflow_trace is not None
     assert response.workflow_trace.source == "chat"
     assert response.workflow_trace.llm_used is False
-    assert response.workflow_trace.fallback_reason == "timeout"
+    assert response.workflow_trace.fallback_reason is None
+    assert response.workflow_trace.model_fallback_reason == "timeout"
     assert len(store.tasks) == 0
 
 
@@ -1157,6 +1158,7 @@ def test_provider_trace_prioritizes_acquisition_fallback_over_llm_timeout() -> N
     assert response.workflow_trace.actual_provider == "mock"
     assert response.workflow_trace.provider_mode == "fallback"
     assert response.workflow_trace.fallback_reason == "no_real_provider_configured"
+    assert response.workflow_trace.model_fallback_reason == "timeout"
 
 
 def test_mock_acquisition_agent_returns_evidence_contract() -> None:

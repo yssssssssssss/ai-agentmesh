@@ -414,6 +414,7 @@ def test_llm_timeout_auth_and_malformed_errors_do_not_include_response_body() ->
 
 
 def test_smoke_parser_is_deterministic_and_selected_failures_aggregate_nonzero(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(provider_smoke, "load_server_env", lambda path=None: None)
     calls: list[str] = []
 
     def ready() -> ProviderStatus:
@@ -437,6 +438,7 @@ def test_llm_smoke_probes_primary_and_fallback_independently(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    monkeypatch.setattr(provider_smoke, "load_server_env", lambda path=None: None)
     statuses = {
         "primary": ProviderStatus(name="llm:primary", configured=True, ready=True, mode="real", latency_ms=1.0),
         "fallback": ProviderStatus(
@@ -462,6 +464,7 @@ def test_llm_smoke_probes_primary_and_fallback_independently(
 
 
 def test_llm_smoke_passes_only_when_both_models_are_real_and_ready(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(provider_smoke, "load_server_env", lambda path=None: None)
     monkeypatch.setenv("AGENTMESH_MODEL_DEFAULT", "primary")
     monkeypatch.setenv("AGENTMESH_LLM_FALLBACK_MODEL_ID", "fallback")
     monkeypatch.setattr(

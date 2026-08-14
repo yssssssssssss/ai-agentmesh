@@ -345,17 +345,17 @@ Done when: React 是默认 UI，生产代码没有本地业务 mock。
 - [x] Pytest job
 - [x] Frontend types/test/build job
 - [x] Core Playwright job
-- [ ] Embedding real smoke 通过
+- [x] Embedding real smoke 通过
 - [ ] O2 real smoke 通过
 - [ ] Web Research real smoke 通过
 - [ ] Data API real smoke 通过
-- [ ] LLM real smoke 通过
+- [x] LLM real smoke 通过
 - [x] User/Team Lead/Admin production-like smoke
 - [x] Restart/persistence smoke
 - [x] README/CONTEXT 更新
 - [x] Final commit/evidence 记录
 
-External release blocker observed 2026-08-14: `provider_smoke.py --embedding --o2 --web --data --llm` exited 1; all five providers reported `configured=false`, `ready=false`, `mode=fallback`. Release remains blocked until an approved internal host supplies the required credentials/CLIs and all five report real/ready. GitHub CI must also complete after the commit is published.
+Provider update observed 2026-08-14: Embedding, `llm:primary`, and `llm:fallback` all reported `configured=true`, `ready=true`, `mode=real`; observed latencies were approximately 392 ms, 2257 ms, and 959 ms. O2, Web Research, and Data API remain unconfigured. Release also remains blocked until GitHub CI passes and the credential exposed in chat is rotated.
 
 Dependencies: M1-M10  
 Done when: CI 全绿，五类真实 Provider smoke 全绿，文档明确单 Workspace/单实例限制。
@@ -399,7 +399,7 @@ cd ..
 | M8 | M8KnowledgeCollaboration + Main | feat/internal-pilot-mvp-stabilization | done | 9231c9a | Atomic Brief governance; handoff control; Governance/Collaboration E2E; R3 approved |
 | M9 | M9ReadModelsAdmin + Main | feat/internal-pilot-mvp-stabilization | done | 9231c9a | Project-scoped read models; Admin capabilities; real-handler E2E; R3 approved |
 | M10 | Main | feat/internal-pilot-mvp-stabilization | done | cf14e51 | Mock state removed; parity E2E; 23 Playwright; 487 pytest; Ruff; Vitest/build |
-| M11 | Main | feat/internal-pilot-mvp-stabilization | code_complete_external_gates_pending | 5b6e337 | CI/hygiene complete; clean install + PDF 13; 487 pytest; Ruff; 7 Vitest; build; 23 Playwright; real Providers unconfigured |
+| M11 | Main | feat/internal-pilot-mvp-stabilization | code_complete_external_gates_pending | 5b6e337 | 510 pytest; Ruff; 7 Vitest; build; 24 Playwright; Embedding + primary/fallback LLM real/ready; O2/Web/Data and CI pending |
 
 ## Review and Release Ledger
 
@@ -408,4 +408,4 @@ cd ..
 | R1 | M1-M3 Security Boundary | R1AuthIsolation + R1GovernanceReview | approved | 425 pytest; Ruff pass; secret scan clean |
 | R2 | M4-M6 Availability + React Foundation | R2FoundationReview + R2ReReview | approved | 8 findings resolved; 461 pytest; Ruff; 7 Vitest; build; 11 Playwright |
 | R3 | M7-M9 Browser Main Flows | R3Review + R3ReReview | approved | 18 findings plus tenant-thread regression resolved; 487 pytest; Ruff; 7 Vitest; build; 22 Playwright |
-| Final | M10-M11 Release | Main | blocked_external | Local gates pass; five real Provider smokes and remote CI pending |
+| Final | M10-M11 Release | Main | blocked_external | Local gates pass; O2/Web/Data real smokes, credential rotation, and remote CI pending |

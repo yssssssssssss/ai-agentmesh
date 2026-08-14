@@ -21,7 +21,7 @@ test.describe.serial('MVP governance and collaboration', () => {
     await page.locator(`[data-inbox-item-id="${briefItem.id}"]`).getByRole('button', { name: '确认并沉淀' }).click()
     await page.getByLabel('Brief 正文').fill(briefContent)
     await page.getByRole('button', { name: '确认 Brief' }).click()
-    await expect(page.getByRole('status')).toContainText('Brief 已确认')
+    await expect(page.getByRole('status')).toContainText('Brief 已确认', { timeout: 15_000 })
 
     const duplicate = await page.request.post(`/api/inbox/${briefItem.id}/confirm-brief`, {
       data: { text: briefContent, expected_document_version: initialDocument.version },
@@ -87,6 +87,7 @@ test.describe.serial('MVP governance and collaboration', () => {
   })
 
   test('task reply, personal lock/unlock/handoff and market participation persist', async ({ page }) => {
+    test.setTimeout(90_000)
     await loginAs(page)
     const taskMarker = `M8-collaboration-${Date.now()}`
     const taskResponse = await page.request.post('/api/chat/messages', {

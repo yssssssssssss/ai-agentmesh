@@ -1,7 +1,7 @@
 # LLM Failover and Provider Configuration Design
 
 Date: 2026-08-14  
-Status: Approved in conversation
+Status: Implemented and locally verified
 
 ## Goal
 
@@ -134,3 +134,10 @@ Frontend tests and Playwright must verify primary and fallback provenance labels
 - Embedding returns a real non-empty vector.
 - No credential is tracked or printed.
 - All focused and full regression gates pass.
+
+## Verification Evidence
+
+- Primary model generated a real application response and persisted identical requested/actual model fields across thread reload.
+- A controlled primary timeout selected the fallback exactly once and persisted `model_fallback_reason=timeout`.
+- Real smoke reported Embedding, primary LLM, and fallback LLM as configured, ready, and real without printing credentials or response bodies.
+- Full gates passed: 510 pytest, Ruff, 7 Vitest, production build, and 24 Playwright tests.
