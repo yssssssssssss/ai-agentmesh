@@ -16,7 +16,8 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from agentmesh.provider_status import ProviderStatus, provider_error_code  # noqa: E402
 
-SmokeHandler = Callable[[], ProviderStatus]
+SmokeResult = ProviderStatus | list[ProviderStatus]
+SmokeHandler = Callable[[], SmokeResult]
 _PROVIDER_ORDER = ("embedding", "o2", "web", "data", "llm")
 
 
@@ -131,12 +132,13 @@ def smoke_data() -> ProviderStatus:
         return _failed("data_api", configured, error, started)
 
 
-def smoke_llm() -> ProviderStatus:
+def smoke_llm_model(model_id: str) -> ProviderStatus:
     from agentmesh.llm import LLMClient
 
     started = monotonic()
-    client = LLMClient.from_env(timeout_seconds=10.0)
+    client = LLMClient.from_model_id(model_id, timeout_seconds=10.0)
     configured = client is not None
+    name = f"llm:{model_id}"
     try:
         if client is None:
             raise RuntimeError("not configured")
@@ -144,10 +146,17 @@ def smoke_llm() -> ProviderStatus:
         if not output.strip():
             raise ValueError("LLM returned no text")
         return ProviderStatus(
-            name="llm", configured=True, ready=True, mode="real", latency_ms=(monotonic() - started) * 1000
+            name=name, configured=True, ready=True, mode="real", latency_ms=(monotonic() - started) * 1000
         )
     except Exception as error:
-        return _failed("llm", configured, error, started)
+        return _failed(name, configured, error, started)
+
+
+def smoke_llm_models() -> list[ProviderStatus]:
+    primary_id = os.getenv("AGENTMESH_MODEL_DEFAULT", "default").strip() or "default"
+    fallback_id = os.getenv("AGENTMESH_LLM_FALLBACK_MODEL_ID", "").strip()
+    model_ids = list(dict.fromkeys(model_id for model_id in (primary_id, fallback_id) if model_id))
+    return [smoke_llm_model(model_id) for model_id in model_ids]
 
 
 SMOKE_HANDLERS: dict[str, SmokeHandler] = {
@@ -155,7 +164,7 @@ SMOKE_HANDLERS: dict[str, SmokeHandler] = {
     "o2": smoke_o2,
     "web": smoke_web,
     "data": smoke_data,
-    "llm": smoke_llm,
+    "llm": smoke_llm_models,
 }
 
 
@@ -173,7 +182,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         build_parser().print_usage(sys.stderr)
         return 2
     load_server_env()
-    statuses = [SMOKE_HANDLERS[name]() for name in selected]
+    results = [SMOKE_HANDLERS[name]() for name in selected]
+    statuses = [status for result in results for status in (result if isinstance(result, list) else [result])]
     for status in statuses:
         latency = "-" if status.latency_ms is None else f"{status.latency_ms:.1f}"
         error = status.last_error or "-"

@@ -433,6 +433,49 @@ def test_smoke_parser_is_deterministic_and_selected_failures_aggregate_nonzero(m
     assert provider_smoke.main([]) == 2
 
 
+def test_llm_smoke_probes_primary_and_fallback_independently(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    statuses = {
+        "primary": ProviderStatus(name="llm:primary", configured=True, ready=True, mode="real", latency_ms=1.0),
+        "fallback": ProviderStatus(
+            name="llm:fallback",
+            configured=True,
+            ready=False,
+            mode="fallback",
+            last_error="timeout",
+            latency_ms=2.0,
+        ),
+    }
+    monkeypatch.setenv("AGENTMESH_MODEL_DEFAULT", "primary")
+    monkeypatch.setenv("AGENTMESH_LLM_FALLBACK_MODEL_ID", "fallback")
+    monkeypatch.setattr(provider_smoke, "smoke_llm_model", lambda model_id: statuses[model_id])
+    monkeypatch.setitem(provider_smoke.SMOKE_HANDLERS, "llm", provider_smoke.smoke_llm_models)
+
+    assert provider_smoke.main(["--llm"]) == 1
+    output = capsys.readouterr().out
+    assert "llm:primary: configured=true ready=true mode=real" in output
+    assert "llm:fallback: configured=true ready=false mode=fallback" in output
+    assert "shared-secret" not in output
+    assert "provider-response-body" not in output
+
+
+def test_llm_smoke_passes_only_when_both_models_are_real_and_ready(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AGENTMESH_MODEL_DEFAULT", "primary")
+    monkeypatch.setenv("AGENTMESH_LLM_FALLBACK_MODEL_ID", "fallback")
+    monkeypatch.setattr(
+        provider_smoke,
+        "smoke_llm_model",
+        lambda model_id: ProviderStatus(
+            name=f"llm:{model_id}", configured=True, ready=True, mode="real", latency_ms=1.0
+        ),
+    )
+    monkeypatch.setitem(provider_smoke.SMOKE_HANDLERS, "llm", provider_smoke.smoke_llm_models)
+
+    assert provider_smoke.main(["--llm"]) == 0
+
+
 def test_redaction_does_not_echo_command_or_url_secrets() -> None:
     value = "command failed token=abc Bearer xyz https://user:pass@example.test/run?api_key=hidden"
 
