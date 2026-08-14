@@ -18,21 +18,25 @@ from agentmesh.models import (
     ItemsResponse,
     MemoryCreateRequest,
     MemoryItem,
+    MemoryItemsResponse,
+    MemoryItemView,
     MemoryLayer,
+    MemoryOverviewResponse,
+    MemoryRelation,
     MemoryStatus,
     MemoryUpdateRequest,
     ProjectArchiveRequest,
     ProjectMemorySummaryRequest,
     Scope,
+    SkillStatus,
     User,
     UserMemoryCreateRequest,
     UserMemoryItem,
     UserRole,
     now_utc,
 )
-from agentmesh.permissions import ensure_can_update_memory
+from agentmesh.permissions import ACTION_ACCEPT_TEAM_MEMORY, ensure_can_update_memory, has_permission
 from agentmesh.routes.deps import current_user
-from agentmesh.seed import PROJECT, WORKSPACE
 from agentmesh.store import store
 
 router = APIRouter(prefix="/api/memory", tags=["memory"])
@@ -65,21 +69,27 @@ daily_summary_worker_state: dict[str, object] = {
 }
 
 
-@router.get("", response_model=ItemsResponse)
-def memory_items(user: User = Depends(current_user)) -> ItemsResponse:
-    return ItemsResponse(items=_visible_memory_items(user))
+@router.get("", response_model=MemoryItemsResponse)
+def memory_items(user: User = Depends(current_user)) -> MemoryItemsResponse:
+    items = [memory_item_view(item, user) for item in _visible_memory_items(user)]
+    return MemoryItemsResponse(items=items)
 
 
 @router.post("", response_model=ItemResponse)
-def create_memory_item(request: MemoryCreateRequest, _: User = Depends(current_user)) -> ItemResponse:
+def create_memory_item(request: MemoryCreateRequest, user: User = Depends(current_user)) -> ItemResponse:
+    if request.scope == Scope.TEAM_ACCEPTED:
+        raise HTTPException(status_code=403, detail="Team memory must be reviewed before acceptance")
+    scope = Scope.TEAM_CANDIDATE if request.scope == Scope.PROJECT else request.scope
     item = store.add_memory_item(
         MemoryItem(
             title=request.title,
             summary=request.summary,
             memory_type=request.memory_type,
-            scope=request.scope,
-            workspace_id=request.workspace_id or WORKSPACE.id,
-            project_id=request.project_id or PROJECT.id,
+            scope=scope,
+            status=MemoryStatus.PROPOSED,
+            owner_user_id=user.id,
+            workspace_id=user.workspace_id,
+            project_id=user.default_project_id,
         )
     )
     return ItemResponse(item=item)
@@ -96,13 +106,13 @@ def user_memory_items(
     return ItemsResponse(items=store.list_user_memory_items(user.id, layer, project_id, memory_date, memory_type))
 
 
-@router.get("/overview")
+@router.get("/overview", response_model=MemoryOverviewResponse)
 def memory_overview(
     project_id: str | None = Query(default=None, min_length=1, max_length=120),
     memory_date: dt_date | None = Query(default=None),
     memory_type: str | None = Query(default=None, min_length=1, max_length=80),
     user: User = Depends(current_user),
-) -> dict[str, object]:
+) -> MemoryOverviewResponse:
     resolved_project_id = _resolve_user_project_id(user, project_id)
     sections = {
         "short": store.list_user_memory_items(
@@ -126,18 +136,22 @@ def memory_overview(
             None,
             memory_type,
         ),
-        "team": _visible_team_memory_items(user, resolved_project_id, memory_type),
+        "team": [
+            memory_item_view(item, user)
+            for item in _visible_team_memory_items(user, resolved_project_id, memory_type)
+        ],
     }
-    return {
-        "project_id": resolved_project_id,
-        "sections": sections,
-        "counts": {key: len(items) for key, items in sections.items()},
-        "daily_summary_worker": daily_summary_worker_state,
-    }
+    return MemoryOverviewResponse(
+        project_id=resolved_project_id,
+        sections=sections,
+        counts={key: len(items) for key, items in sections.items()},
+        daily_summary_worker=daily_summary_worker_state,
+    )
 
 
 @router.post("/user", response_model=ItemResponse)
 def create_user_memory_item(request: UserMemoryCreateRequest, user: User = Depends(current_user)) -> ItemResponse:
+    project_id = _resolve_user_project_id(user, request.project_id)
     item = UserMemoryItem(
         user_id=user.id,
         layer=request.layer,
@@ -147,7 +161,7 @@ def create_user_memory_item(request: UserMemoryCreateRequest, user: User = Depen
         memory_type=request.memory_type,
         memory_date=request.memory_date or now_utc().date(),
         workspace_id=user.workspace_id,
-        project_id=request.project_id or user.default_project_id,
+        project_id=project_id,
     )
     return ItemResponse(item=store.add_user_memory_item(item))
 
@@ -239,6 +253,47 @@ def archive_project_memory(
     return ItemResponse(item=store.add_user_memory_item(item))
 
 
+@router.post("/user/{item_id}/share-to-project", response_model=ItemResponse)
+def share_user_memory_to_project(item_id: str, user: User = Depends(current_user)) -> ItemResponse:
+    """Share a personal memory to project scope so all project members can see it."""
+    source_item = store.get_user_memory_item(item_id)
+    if source_item is None or source_item.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Memory not found")
+
+    if source_item.project_id is None:
+        raise HTTPException(status_code=400, detail="Memory has no associated project")
+
+    project = store.get_project(source_item.project_id)
+    if (
+        project is None
+        or project.workspace_id != user.workspace_id
+        or not store.user_can_access_project(user.id, source_item.project_id)
+    ):
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    shared = MemoryItem(
+        title=source_item.title,
+        summary=source_item.summary,
+        memory_type=source_item.memory_type,
+        scope=Scope.TEAM_CANDIDATE,
+        status=MemoryStatus.PROPOSED,
+        owner_user_id=user.id,
+        workspace_id=user.workspace_id,
+        project_id=source_item.project_id,
+        sources=source_item.sources,
+    )
+    store.add_memory_item(shared)
+
+    store.add_memory_relation(
+        MemoryRelation(
+            from_memory_id=shared.id,
+            to_source_id=source_item.id,
+            relation_type="shared_from_personal",
+        )
+    )
+    return ItemResponse(item=shared)
+
+
 @router.patch("/{item_id}", response_model=ItemResponse)
 def update_memory_item(
     item_id: str,
@@ -248,13 +303,12 @@ def update_memory_item(
     item = store.get_memory_item(item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Memory item not found")
-    ensure_can_update_memory(user, request.status, request.scope, store.permission_policy_rules)
-    if request.status is not None:
+    ensure_can_update_memory(user, item, request.status, request.scope, store.permission_policy_rules)
+    if request.status == MemoryStatus.ACCEPTED or request.scope == Scope.TEAM_ACCEPTED:
+        item.status = MemoryStatus.ACCEPTED
+        item.scope = Scope.TEAM_ACCEPTED
+    elif request.status is not None:
         item.status = request.status
-        if request.status == MemoryStatus.ACCEPTED and request.scope is None:
-            item.scope = Scope.TEAM_ACCEPTED
-    if request.scope is not None:
-        item.scope = request.scope
     store.save_memory_item(item)
     return ItemResponse(item=item)
 
@@ -262,7 +316,11 @@ def update_memory_item(
 def _resolve_user_project_id(user: User, requested_project_id: str | None) -> str:
     project_id = requested_project_id or user.default_project_id
     project = store.get_project(project_id)
-    if project is None or project.workspace_id != user.workspace_id:
+    if (
+        project is None
+        or project.workspace_id != user.workspace_id
+        or not store.user_can_access_project(user.id, project_id)
+    ):
         raise HTTPException(status_code=404, detail="Project not found")
     return project_id
 
@@ -387,10 +445,21 @@ def _project_name(project_id: str) -> str:
     return project.name if project is not None else project_id
 
 
+def memory_item_view(item: MemoryItem, user: User) -> MemoryItemView:
+    actions = []
+    if (
+        item.status == MemoryStatus.PROPOSED
+        and item.scope == Scope.TEAM_CANDIDATE
+        and has_permission(user, ACTION_ACCEPT_TEAM_MEMORY, store.permission_policy_rules)
+    ):
+        actions.append("accept")
+    return MemoryItemView(**item.model_dump(), allowed_actions=actions)
+
+
 def _visible_memory_items(user: User) -> list[MemoryItem]:
     items: list[MemoryItem] = []
     for item in store.memory_items:
-        if item.scope == Scope.PRIVATE:
+        if item.scope == Scope.PRIVATE and item.owner_user_id != user.id:
             continue
         if item.scope == Scope.TEAM_CANDIDATE and user.role not in {UserRole.TEAM_LEAD, UserRole.ADMIN}:
             continue
@@ -519,3 +588,80 @@ def _project_memory_prompt(project_id: str, items: list[UserMemoryItem]) -> str:
     if len(ordered) > 20:
         lines.append(f"- 另有 {len(ordered) - 20} 条短期记忆未展开。")
     return "\n".join(lines)[:6000]
+
+
+@router.get("/retrieval-metrics")
+def retrieval_metrics_list(
+    limit: int = Query(default=50, ge=1, le=200),
+    user: User = Depends(current_user),
+) -> dict[str, object]:
+    """Return recent retrieval metrics for recall quality analysis."""
+    all_metrics = sorted(store.retrieval_metrics, key=lambda m: m.created_at, reverse=True)
+    items = all_metrics[:limit]
+    if not items:
+        return {"items": [], "summary": {"total": 0, "avg_citation_rate": 0.0, "avg_latency_ms": 0}}
+    total = len(items)
+    total_returned = sum(m.results_returned for m in items)
+    total_cited = sum(m.results_cited for m in items)
+    avg_citation_rate = total_cited / total_returned if total_returned > 0 else 0.0
+    avg_latency_ms = sum(m.latency_ms for m in items) / total
+    return {
+        "items": [m.model_dump() for m in items],
+        "summary": {
+            "total": total,
+            "avg_citation_rate": round(avg_citation_rate, 3),
+            "avg_latency_ms": round(avg_latency_ms, 1),
+            "total_returned": total_returned,
+            "total_cited": total_cited,
+        },
+    }
+
+
+@router.get("/skills")
+def list_learned_skills(user: User = Depends(current_user)) -> dict[str, object]:
+    """List learned skills for the current user."""
+    skills = [
+        s for s in store.learned_skills
+        if s.user_id == user.id or s.scope in (Scope.PROJECT, Scope.TEAM_ACCEPTED)
+    ]
+    return {"items": [s.model_dump() for s in sorted(skills, key=lambda s: s.created_at, reverse=True)]}
+
+
+@router.post("/skills/{skill_id}/activate")
+def activate_skill(skill_id: str, user: User = Depends(current_user)) -> dict[str, object]:
+    """Activate a draft skill (user confirms it's useful)."""
+    skill = store.get_learned_skill(skill_id)
+    if skill is None or skill.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    if skill.status != SkillStatus.DRAFT:
+        raise HTTPException(status_code=400, detail="Only draft skills can be activated")
+    skill.status = SkillStatus.ACTIVE
+    skill.updated_at = now_utc()
+    store.save_learned_skill(skill)
+    return {"item": skill.model_dump()}
+
+
+@router.post("/skills/{skill_id}/share")
+def share_skill_to_project(skill_id: str, user: User = Depends(current_user)) -> dict[str, object]:
+    """Share a personal skill to project scope."""
+    skill = store.get_learned_skill(skill_id)
+    if skill is None or skill.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    if skill.status != SkillStatus.ACTIVE:
+        raise HTTPException(status_code=400, detail="Only active skills can be shared")
+    skill.scope = Scope.PROJECT
+    skill.updated_at = now_utc()
+    store.save_learned_skill(skill)
+    return {"item": skill.model_dump()}
+
+
+@router.post("/skills/{skill_id}/deprecate")
+def deprecate_skill(skill_id: str, user: User = Depends(current_user)) -> dict[str, object]:
+    """Mark a skill as deprecated."""
+    skill = store.get_learned_skill(skill_id)
+    if skill is None or skill.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    skill.status = SkillStatus.DEPRECATED
+    skill.updated_at = now_utc()
+    store.save_learned_skill(skill)
+    return {"item": skill.model_dump()}
