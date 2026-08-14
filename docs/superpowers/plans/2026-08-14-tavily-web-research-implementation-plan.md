@@ -26,7 +26,7 @@
 - Modify: `tests/test_web_research.py`
 
 **Interfaces:**
-- Produces: `TavilyWebSearchProvider(api_url, api_key, timeout_seconds, search_depth, http_client)` and `.search(query, limit) -> list[WebSearchResult]`.
+- Produces: `TavilyWebSearchProvider(api_url, api_key, timeout_seconds, http_client)` and `.search(query, limit) -> list[WebSearchResult]`.
 
 - [ ] **Step 1: Write failing request/response tests**
 
@@ -148,7 +148,6 @@ Read:
 AGENTMESH_TAVILY_API_URL
 AGENTMESH_TAVILY_API_KEY
 AGENTMESH_TAVILY_TIMEOUT_SECONDS
-AGENTMESH_TAVILY_SEARCH_DEPTH
 ```
 
 Support `AGENTMESH_WEB_PROVIDER=tavily`. Build status from configuration plus Tavily telemetry. Keep command-provider health behavior unchanged.

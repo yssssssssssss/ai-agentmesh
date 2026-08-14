@@ -296,7 +296,13 @@ export AGENTMESH_MODEL_GPT55_LABEL="GPT-5.5 高"
 export AGENTMESH_MODEL_GPT55_API_KEY=your-api-key
 ```
 
-The UI stores only `model_id` on the Agent. API keys stay server-side and are never returned by `/api/models`. If a selected model is missing or the model call fails, AgentMesh falls back to the deterministic local response.
+Configure one optional automatic fallback model with:
+
+```bash
+export AGENTMESH_LLM_FALLBACK_MODEL_ID=fast
+```
+
+The UI stores only `model_id` on the Agent. API keys stay server-side and are never returned by `/api/models`. Eligible primary failures (`timeout`, request/HTTP errors, malformed or empty responses) try the configured fallback once; authentication failures remain explicit. Persisted traces expose requested/actual model and model fallback reason separately from acquisition Provider provenance.
 
 ## Acquisition Agent Boundary
 
@@ -310,7 +316,18 @@ AgentMesh keeps external acquisition as an interface boundary:
 - External content is treated as untrusted input. Suspicious prompt-injection text is saved for audit, marked `needs_review`, routed to Inbox, and excluded from LLM synthesis.
 - High-risk tool requests such as batch crawling, batch downloads, intranet access, or automatic team-memory writes are routed to Inbox for approval before any acquisition connector runs.
 
-To enable command-backed Web research:
+To enable the native Tavily Web provider:
+
+```bash
+export AGENTMESH_WEB_PROVIDER=tavily
+export AGENTMESH_TAVILY_API_URL=https://api.tavily.com/search
+export AGENTMESH_TAVILY_API_KEY=your-api-key
+export AGENTMESH_TAVILY_TIMEOUT_SECONDS=20
+```
+
+The Tavily connector sends a basic search request, returns only title/URL/content snippets, and never returns its key or provider response body. Command-backed providers remain available as alternatives.
+
+To enable command-backed Web research instead:
 
 ```bash
 export AGENTMESH_WEB_PROVIDER=opencli

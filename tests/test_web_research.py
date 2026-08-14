@@ -201,7 +201,7 @@ def test_provider_from_env_selects_tavily_with_complete_configuration(monkeypatc
 
     assert isinstance(provider, TavilyWebSearchProvider)
     assert provider.api_url == "https://api.tavily.com/search"
-    assert provider.search_depth == "fast"
+    assert provider.search_depth == "basic"
 
 
 def test_provider_from_env_rejects_incomplete_tavily_configuration(monkeypatch: pytest.MonkeyPatch) -> None:

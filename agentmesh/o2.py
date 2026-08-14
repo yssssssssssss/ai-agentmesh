@@ -391,6 +391,7 @@ class CompositeAcquisitionAgent(AcquisitionAgent):
         results: list[AcquisitionResult] = []
         diagnostics: list[str] = []
         legacy_diagnostics: list[str] = []
+        provider_errors: list[Exception] = []
         requested_provider = _provider_name_for_agent(self.agents[0]) if self.agents else "research"
         for agent in self.agents:
             provider_name = _provider_name_for_agent(agent)
@@ -401,6 +402,7 @@ class CompositeAcquisitionAgent(AcquisitionAgent):
                 error_code = provider_error_code(error)
                 diagnostics.append(f"{provider_name}:{error_code}")
                 legacy_diagnostics.append(f"{actor_name}:{error_code}")
+                provider_errors.append(error)
                 continue
             if result.sources:
                 results.append(result)
@@ -408,20 +410,9 @@ class CompositeAcquisitionAgent(AcquisitionAgent):
                 diagnostics.append(f"{provider_name}:empty_result")
                 legacy_diagnostics.append(f"{actor_name}:empty_result")
         if not results:
-            fallback = MockAcquisitionAgent().acquire(request)
-            fallback.metadata = {
-                **fallback.metadata,
-                **provider_metadata(
-                    requested_provider=requested_provider,
-                    actual_provider="mock",
-                    mode="fallback",
-                    latency_ms=0.0,
-                    fallback_reason="no_real_provider_sources",
-                ),
-                "provider_diagnostics": " | ".join(legacy_diagnostics)[:500],
-                "provider_diagnostic_codes": " | ".join(diagnostics)[:500],
-            }
-            return fallback
+            if provider_errors:
+                raise provider_errors[-1]
+            raise O2CommandError("empty_result", "Configured acquisition providers returned no sources")
         if len(results) == 1:
             result = results[0]
             if diagnostics:

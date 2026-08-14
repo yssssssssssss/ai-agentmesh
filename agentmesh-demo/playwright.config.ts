@@ -23,6 +23,7 @@ export default defineConfig({
       env: {
         AGENTMESH_DB_PATH: e2eDatabasePath,
         AGENTMESH_DEMO_MODE: '1',
+        AGENTMESH_SKIP_DOTENV: '1',
         AGENTMESH_EMBEDDING_ENABLED: 'false',
         AGENTMESH_DOCUMENT_SYNC_THRESHOLD_BYTES: '128',
       },

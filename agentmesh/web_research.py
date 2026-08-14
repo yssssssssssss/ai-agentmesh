@@ -111,12 +111,11 @@ class TavilyWebSearchProvider:
         api_url: str,
         api_key: str,
         timeout_seconds: float = 20.0,
-        search_depth: str = "basic",
         http_client: httpx.Client | None = None,
     ):
         self.api_url = api_url
         self.api_key = api_key
-        self.search_depth = search_depth
+        self.search_depth = "basic"
         self.http_client = http_client or httpx.Client(timeout=max(0.1, timeout_seconds))
 
     def search(self, query: str, limit: int = 3) -> list[WebSearchResult]:
@@ -242,10 +241,7 @@ def provider_from_env() -> WebSearchProvider | None:
             timeout_seconds = max(0.1, float(os.getenv("AGENTMESH_TAVILY_TIMEOUT_SECONDS", "20")))
         except ValueError:
             timeout_seconds = 20.0
-        search_depth = os.getenv("AGENTMESH_TAVILY_SEARCH_DEPTH", "basic").strip().lower()
-        if search_depth not in {"advanced", "basic", "fast", "ultra-fast"}:
-            search_depth = "basic"
-        return TavilyWebSearchProvider(api_url, api_key, timeout_seconds, search_depth)
+        return TavilyWebSearchProvider(api_url, api_key, timeout_seconds)
     if provider == "opencli":
         return CommandWebSearchProvider(
             os.getenv("AGENTMESH_OPENCLI_COMMAND", "opencli"),

@@ -1,7 +1,7 @@
 # Tavily Web Research Provider Design
 
 Date: 2026-08-14  
-Status: Approved in conversation
+Status: Implemented and locally verified
 
 ## Goal
 
@@ -24,7 +24,6 @@ AGENTMESH_WEB_PROVIDER=tavily
 AGENTMESH_TAVILY_API_URL=https://api.tavily.com/search
 AGENTMESH_TAVILY_API_KEY=<local-secret>
 AGENTMESH_TAVILY_TIMEOUT_SECONDS=20
-AGENTMESH_TAVILY_SEARCH_DEPTH=basic
 ```
 
 `.env.example` will contain the same variable names with `replace-with-your-key`. The supplied key remains local and should be rotated before production because it appeared in chat.
@@ -38,7 +37,6 @@ TavilyWebSearchProvider(
     api_url: str,
     api_key: str,
     timeout_seconds: float = 20.0,
-    search_depth: str = "basic",
     http_client: httpx.Client | None = None,
 )
 
@@ -116,3 +114,10 @@ Backend tests cover:
 - Tavily failures remain explicit and never fall through to a fake Web success unless the existing composite provider deliberately chooses another real provider.
 - No Tavily credential is tracked or printed.
 - Full pytest, Ruff, React build, and Playwright gates pass.
+
+## Verification Evidence
+
+- Real `provider_smoke.py --web` reported Tavily configured, ready, and real.
+- An isolated application user with no private documents received three HTTPS Tavily sources; trace persisted `requested_provider=web_research`, `actual_provider=tavily`, and `mode=real`.
+- O2 0.0.8 and metasearch 0.1.6 are installed; doctor, local smoke, real JD product search, and AgentMesh O2 provider smoke passed. The installed sub-CLI is SKU-only and remains separate from general Web Research.
+- Full gates passed: 523 pytest, Ruff, 7 Vitest, production build, and 24 Playwright tests.
